@@ -1,17 +1,22 @@
 import Ifui.Views
 
-data TodoAction = ChangeStr String
+EventTy : Type
+EventTy = String
 
-state0 : String
+StateTy : Type
+StateTy = String
+
+state0 : StateTy
 state0 = ""
 
-view : View () (const String) (const TodoAction)
-view = div [] [input [onChange (\_, x => ChangeStr x)], displayText]
+view : View StateTy StringChanges EventTy
+view = div [onChangeTextInput, displayText]
 
-update : () -> String -> TodoAction -> Update () (const String)
-update _ _ (ChangeStr s) = set () s
+update : StateTy -> EventTy -> StringChanges
+update _ s = setString s
 
 main : IO ()
 main =
   do
-    viewloop () state0 view update
+    viewloop state0 view update
+    pure ()
