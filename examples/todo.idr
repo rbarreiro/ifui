@@ -1,22 +1,19 @@
 import Ifui.Views
 
-EventTy : Type
-EventTy = String
+EventTy : () -> Type
+EventTy = \_ => String
 
-StateTy : Type
-StateTy = String
+StateTy : () -> Type
+StateTy = \_ => String
 
-state0 : StateTy
-state0 = ""
-
-view : View StateTy StringChanges EventTy
+view : View () (\x,y => StringChanges () x y) StateTy EventTy
 view = div [onChangeTextInput, displayText]
 
-update : StateTy -> EventTy -> StringChanges
-update _ s = setString s
+update : (x:()) -> StateTy x -> EventTy x -> (y:() ** StringChanges () x y)
+update _ _ str = (() ** setString str)
 
 main : IO ()
 main =
   do
-    viewloop state0 view update
+    viewloop () "" view update
     pure ()

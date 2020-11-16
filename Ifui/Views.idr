@@ -6,96 +6,93 @@ import public Ifui.Changes
 import Data.List
 import Data.IORef
 
+mutual
+  export
+  data View : (a : Type) -> (a->a->Type) -> (a->Type) -> (a->Type) -> Type where
+    MkView : (DomNode -> (x:a) -> g x -> UpdateHandler a h -> IO ()) ->
+             (DomNode -> (x:a) -> (y:a) -> f x y -> UpdateHandler a h -> IO ()) ->
+             View a f g h
+
+  data UpdateHandler : (a : Type) -> (a->Type) -> Type where
+    MkUpdateHandler : ((x:a) -> (y:a) -> f x y -> g x -> g y) ->
+                      DomNode ->
+                      View a f g h ->
+                      ((x:a) -> g x -> h x -> (y:a ** f x y)) ->
+                      IORef (DPair a g) ->
+                      UpdateHandler a h
+
+
+viewRoot : UpdateHandler a h -> IO DomNode
+viewRoot (MkUpdateHandler _ r _ _ _) = firstElementChild r
+
+updateViewConstEvent : UpdateHandler a (const t) -> t -> IO()
+updateViewConstEvent uh@(MkUpdateHandler calcChanges _ (MkView _ update) calcUpdate ref) e =
+  do
+    (x ** s) <- readIORef ref
+    let (y ** changes) = calcUpdate x s e
+    update !(viewRoot uh) x y changes uh
+    writeIORef ref (y ** (calcChanges x y changes s))
 
 export
-data View : Type -> Type -> Type -> Type where
-  MkView : (DomNode -> a -> (c -> IO ()) -> IO ()) ->
-           (DomNode -> b -> (c -> IO ()) -> IO ()) ->
-           View a b c
+viewloop : DChanges a f g => (x:a) -> (g x) -> View a f g h -> ((x:a) -> g x -> h x -> (y:a ** f x y)) -> IO ()
+viewloop x0 s0 view@(MkView init update) calcUpdate =
+  do
+    b <- body
+    n <- createElement "div"
+    s <- newIORef (x0 ** s0)
+    let updateHandler = MkUpdateHandler applyDChanges n view calcUpdate s
+    appendChild b n
+    init n x0 s0 updateHandler
+    pure ()
 
-record ViewHandler a b c where
-  constructor MkViewHandler
-  node : DomNode
-  view : View a b c
-  calcUpdate : a -> c -> b
-  state : IORef a
+
+------
 
 export
-displayText : View String StringChanges b
+displayText : View a (\x,y => StringChanges a x y) (const String) h
 displayText =
   MkView init update
   where
-    init : DomNode -> String -> (c -> IO ()) -> IO ()
-    init r s0 _ =
+    init : DomNode -> (x : a) -> String -> UpdateHandler a h -> IO ()
+    init r _ s0 _ =
       do
         n <- createElement "span"
         setTextContent s0 n
         appendChild r n
-    update : DomNode -> StringChanges -> (c -> IO ()) -> IO ()
-    update n (setString x) _ =
-      setTextContent x n
+    update : DomNode -> (x:a) -> (y:a) -> StringChanges a x y -> UpdateHandler a h -> IO ()
+    update n x y (setString str) _ = setTextContent str n
 
 export
-onChangeTextInput : View a b String
+onChangeTextInput : View a f g (const String)
 onChangeTextInput =
   MkView init update
   where
-    init : DomNode -> a -> (String -> IO ()) -> IO ()
-    init r _ procEvent =
+    init : DomNode -> (x : a) -> g x -> UpdateHandler a (const String) -> IO ()
+    init r _ _ uh =
       do
         n <- createElement "input"
-        addEventListener "change" (\e => targetValue e >>= procEvent) n
+        addEventListener "change" (\e => targetValue e >>= updateViewConstEvent uh) n
         appendChild r n
-    update : DomNode -> b -> (String -> IO ()) -> IO ()
-    update _ _ procEvent = pure ()
+    update : DomNode -> (x : a) -> (y : a) -> f x y -> UpdateHandler a (const String) -> IO ()
+    update _ _ _ _ uh = pure ()
 
 export
-container : String -> List (View a b c) -> View a b c
+container : String -> List (View a f g h) -> View a f g h
 container tag views =
   MkView init update
   where
-    init : DomNode -> a -> (c -> IO ()) -> IO ()
-    init r s0 procEvent =
+    init : DomNode -> (x : a) -> g x -> UpdateHandler a h -> IO ()
+    init r x s0 uh =
       do
         n <- createElement tag
-        traverse_ (\(MkView i _) => i n s0 procEvent) views
+        traverse_ (\(MkView i _) => i n x s0 uh) views
         appendChild r n
-    update : DomNode -> b -> (c -> IO ()) -> IO ()
-    update r change procEvent =
+    update : DomNode -> (x : a) -> (y : a) -> f x y -> UpdateHandler a h -> IO ()
+    update r x y change uh =
       do
         childNodes <- getChildren r
-        traverse_ (\(n, (MkView _ u)) => u n change procEvent) (zip childNodes views)
+        traverse_ (\(n, (MkView _ u)) => u n x y change uh) (zip childNodes views)
 
 export
-div : List (View a b c) -> View a b c
+div : List (View a f g h) -> View a f g h
 div = container "div"
-
-mutual
-  export
-  changeView : Changes a b => b -> ViewHandler a b c -> IO ()
-  changeView x handler =
-    case handler.view of
-      (MkView _ u) =>
-        do
-          n <- firstElementChild handler.node
-          u n x (procViewEvent handler)
-
-  procViewEvent : Changes a b => ViewHandler a b c -> c -> IO ()
-  procViewEvent handler e =
-    do
-      s <- readIORef handler.state
-      let change = handler.calcUpdate s e
-      writeIORef handler.state (applyChanges s change)
-      changeView change handler
-
-export
-viewloop : Changes a b => a -> View a b c -> (a -> c -> b) -> IO (ViewHandler a b c)
-viewloop s0 view@(MkView init update) u =
-  do
-    b <- body
-    n <- createElement "div"
-    s <- newIORef s0
-    let handler = MkViewHandler n view u s
-    appendChild b n
-    init n s0 (procViewEvent handler)
-    pure handler
