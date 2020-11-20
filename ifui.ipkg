@@ -4,4 +4,5 @@ depends = contrib
 
 modules = Ifui.Views,
           Ifui.Dom,
-          Ifui.Changes
+          Ifui.Changes,
+          Ifui.HtmlViews

@@ -1,23 +1,63 @@
 module Ifui.Changes
 
-import Data.Vect
-
-export
-interface DChanges (a : Type) (f : a->a->Type) (g:a->Type) where
-  applyDChanges : (x:a) -> (y:a) -> f x y -> g x -> g y
+import Data.HVect
+import Data.List
 
 public export
-data VectChanges : Type -> Nat -> Nat -> Type where
-  setVect : (Vect m a) -> VectChanges a n m
+data Tree a = Node a (List (Tree a))
 
 public export
-data StringChanges : (a:Type) -> a -> a -> Type where
-  setString : String -> StringChanges a b c
+record Event where
+  constructor MkEvent
+  targetValue : String
+
+public export
+EventListener : Type -> Type
+EventListener = \a => (String, Event -> a)
+
+public export
+record XmlNode a where
+  constructor MkXmlNode
+  tag : String
+  attributes : List (String, String)
+  eventListeners : List (EventListener a)
+  text : String
+
+public export
+XmlTree : Type -> Type
+XmlTree = \a => Tree (XmlNode a)
+
+public export
+data Changes : Type -> Type -> Type where
+  set : b -> Changes a b
+  updateNodeValue : Changes a a -> Changes (Tree a) (Tree a)
+  updateXmlNodeText : Changes String String -> Changes (XmlNode a) (XmlNode a)
+  changeChilds : List (Changes (Tree a) (Tree a)) -> Changes (Tree a) (Tree a)
+  mapChangesMaybe : Changes a a -> Changes (Maybe a) (Maybe a)
+  mapChangesList : Changes a a -> Changes (List a) (List a)
+
+public export
+data View a b = MkView (a -> b) (Changes a a -> Changes b b)
+
+  -- updateAtHVect : Fin n -> Changes (Vect.index i ts) t -> Changes (HVect ts) (HVect (replaceAt i t ts))
 
 export
-DChanges a (\n,m => StringChanges a n m) (\n=>String)  where
-  applyDChanges n m (setString str) x = str
+applyChanges : Changes x y -> x -> y
+applyChanges (set v) w =
+  v
+applyChanges (updateNodeValue c) w =
+  case w of
+    (Node z xs) => Node (applyChanges c z) xs
+applyChanges (updateXmlNodeText c) w =
+  case w of
+    (MkXmlNode tag attrs listeners txt) =>
+      MkXmlNode tag attrs listeners (applyChanges c txt)
+applyChanges (changeChilds cs) w =
+  case w of
+       (Node z xs) => Node z (List.zipWith applyChanges cs xs ++ drop (length cs) xs)
+applyChanges (mapChangesMaybe c) w =
+  map (applyChanges c) w
+applyChanges (mapChangesList c) w =
+  map (applyChanges c) w
 
-export
-DChanges Nat (\n,m => VectChanges b n m) (\n=>Vect n b)  where
-  applyDChanges n m (setVect xs) x = xs
+    -- applyDChanges (updateAtHVect i v) w = ?help w
