@@ -1,19 +1,35 @@
 module Ifui.HtmlViews
 
 import public Ifui.Changes
-import public Ifui.Views
+import Ifui.Views
 import Ifui.Dom
 import Data.IORef
 import Data.List
+import Data.HVect
+import Decidable.Equality
 
 public export
-HtmlView : Type -> Type -> Type
-HtmlView = XmlView
+data HtmlView a b = MkHtmlView (XmlView a b)
+
+public export
+HtmlWidget : Type -> Type
+HtmlWidget a = HtmlView a (a -> Changes a)
+
+xView : HtmlView a b -> XmlView a b
+xView (MkHtmlView x) = x
+
+public export
+data HtmlDView : (a:Type) -> (a->Type) -> (a->Type) -> Type where
+    MkHtmlDView : XmlDView a f g -> HtmlDView a f g
+
+public export
+HtmlDWidget : (a:Type) -> (a->Type) -> Type
+HtmlDWidget a f = HtmlDView a f (\x => f x -> (y:a ** DChanges a f x y))
 
 record UpdateHandler a where
     constructor MkUpdateHandler
-    treeChanges : Changes a a -> Changes (Tree (XmlNode ((a -> Changes a a)))) (Tree (XmlNode ((a -> Changes a a))))
-    state : IORef (a, Tree (XmlNode ((a -> Changes a a))))
+    treeChanges : Changes a -> Changes (Tree (XmlNode ((a -> Changes a))))
+    state : IORef (a, Tree (XmlNode ((a -> Changes a))))
     root : DomNode
 
 
@@ -51,12 +67,16 @@ mutual
             traverse_ (initHtmlChild procEvent n) xs
 
 updateTree : (b -> IO ()) -> DomNode -> Tree (XmlNode b) ->
-              Changes (Tree (XmlNode b)) (Tree (XmlNode b)) -> IO ()
+              Changes (Tree (XmlNode b)) -> IO ()
+updateTree _ _ _ NoChanges =
+    pure ()
 updateTree procEvent n oldTree (set x) =
     do
         n' <- createRootNode x
         initHtmlTree n' procEvent x
         replaceWith n n'
+updateTree _ _ _ (updateNodeValue NoChanges) =
+    pure ()
 updateTree procEvent n oldTree (updateNodeValue (set (MkXmlNode tag attrs listeners txt))) =
     do
         n' <- createElement tag
@@ -69,7 +89,8 @@ updateTree procEvent n oldTree (updateNodeValue (set (MkXmlNode tag attrs listen
         replaceWith n n'
 updateTree procEvent n (Node (MkXmlNode _ _ _ oldTxt) _) (updateNodeValue (updateXmlNodeText x)) =
     do
-        txtNode <- createTextNode (applyChanges x oldTxt)
+        let Right newTxt = applyChanges x oldTxt | Left e => consoleLog e
+        txtNode <- createTextNode newTxt
         replaceWith !(firstChild n) txtNode
 updateTree procEvent n (Node _ oldChilds) (changeChilds c) =
     do
@@ -77,19 +98,21 @@ updateTree procEvent n (Node _ oldChilds) (changeChilds c) =
         sequence_ $ zipWith3 (updateTree procEvent) children oldChilds c
 
 
-updateView : UpdateHandler a -> (a -> Changes a a) -> IO ()
+updateView : UpdateHandler a -> (a -> Changes a) -> IO ()
 updateView uh@(MkUpdateHandler treeChanges state root) f =
     do
         (s, tree) <- readIORef state
         let changes = f s
         let changesT = treeChanges changes
         updateTree (updateView uh) root tree changesT
-        writeIORef state (applyChanges changes s, applyChanges changesT tree)
+        let Right newS = applyChanges changes s | Left e => consoleLog e
+        let Right newT = applyChanges changesT tree | Left e => consoleLog e
+        writeIORef state (newS, newT)
 
 
 export
-startView : a -> HtmlView a (a -> Changes a a) -> IO ()
-startView s0 (MkView f g) =  do
+startView : a -> HtmlWidget a -> IO ()
+startView s0 (MkHtmlView (MkView f g)) =  do
     let startTree = f s0
     n <- createRootNode startTree
     let updateHandler = MkUpdateHandler g !(newIORef (s0, startTree)) n
@@ -101,52 +124,41 @@ startView s0 (MkView f g) =  do
 ------------------------------------------
 
 export
-displayText : XmlView String b
-displayText = textView "span" [] []
+displayText : HtmlView String b
+displayText = MkHtmlView $ textView "span" [] []
 
 export
-onChangeTextInput : (String -> b) -> XmlView a b
-onChangeTextInput f = nodeView "input" [] [("change", \e => f e.targetValue)] []
+onChangeTextInput : (String -> b) -> HtmlView a b
+onChangeTextInput f = MkHtmlView $ nodeView "input" [] [("change", \e => f e.targetValue)] []
 
 export
-div : List (XmlView a b) -> XmlView a b
-div xs = nodeView "div" [] [] xs
+div : List (HtmlView a b) -> HtmlView a b
+div xs = MkHtmlView $ nodeView "div" [] [] (map xView xs)
 
 
+export
+fieldView : (j : Fin k) -> HtmlView (index j ts) b -> HtmlView (HVect ts) b
+fieldView j (MkHtmlView x) = MkHtmlView $ fieldView j x
 
---
--- export
--- button : ((x:a) -> h x) -> String -> View a f g h
--- button calcEvent label =
---   MkView init update
---   where
---     init : DomNode -> (x : a) -> g x -> UpdateHandler a h -> IO ()
---     init r _ _ uh =
---       do
---         n <- createElement "button"
---         setTextContent label n
---         addEventListener "click" (\e => processDomEvent (\z,()=>calcEvent z) uh ()) n
---         appendChild r n
---     update : DomNode -> (x : a) -> (y : a) -> f x y -> UpdateHandler a h -> IO ()
---     update _ _ _ _ uh = pure ()
---
--- export
--- container : String -> List (View a f g h) -> View a f g h
--- container tag views =
---   MkView init update
---   where
---     init : DomNode -> (x : a) -> g x -> UpdateHandler a h -> IO ()
---     init r x s0 uh =
---       do
---         n <- createElement tag
---         traverse_ (\(MkView i _) => i n x s0 uh) views
---         appendChild r n
---     update : DomNode -> (x : a) -> (y : a) -> f x y -> UpdateHandler a h -> IO ()
---     update r x y change uh =
---       do
---         childNodes <- getChildren r
---         traverse_ (\(n, (MkView _ u)) => u n x y change uh) (zip childNodes views)
---
--- export
--- div : List (View a f g h) -> View a f g h
--- div = container "div"
+export
+mapEvent : (x -> y) -> HtmlView a x -> HtmlView a y
+mapEvent f (MkHtmlView x) =
+    MkHtmlView $ mapEvent f x
+
+export
+fieldWidget : (j : Fin k) -> HtmlWidget (index j ts) -> HtmlWidget (HVect ts)
+fieldWidget j (MkHtmlView x) =  MkHtmlView $ fieldWidget j x
+
+------------------------------------------
+
+export
+displayTextD : HtmlDView a (const String) g
+displayTextD = MkHtmlDView $ textViewD "span" [] []
+
+export
+vectUlLiD : HtmlDView Nat (const a) g -> HtmlDView Nat (\n=>Vect n a) g
+vectUlLiD (MkHtmlDView x) = MkHtmlDView $ vectViewD "ul" [] [] (nodeViewD "li" [] [] [x])
+
+export
+dWidget : DecEq a => HtmlDWidget a f -> HtmlWidget (DPair a f)
+dWidget (MkHtmlDView x) = MkHtmlView $ dXmlWidget x
