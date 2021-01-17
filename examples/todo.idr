@@ -1,20 +1,28 @@
-import Ifui.HtmlViews
+import Ifui.HtmlTemplates
+import Data.Vect
 
-import Data.HVect
-import Decidable.Equality
+data Action : Nat -> Type where
+  SetInput : String -> Action n
 
-StateTy : Type
-StateTy = HVect [String, (n:Nat ** Vect n String)]
+State : Type
+State = (String, (n:Nat ** Vect n String))
 
-todosView : HtmlWidget (n:Nat ** Vect n String)
-todosView = dWidget $ vectUlLiD $ displayTextD
+ActionTy : State -> Type
+ActionTy = \(_, (n ** _)) => Action n
 
-view : HtmlWidget StateTy
-view = div [ onChangeTextInput (\x,_ => updateHVectAt 0 (set x))
-           , fieldWidget 1 todosView
-           ]
+setInput : (s : State) -> String -> ActionTy s
+setInput (_, (n ** _)) x = SetInput x
+
+view : Template State ActionTy
+view =
+  div
+    [ textInput setInput
+    , textSpan fst
+    ]
+
+update : (s : State) -> ActionTy s -> State
+update (y, (n ** v)) (SetInput s) = (s, (n ** v))
 
 main : IO ()
 main =
-  do
-    startView ["", (1 ** ["t1"])] view
+  htmlLoop view ("", (0 ** [])) update

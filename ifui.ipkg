@@ -2,7 +2,6 @@ package ifui
 
 depends = contrib
 
-modules = Ifui.Views,
-          Ifui.Dom,
-          Ifui.Changes,
-          Ifui.HtmlViews
+modules = Ifui.Dom,
+          Ifui.Templates,
+          Ifui.HtmlTemplates

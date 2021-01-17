@@ -7,10 +7,10 @@ export
 data DomEvent = MkEvent AnyPtr
 
 %foreign "browser:lambda: x => console.log(x)"
-prim__consoleLog : String -> PrimIO ()
+prim__consoleLog : AnyPtr -> PrimIO ()
 export
-consoleLog : HasIO io => String -> io ()
-consoleLog x = primIO $ prim__consoleLog x
+consoleLog : HasIO io => a -> io ()
+consoleLog x = primIO $ prim__consoleLog (believe_me x)
 
 %foreign "browser:lambda: tag => document.createElement(tag)"
 prim__createElement : String -> PrimIO AnyPtr
@@ -105,3 +105,9 @@ prim__removeAllChildren : AnyPtr -> PrimIO ()
 export
 removeAllChildren : HasIO io => DomNode -> io ()
 removeAllChildren (MkNode x) = primIO $ prim__removeAllChildren x
+
+%foreign "browser:lambda: (n, t) => n.textContent=t"
+prim__setTextContent : AnyPtr -> String -> PrimIO ()
+export
+setTextContent : HasIO io => DomNode -> String -> io ()
+setTextContent (MkNode x) s = primIO $ prim__setTextContent x s
