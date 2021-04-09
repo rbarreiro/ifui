@@ -12,17 +12,41 @@ div : List (Template a h) -> Template a h
 div = TemplateNode "div" []
 
 export
-textInput : ((x : a) -> String -> h x) -> Template a h
-textInput f = TemplateNode "input" [TargetValueEventListener "change" f] []
+textInput : (a -> String) -> ((x : a) -> String -> h x) -> Template a h
+textInput val f = TemplateNode "input" [DynStringAttribute "value" val, TargetValueEventListener "change" f] []
 
-hDom : TDom DomNode
+export
+button : String -> ((x : a) -> h x) -> Template a h
+button lbl f = TemplateNode "button" [EmptyEventListener "click" f] [textSpan $ const lbl]
+
+export
+ul : (a -> List b) -> Template (a, b) (h . Builtin.fst) -> Template a h
+ul = ListTemplate "ul"
+
+export
+li : List (Template a h) -> Template a h
+li = TemplateNode "li" []
+
+hDom : ADom DomNode
 hDom =
-  MkTDom
+  MkADom
     createChild
     setTextContent
-    setAttribute
+    setAttr
+    getAttr
     addTargetValueEventListener
+    addEmptyEventListener
+    removeNode
+    (\n => createChild n "span")
   where
+    getAttr : DomNode -> String -> IO String
+    getAttr n k =
+      if k == "value" then getValue n
+                      else getAttribute n k
+    setAttr : DomNode -> String -> String -> IO ()
+    setAttr n k v =
+      if k == "value" then setValue n v
+                      else setAttribute n k v
     createChild : DomNode -> String -> IO DomNode
     createChild n tag =
       do
@@ -32,6 +56,9 @@ hDom =
     addTargetValueEventListener : DomNode -> String -> (String -> IO ()) -> IO ()
     addTargetValueEventListener n x f =
       addEventListener x (\w => targetValue w >>= f) n
+    addEmptyEventListener : DomNode -> String -> IO () -> IO ()
+    addEmptyEventListener n x f =
+      addEventListener x (\_ => f) n
 
 export
 htmlLoop : Template a h ->

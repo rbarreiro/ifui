@@ -42,11 +42,29 @@ export
 body : HasIO io => io DomNode
 body = MkNode <$> (primIO $ prim__body ())
 
-%foreign "browser:lambda: (x, k,v) => {n.setAttribute(k,v)}"
+%foreign "browser:lambda: (n, k, v) => n.setAttribute(k,v)"
 prim__setAttribute : AnyPtr -> String -> String -> PrimIO ()
 export
 setAttribute : HasIO io => DomNode -> String -> String -> io ()
 setAttribute (MkNode n) k v = primIO $ prim__setAttribute n k v
+
+%foreign "browser:lambda: (n, k) => n.getAttribute(k)"
+prim__getAttribute : AnyPtr -> String -> PrimIO String
+export
+getAttribute : HasIO io => DomNode -> String -> io String
+getAttribute (MkNode n) k = primIO $ prim__getAttribute n k
+
+%foreign "browser:lambda: n => n.value"
+prim__getValue : AnyPtr -> PrimIO String
+export
+getValue : HasIO io => DomNode -> io String
+getValue (MkNode n) = primIO $ prim__getValue n
+
+%foreign "browser:lambda: (n, v) => n.value = v"
+prim__setValue : AnyPtr -> String -> PrimIO ()
+export
+setValue : HasIO io => DomNode -> String -> io ()
+setValue (MkNode n) v = primIO $ prim__setValue n v
 
 %foreign "browser:lambda: (event, callback, node) => node.addEventListener(event, x=>callback(x)())"
 prim__addEventListener : String -> (AnyPtr -> PrimIO ()) -> AnyPtr -> PrimIO ()
@@ -111,3 +129,9 @@ prim__setTextContent : AnyPtr -> String -> PrimIO ()
 export
 setTextContent : HasIO io => DomNode -> String -> io ()
 setTextContent (MkNode x) s = primIO $ prim__setTextContent x s
+
+%foreign "browser:lambda: n => n.remove()"
+prim__removeNode : AnyPtr -> PrimIO ()
+export
+removeNode : HasIO io => DomNode -> io ()
+removeNode (MkNode x) = primIO $ prim__removeNode x
