@@ -66,12 +66,14 @@ export
 setValue : HasIO io => DomNode -> String -> io ()
 setValue (MkNode n) v = primIO $ prim__setValue n v
 
-%foreign "browser:lambda: (event, callback, node) => node.addEventListener(event, x=>callback(x)())"
-prim__addEventListener : String -> (AnyPtr -> PrimIO ()) -> AnyPtr -> PrimIO ()
+%foreign "browser:lambda: (event, callback, node) =>{const f = x=>callback(x)(); node.addEventListener(event, f); return () => node.removeEventListener(event, f);}"
+prim__addEventListener : String -> (AnyPtr -> PrimIO ()) -> AnyPtr -> PrimIO (PrimIO ())
 export
-addEventListener : HasIO io => String -> (DomEvent -> IO ()) -> DomNode -> io ()
+addEventListener : HasIO io => String -> (DomEvent -> IO ()) -> DomNode -> io (IO ())
 addEventListener event callback (MkNode n) =
-  primIO $ prim__addEventListener event (\ptr => toPrim  $ callback $ MkEvent ptr) n
+  do
+    remove <- primIO $ prim__addEventListener event (\ptr => toPrim  $ callback $ MkEvent ptr) n
+    pure $ primIO remove
 
 %foreign "browser:lambda: e => e.target.value"
 prim__targetValue : AnyPtr -> PrimIO String

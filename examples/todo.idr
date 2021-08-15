@@ -1,4 +1,4 @@
-import Ifui.HtmlTemplates
+import Ifui.Html
 import Data.Vect
 import Data.List
 
@@ -18,13 +18,8 @@ setInput (_, (n ** _)) x = SetInput x
 addTodo : (s : State) -> ActionTy s
 addTodo (_, (n ** _)) = AddTodo
 
-view : Template State ActionTy
-view =
-  div
-    [ textInput fst setInput
-    , button "add" addTodo
-    , ul (\(_, (n ** x)) => toList x) (li [textSpan snd])
-    ]
+view : (s : State) -> Html (ActionTy s)
+view x = textSpan "ola"
 
 update : (s : State) -> ActionTy s -> State
 update (y, (n ** v)) (SetInput s) = (s, (n ** v))
@@ -32,4 +27,4 @@ update (y, (n ** v)) AddTodo = ("", (S n ** y :: v))
 
 main : IO ()
 main =
-  htmlLoop view ("", (1 ** ["todo1"])) update
+  startHtmlView ("", (0 ** [])) update view

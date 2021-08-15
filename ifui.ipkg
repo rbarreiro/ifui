@@ -3,5 +3,5 @@ package ifui
 depends = contrib
 
 modules = Ifui.Dom,
-          Ifui.Templates,
-          Ifui.HtmlTemplates
+          Ifui.Html,
+          Ifui.XDom
