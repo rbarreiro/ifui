@@ -1,7 +1,11 @@
 package ifui
 
+sourceloc = "https://github.com/rbarreiro/ifui.git"
+
+sourcedir = "src"
+
 depends = contrib
 
 modules = Ifui.Dom,
-          Ifui.Html,
-          Ifui.XDom
+          Ifui.Widget,
+          Ifui.VirtualDom
