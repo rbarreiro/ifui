@@ -8,4 +8,5 @@ depends = contrib
 
 modules = Ifui.Dom,
           Ifui.Widget,
-          Ifui.VirtualDom
+          Ifui.VirtualDom,
+          Ifui.Html

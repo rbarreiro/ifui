@@ -3,6 +3,8 @@ module Ifui.Dom
 export
 data DomNode = MkNode AnyPtr
 
+%name DomNode n
+
 export
 data DomEvent = MkEvent AnyPtr
 
