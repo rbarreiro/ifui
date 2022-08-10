@@ -4,15 +4,19 @@ import Ifui
 import Data.Maybe
 import Ifui.ExtensibleRecords
 
+public export
 Reader : Type -> Type
 Reader a = (Maybe a -> Widget (Maybe a))
 
+public export
 interface ReadWidget a  where
   getReader : Reader a
 
+export
 ReadWidget String where
   getReader x = input [value $ fromMaybe "" x, Just <$> onChange] 
 
+export
 {s : String} -> {t : Type} -> ReadWidget t => ReadWidget (Entry s t) where
   getReader x = 
     let rt = the (Reader t) getReader
@@ -21,12 +25,14 @@ ReadWidget String where
                   (Just (MkEntry _ z)) => Just z
     in span [] [text s, (\w => MkEntry s <$> w) <$> rt ti]
 
---ReadWidget (Record []) where
---  getReader x = empty
+export
+ReadWidget (Record []) where
+  getReader x = neutral
 
+readerPair : Reader a -> Reader b -> Reader (a, b)
+readerPair f g x = ?readerPair_rhs
 
---(HasForm t, HasForm (Record ts)) => HasForm (Ifui.ExtensibleRecords.Record ((s,t) :: ts)) where
---  getForm x = 
---    span [] [
---      ?h
---    ]
+export
+(ReadWidget (Entry s t), ReadWidget (Record ts)) => ReadWidget (Record ((s,t) :: ts)) where
+  getReader Nothing = ?h_1
+  getReader (Just x) = ?h_2

@@ -27,16 +27,40 @@ mutual
   public export
   record VNodes where
     constructor MkVNodes
-    parent : VNode
+    parent : IORef DomNode
     nodes : IORef (List VNode)
 
 export
-updateVNodes : VNodes -> List (VNode -> IO ())  -> IO ()
+createEmptyVNodes : DomNode -> IO VNodes
+createEmptyVNodes n =
+  pure $ MkVNodes !(newIORef n) !(newIORef [])
 
---setNodeChildren : VNode -> 
---export
---data VNode = MkVNode (IORef DomNode) (IORef VNodeRep) (IORef (List VNode))
---
+
+export 
+createEmptyVNode : DomNode -> IO VNode
+createEmptyVNode n = 
+  do
+    new <- createElement "span"
+    appendChild n new
+    domNode <- newIORef new
+    pure $ MkVNode domNode !(newIORef $ VNodeNode "span" []) (MkVNodes domNode !(newIORef []))
+
+export
+cleanVNode : VNode -> IO ()
+cleanVNode (MkVNode x _ _) = 
+  readIORef x >>= removeNode 
+
+export
+updateVNodes : VNodes -> List (VNode -> IO ())  -> IO ()
+updateVNodes ns xs = 
+  do
+    n <- readIORef ns.parent
+    oldNodes <- readIORef ns.nodes
+    sequence_ $ zipWith ($) xs oldNodes
+    added <- sequence $ (\s => do nn <- createEmptyVNode n; s nn; pure nn) <$> drop (length oldNodes) xs
+    sequence_ $ cleanVNode <$> drop (length xs) oldNodes
+    writeIORef ns.nodes (take (length xs) oldNodes  ++ added)
+
 export
 setNodeText : VNode -> String -> IO ()
 setNodeText node y = 
@@ -143,33 +167,5 @@ setNodeAttributes node xs =
                               sequence_ $ removeAttribute n <$> drop (length xs) zs
                               writeIORef node.rep (VNodeNode z (updatedAttrs ++ addedAttrs))
 
---export 
---createEmptyVNode : DomNode -> IO VNode
---createEmptyVNode n = 
---  do
---    new <- createElement "span"
---    appendChild n new
---    pure $ MkVNode !(newIORef new) !(newIORef $ VNodeNode "span" []) !(newIORef [])
---
---export
---cleanVNode : VNode -> IO ()
---cleanVNode (MkVNode x _ _) = 
---  readIORef x >>= removeNode 
---
-export
-setNodeChildren : VNode -> List (VNode -> IO ())  -> IO ()
---setNodeChildren (MkVNode x y ys) xs = 
---  do
---    n <- readIORef x
---    rep <- readIORef y
---    oldNodes <- readIORef ys
---    case rep of
---         (VNodeText z) => pure ()
---         (VNodeNode _ _) => do
---                               sequence_ $ zipWith ($) xs oldNodes 
---                               let updated = take (length xs) oldNodes 
---                               added <- sequence $ (\s => do nn <- createEmptyVNode n; s nn; pure nn) <$> drop (length oldNodes) xs
---                               sequence_ $ cleanVNode <$> drop (length xs) oldNodes
---                               writeIORef ys (updated ++ added)
 
 

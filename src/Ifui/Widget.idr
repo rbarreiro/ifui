@@ -17,16 +17,25 @@ Functor WidgetAttribute where
   map f (WidgetEventListener x g) = WidgetEventListener x (\e => f <$> g e)
 
 export
-Functor Widget where 
+Functor Widget where
   map g (WidgetPure x) = WidgetPure $ g x
-  map g (MarkupWidget xs) = MarkupWidget $ ?mapStart <$> xs
+  map g (MarkupWidget xs) = MarkupWidget $ mapStart <$> xs
   where
-    mapStart : (VNodes -> VNode -> (a -> IO ()) -> IO ()) -> VNodes -> VNode -> (b -> IO ()) -> IO () 
+    mapStart : (VNodes -> VNode -> (a -> IO ()) -> IO ()) -> VNodes -> VNode -> (b -> IO ()) -> IO ()
     mapStart start ns n onEvt = start ns n (\w => onEvt $ g w)
 
+export
+Semigroup (Widget a) where
+  (<+>) (WidgetPure x) y = WidgetPure x
+  (<+>) (MarkupWidget xs) (WidgetPure x) = WidgetPure x
+  (<+>) (MarkupWidget xs) (MarkupWidget ys) = MarkupWidget $ xs <+> ys
+
+export
+Monoid (Widget a) where
+  neutral = MarkupWidget []
 widgetBind : Widget a -> (a -> Widget b) -> Widget b
 widgetBind (WidgetPure x) f = f x
-widgetBind (MarkupWidget xs) f = 
+widgetBind (MarkupWidget xs) f =
   MarkupWidget $ bindStart <$> xs
   where
     convCont : VNodes -> (b -> IO ())  -> (VNodes -> VNode -> (b -> IO ()) -> IO ()) -> VNode -> IO ()
@@ -39,27 +48,46 @@ widgetBind (MarkupWidget xs) f =
     bindStart : (VNodes -> VNode -> (a -> IO ()) -> IO ()) -> VNodes -> VNode -> (b -> IO ()) -> IO ()
     bindStart start ns n onEvt = start ns n (\w => let u = f w in cont ns onEvt u)
 
-widgetPure : a -> Widget a
-widgetPure x = WidgetPure x
+
+widgetLoopState :  s -> (s -> Widget (Either s a)) -> Widget a
+widgetLoopState x f = 
+  widgetBind 
+    (f x)  
+    (\z =>
+          case z of
+               (Left y) => widgetLoopState y f
+               (Right y) => WidgetPure y
+    )
+
+
+
+widgetAp : Widget (a -> b) -> Widget a -> Widget b
+widgetAp x y =
+  widgetLoopState (Nothing, Nothing) step
+  where
+    step : (Maybe (a -> b), Maybe a) -> Widget (Either (Maybe (a -> b), Maybe a) b)
+    step (Just f, Just w)  = 
+      WidgetPure $ Right $ f w
+    step (f, w) = 
+      widgetBind  
+        ((Left <$> x) <+> (Right <$> y))
+        (\z =>
+              case z of
+                   (Left y) => step (Just y, w)
+                   (Right y) => step (f, Just y)
+        )
+
 
 export
 Applicative Widget where
-  pure = widgetPure 
-  (<*>) f x = widgetBind f (\z => widgetBind x (\w => pure $ z w))
+  pure = WidgetPure
+  (<*>) = widgetAp
+   
 
 export
 Monad Widget where
-  (>>=) = widgetBind 
+  (>>=) = widgetBind
 
-export
-Semigroup (Widget a) where
-  (<+>) (WidgetPure x) y = WidgetPure x 
-  (<+>) (MarkupWidget xs) (WidgetPure x) = WidgetPure x
-  (<+>) (MarkupWidget xs) (MarkupWidget ys) = MarkupWidget $ xs <+> ys
-
-export
-Monoid (Widget a) where
-  neutral = MarkupWidget []
 
 export
 text : String -> Widget a
@@ -67,9 +95,9 @@ text x = MarkupWidget [\_, n, _ => setNodeText n x]
 
 export
 node : String -> List (WidgetAttribute a) -> List (Widget a) -> Widget a
-node tag attrs children = 
+node tag attrs children =
   case concat children of
-       (WidgetPure x) => 
+       (WidgetPure x) =>
           WidgetPure x
        (MarkupWidget xs) =>
           MarkupWidget [\ns, n, onEvt => do
@@ -85,11 +113,13 @@ node tag attrs children =
     convAttr onEvt (WidgetSimpleAttribute spec) = SimpleAttribute spec
     convAttr onEvt (WidgetEventListener x g) = EventListener x (\e => g e >>= onEvt)
 
---export
---runWidget : Widget () -> IO ()
---runWidget x = 
---  do
---    n <- createEmptyVNode !body
---    x.start n (\_ => pure ())
-
-
+export
+runWidget : Widget () -> IO ()
+runWidget (WidgetPure x) = pure ()
+runWidget (MarkupWidget xs) =
+  do
+    ns <- createEmptyVNodes !body
+    updateVNodes ns (runone ns <$> xs)
+    where
+      runone : VNodes -> (VNodes -> VNode -> (() -> IO ()) -> IO ()) -> VNode -> IO ()
+      runone x f y = f x y (\_ => pure ())

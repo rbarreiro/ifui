@@ -58,5 +58,8 @@ span : List (HtmlAttribute SpanAttribute a) -> List (Widget a) -> Widget a
 span xs ys = node "span" (unwrapHtmlAttribute <$> xs) ys
 
 export
-empty : Widget a
-empty = span [] []
+data DivAttribute : Type where
+export
+div : List (HtmlAttribute DivAttribute a) -> List (Widget a) -> Widget a
+div xs ys = node "div" (unwrapHtmlAttribute <$> xs) ys
+
