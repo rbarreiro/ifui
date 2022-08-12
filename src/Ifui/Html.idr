@@ -1,6 +1,7 @@
 module Ifui.Html
 
 import Ifui.Widget
+import Ifui.Patterns
 
 export
 data HtmlAttribute f a = MkHtmlAttribute (WidgetAttribute a)
@@ -62,4 +63,18 @@ data DivAttribute : Type where
 export
 div : List (HtmlAttribute DivAttribute a) -> List (Widget a) -> Widget a
 div xs ys = node "div" (unwrapHtmlAttribute <$> xs) ys
+
+export
+data FormAttribute : Type where
+export
+form : List (HtmlAttribute FormAttribute a) -> (a -> Widget a) -> a -> Widget a
+form attrs children s = 
+  loopState
+    s
+    (\x => node "form" 
+             (
+               (WidgetEventListener "submit" (\e =>do preventDefault e; pure $ Right x)) :: 
+                                                      (unwrapHtmlAttribute <$> (\w => Right <$> w)  <$> attrs)
+             ) 
+             [Left <$> children x] )
 

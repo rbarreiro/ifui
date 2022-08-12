@@ -83,6 +83,12 @@ export
 targetValue : HasIO io => DomEvent -> io String
 targetValue (MkEvent x) = primIO $ prim__targetValue x
 
+%foreign "browser:lambda: e => e.preventDefault()"
+prim__preventDefault : AnyPtr -> PrimIO ()
+export
+preventDefault : HasIO io => DomEvent -> io ()
+preventDefault (MkEvent x) = primIO $ prim__preventDefault x
+
 %foreign "browser:lambda: n => BigInt(n.length)"
 prim__length : AnyPtr -> PrimIO Int
 %foreign "browser:lambda: (i,xs) => xs[i]"
