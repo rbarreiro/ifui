@@ -137,7 +137,7 @@ updateAttribute n new@(SimpleAttribute newSpec) old@(VSimpleAttribute oldSpec) =
           if x == y 
              then pure old 
              else do
-               setValue n y
+               setValue n x
                pure $ VSimpleAttribute newSpec
        (_, _) =>
           do

@@ -62,6 +62,10 @@ widgetLoopState x f =
 
 
 widgetAp : Widget (a -> b) -> Widget a -> Widget b
+widgetAp x (WidgetPure y) =
+  (\z => z y) <$> x
+widgetAp (WidgetPure x) y =
+  x <$> y
 widgetAp x y =
   widgetLoopState (Nothing, Nothing) step
   where

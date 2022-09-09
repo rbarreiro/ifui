@@ -1,10 +1,19 @@
 module Main
 
 import Ifui
+import Ifui.ReadWidget
+import Ifui.ExtensibleRecords
 
-vars : Type
-vars = Record [("a" : Double), ("b" : Double), ("c" : Double)]
+Vars : Type
+Vars = Record [("a", Double), ("b", Double), ("c", Double)]
+
+varsReader : Reader Vars
+varsReader = getReader
+
+mainWidget : Widget a
+mainWidget =
+  loopForever Nothing (\x => Just <$> varsReader x)
 
 main : IO ()
-main = runWidget $ ?h
+main = runWidget $ mainWidget
 
