@@ -31,6 +31,16 @@ interface Value a where
 value_ : String -> WidgetAttribute b
 value_ x = WidgetSimpleAttribute $ ValueAttr x
 
+public export
+interface Class_ a where
+  class_ : String -> HtmlAttribute a b
+
+class__ : String -> WidgetAttribute b
+class__ x = WidgetSimpleAttribute $ CSSClassAttr x
+
+type__ : String -> WidgetAttribute b
+type__ x = WidgetSimpleAttribute $ StringAttr "type" x
+
 export
 data ButtonAttribute : Type where
 export
@@ -41,16 +51,16 @@ button : List (HtmlAttribute ButtonAttribute a) -> List (Widget a) -> Widget a
 button xs ys = node "button" (unwrapHtmlAttribute <$> xs) ys
 
 export
-data InputAttribute : Type where
+data TextInputAttribute : Type where
 export
-OnChange InputAttribute where
+OnChange TextInputAttribute where
   onChange = MkHtmlAttribute $ onChange_
 export
-Value InputAttribute where
+Value TextInputAttribute where
   value x = MkHtmlAttribute $ value_ x
 export
-input : List (HtmlAttribute InputAttribute a) -> Widget a
-input xs = node "input" (unwrapHtmlAttribute <$> xs) []
+textInput : List (HtmlAttribute TextInputAttribute a) -> Widget a
+textInput xs = node "input" (type__ "text" :: (unwrapHtmlAttribute <$> xs)) []
 
 export
 data SpanAttribute : Type where
@@ -60,6 +70,9 @@ span xs ys = node "span" (unwrapHtmlAttribute <$> xs) ys
 
 export
 data DivAttribute : Type where
+export
+Class_ DivAttribute where
+  class_ = MkHtmlAttribute . class__
 export
 div : List (HtmlAttribute DivAttribute a) -> List (Widget a) -> Widget a
 div xs ys = node "div" (unwrapHtmlAttribute <$> xs) ys

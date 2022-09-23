@@ -14,7 +14,7 @@ interface ReadWidget a  where
 
 export
 ReadWidget String where
-  getReader x = input [value $ fromMaybe "" x, onChange] 
+  getReader x = textInput [value $ fromMaybe "" x, onChange] 
 
 export
 ReadWidget Double where

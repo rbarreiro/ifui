@@ -14,6 +14,12 @@ export
 consoleLog : HasIO io => a -> io ()
 consoleLog x = primIO $ prim__consoleLog (believe_me x)
 
+%foreign "browser:lambda: x => {throw x}"
+prim__throw : AnyPtr -> PrimIO b
+export
+throw : HasIO io => a -> io b
+throw x = primIO $ prim__throw (believe_me x)
+
 %foreign "browser:lambda: tag => document.createElement(tag)"
 prim__createElement : String -> PrimIO AnyPtr
 export
@@ -145,3 +151,16 @@ prim__removeNode : AnyPtr -> PrimIO ()
 export
 removeNode : HasIO io => DomNode -> io ()
 removeNode (MkNode x) = primIO $ prim__removeNode x
+
+%foreign "browser:lambda: (n, v) => n.classList.add(v)"
+prim__addClass : AnyPtr -> String -> PrimIO ()
+export
+addClass : HasIO io => DomNode -> String -> io ()
+addClass (MkNode n) v = primIO $ prim__addClass n v
+
+%foreign "browser:lambda: (n, v) => n.classList.remove(v)"
+prim__removeClass : AnyPtr -> String -> PrimIO ()
+export
+removeClass : HasIO io => DomNode -> String -> io ()
+removeClass (MkNode n) v = primIO $ prim__removeClass n v
+

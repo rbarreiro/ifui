@@ -7,6 +7,7 @@ import Data.IORef
 public export
 data AttributeSpec = StringAttr String String 
                    | ValueAttr String
+                   | CSSClassAttr String
 
 public export
 data Attribute = SimpleAttribute AttributeSpec
@@ -108,6 +109,9 @@ addAttribute n (SimpleAttribute spec) =
      (ValueAttr x) => do
        setValue n x
        pure $ VSimpleAttribute spec
+     (CSSClassAttr x) => do
+       addClass n x
+       pure $ VSimpleAttribute spec
 addAttribute n (EventListener x f) = 
   do
     remove <- addEventListener x f n
@@ -118,6 +122,7 @@ removeAttribute n (VSimpleAttribute spec) =
   case spec of
        (StringAttr x y) => setAttribute n x ""
        (ValueAttr x) => setValue n ""
+       (CSSClassAttr x) => removeClass n x
 removeAttribute n (VEventListener _ y) = y
 
 updateAttribute : DomNode ->  Attribute -> VAttribute  -> IO VAttribute 
@@ -139,6 +144,12 @@ updateAttribute n new@(SimpleAttribute newSpec) old@(VSimpleAttribute oldSpec) =
              else do
                setValue n x
                pure $ VSimpleAttribute newSpec
+       ((CSSClassAttr x), (CSSClassAttr y)) => 
+          if x == y 
+             then pure old 
+             else do
+                removeAttribute n old
+                addAttribute n new
        (_, _) =>
           do
             removeAttribute n old
