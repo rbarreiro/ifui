@@ -11,6 +11,7 @@ public export
 value : Entry s t -> t
 value (MkEntry s y) = y
 
+infixr 4 ^=
 
 public export
 (^=) : (0 s : String) -> t -> Entry s t

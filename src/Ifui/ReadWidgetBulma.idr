@@ -16,9 +16,11 @@ export
 getWidget : Reader a -> Widget (Reader a)
 getWidget (MkReader x y) = x
 
+Functor Reader where
+  map f (MkReader x y) = MkReader ((\z => f <$> z) <$> x) (f <$> y)
 
 data AltOptions : Vect n (String, Type) -> Type where
-  MkAltOptions : Vect (length z) String -> AltOptions z
+  MkAltOptions : {0 ts : Vect n (String, Type)} -> Vect n String -> Vect n (Reader (Alt ts)) -> AltOptions ts
 
 public export
 interface ReadWidgetBulma a where
@@ -61,43 +63,41 @@ export
              (Right y) => pure $ MkReader (w t y) [|getValue t :: getValue y |]
 
 
-interface AltReader (0 ts : Vect n (String, Type)) where
-  getAltReader : (x : Fin n) -> Maybe (Builtin.snd (Vect.index x ts)) -> Reader (Builtin.snd (Vect.index x ts))  
-  getOptions : AltOptions ts
-
-
-MaybeAltOptionReaderTy : Maybe (Fin n) -> Vect n (String, Type) -> Type
-MaybeAltOptionReaderTy Nothing xs = Reader ()
-MaybeAltOptionReaderTy (Just x) xs = Reader (snd (index x xs))
-
---getReaderBulmaAlt : {0 ts: Vect n (String, Type)} -> AltReader ts =>
---                           (x : Maybe (Fin n)) -> MaybeAltOptionTy x ts -> Widget (Alt ts)
---getReaderBulmaAlt Nothing y = 
---  do
---    let MkAltOptions options = the (AltOptions ts) getOptions
---    x <- selectBulma options Nothing
---    getReaderBulmaAlt (Just (the (Fin n) (rewrite sym (lengthCorrect ts) in x))) Nothing
---getReaderBulmaAlt (Just x) y = ?getReaderBulmaAlt_rhs_2
---
---
 
 getAltIdx : {0 ts : Vect n (String, Type)} ->  Alt ts -> Fin n
 getAltIdx (MkAlt x y) = elemToFin y
 
-altReaderStart : AltReader ts => (x : Maybe (Alt ts)) -> MaybeAltOptionReaderTy (ReadWidgetBulma.getAltIdx <$> x) ts
-altReaderStart Nothing = MkReader neutral Nothing
-altReaderStart (Just (MkAlt x Here)) = ?hhhh_2
-altReaderStart (Just (MkAlt x (There later))) = ?hhhh_3
+interface AltReader (0 ts : Vect n (String, Type)) where
+--  getEmptyAltOptionReader : Fin n -> Reader (Alt {n = n}  ts)
+  getAltOptionReader : Alt ts -> Reader (Alt ts)
+  getOptions : AltOptions ts
+
+AltReader [] where
+  getAltOptionReader (MkAlt _ Here) impossible
+  getAltOptionReader (MkAlt _ (There later)) impossible
+  getOptions = MkAltOptions [] []
+
+{s : String} -> (AltReader ts, ReadWidgetBulma t) => AltReader ((s, t) :: ts) where
+  getAltOptionReader (MkAlt x Here) = ?h2_2 <$> getReaderBulma (Just $ value x)
+  getAltOptionReader (MkAlt x (There later)) = ?h2_3 (the (Reader (Alt ts)) $ getAltOptionReader ?hhhhh )
+
+  getOptions = ?h3
+--    let MkAltOptions options = the (AltOptions ts) getOptions
+--    in MkAltOptions (s :: options)
 
 export
 {0 n : Nat} -> {0 ts : Vect n (String,Type)} -> AltReader ts => ReadWidgetBulma (Alt (ts)) where
   getReaderBulma x = 
-    MkReader (w (getAltIdx <$> x) (altReaderStart x)) x
+    MkReader (w (getAltIdx <$> x) (getAltOptionReader <$> x)) x
     where
-      w :(y : Maybe (Fin n)) -> MaybeAltOptionReaderTy y ts -> Widget (Reader (Alt ts))
-      w Nothing zz = ?h_1 
-      w (Just y) zz = ?h_2
-       -- do
-       -- let MkAltOptions options = the (AltOptions ts) getOptions
-       -- ?h
+      w : Maybe (Fin n) -> Maybe (Reader (Alt ts)) -> Widget (Reader (Alt ts))
+      w opt altreader = 
+        do
+          let MkAltOptions options readers = the (AltOptions ts) getOptions
+          let or = selectBulma options opt
+          let ar = fromMaybe neutral $ getWidget <$> altreader 
+          res <- (Left <$> or) <+> (Right <$> ar)
+          case res of 
+               Left y => pure $ MkReader (w (Just y) (Just $ index y readers)) Nothing
+               Right y => pure $ MkReader (w opt (Just y)) (getValue y)
         
