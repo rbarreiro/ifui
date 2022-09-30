@@ -2,7 +2,7 @@ module Ifui.ReadWidgetBulma
 
 import Ifui
 import Data.Maybe
-import Ifui.ExtensibleRecords
+import public Ifui.ExtensibleRecords
 import Ifui.Bulma
 
 export
@@ -19,6 +19,11 @@ getWidget (MkReader x y) = x
 Functor Reader where
   map f (MkReader x y) = MkReader ((\z => f <$> z) <$> x) (f <$> y)
 
+export
+transformReader : (Widget (Reader a) -> Widget (Reader a)) -> Reader a -> Reader a
+transformReader f (MkReader x y) = 
+  MkReader (f $ transformReader f <$> x ) y
+
 data AltOptions : Vect n (String, Type) -> Type where
   MkAltOptions : {0 ts : Vect n (String, Type)} -> Vect n String -> Vect n (Reader (Alt ts)) -> AltOptions ts
 
@@ -33,8 +38,18 @@ ReadWidgetBulma String where
     where
       w : String -> Widget (Reader String)
       w s = do
-        s_ <- textInputBulma (s)
+        s_ <- textInputBulma s
         pure $ MkReader (w s_)  (Just s_)
+
+export
+ReadWidgetBulma Double where
+  getReaderBulma x = 
+    MkReader (w x) x
+    where
+      w : Maybe Double -> Widget (Reader Double)
+      w s = do
+        s_ <- numberInputBulma s
+        pure $ MkReader (w s_) s_
 
 export
 {s : String} -> ReadWidgetBulma (Entry s String) where
@@ -47,8 +62,18 @@ export
         pure $ MkReader (w z_) (Just $  MkEntry s z_)
     
 export
+{s : String} -> ReadWidgetBulma (Entry s Double) where
+  getReaderBulma x = 
+    MkReader (w $ value <$>x) x
+    where
+      w : Maybe Double -> Widget (Reader (Entry s Double))
+      w z = do
+        z_ <- numberInputBulma {label = Just s} z
+        pure $ MkReader (w z_) (MkEntry s <$> z_)
+
+export
 ReadWidgetBulma (Record []) where
-  getReaderBulma x = MkReader neutral x
+  getReaderBulma x = MkReader neutral (Just Nil)
 
 export
 (ReadWidgetBulma (Entry s t), ReadWidgetBulma (Record ts)) => ReadWidgetBulma (Record ((s,t) :: ts)) where
@@ -67,37 +92,56 @@ export
 getAltIdx : {0 ts : Vect n (String, Type)} ->  Alt ts -> Fin n
 getAltIdx (MkAlt x y) = elemToFin y
 
+export
 interface AltReader (0 ts : Vect n (String, Type)) where
---  getEmptyAltOptionReader : Fin n -> Reader (Alt {n = n}  ts)
   getAltOptionReader : Alt ts -> Reader (Alt ts)
   getOptions : AltOptions ts
 
+export
 AltReader [] where
   getAltOptionReader (MkAlt _ Here) impossible
   getAltOptionReader (MkAlt _ (There later)) impossible
   getOptions = MkAltOptions [] []
 
+export
 {s : String} -> (AltReader ts, ReadWidgetBulma t) => AltReader ((s, t) :: ts) where
-  getAltOptionReader (MkAlt x Here) = ?h2_2 <$> getReaderBulma (Just $ value x)
-  getAltOptionReader (MkAlt x (There later)) = ?h2_3 (the (Reader (Alt ts)) $ getAltOptionReader ?hhhhh )
+  getAltOptionReader (MkAlt x Here) = (\w => MkAlt (MkEntry s w) Here) <$> getReaderBulma (Just $ value x)
+  getAltOptionReader (MkAlt x (There later)) = weakenAlt <$> (the (Reader (Alt ts)) $ getAltOptionReader (MkAlt x later) )
 
-  getOptions = ?h3
---    let MkAltOptions options = the (AltOptions ts) getOptions
---    in MkAltOptions (s :: options)
+  getOptions =
+    let MkAltOptions options readers = the (AltOptions ts) getOptions
+    in  MkAltOptions (s :: options) 
+                     (((\w => MkAlt (MkEntry s w) Here)  <$> (the (Reader t) $ getReaderBulma Nothing)) :: ((map weakenAlt) <$> readers))
 
 export
-{0 n : Nat} -> {0 ts : Vect n (String,Type)} -> AltReader ts => ReadWidgetBulma (Alt (ts)) where
+{0 n : Nat} -> {0 ts : Vect (S n) (String,Type)} -> AltReader ts => ReadWidgetBulma (Alt (ts)) where
   getReaderBulma x = 
-    MkReader (w (getAltIdx <$> x) (getAltOptionReader <$> x)) x
+    MkReader (w (fromMaybe FZ $ getAltIdx <$> x) (getAltOptionReader <$> x)) x
     where
-      w : Maybe (Fin n) -> Maybe (Reader (Alt ts)) -> Widget (Reader (Alt ts))
+      w : Fin (S n) -> Maybe (Reader (Alt ts)) -> Widget (Reader (Alt ts))
       w opt altreader = 
         do
           let MkAltOptions options readers = the (AltOptions ts) getOptions
           let or = selectBulma options opt
-          let ar = fromMaybe neutral $ getWidget <$> altreader 
+          let ar = getWidget $ fromMaybe (index opt readers) altreader 
           res <- (Left <$> or) <+> (Right <$> ar)
           case res of 
-               Left y => pure $ MkReader (w (Just y) (Just $ index y readers)) Nothing
+               Left y => pure $ MkReader (w y Nothing) Nothing
                Right y => pure $ MkReader (w opt (Just y)) (getValue y)
         
+export
+{s : String } -> ReadWidgetBulma (Alt ts) => ReadWidgetBulma (Entry s (Alt ts)) where
+  getReaderBulma x = 
+    MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
+    where
+      f : Widget a -> Widget a
+      f x = fieldsSection s [x]
+
+export
+getFormBulma : ReadWidgetBulma a => {default Nothing startVal : Maybe a} -> Widget (Maybe a)
+getFormBulma = 
+  getRes <$> formBulma getWidget (the (Reader a) $ getReaderBulma startVal)
+  where
+    getRes : Maybe (Reader a) -> Maybe a
+    getRes Nothing = Nothing
+    getRes (Just x) = getValue x
