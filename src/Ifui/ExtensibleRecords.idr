@@ -1,7 +1,6 @@
 module Ifui.ExtensibleRecords
 
-import public Data.Vect
-import public Data.Vect.Elem
+import public Data.List.Elem
 
 public export
 data Entry : String -> Type -> Type where
@@ -18,7 +17,7 @@ public export
 (^=) = MkEntry 
 
 public export
-data Record : Vect n (String, Type) -> Type where
+data Record : List (String, Type) -> Type where
   Nil : Record []
   (::) : Entry s t -> Record ts -> Record ((s,t) :: ts)
 
@@ -36,7 +35,7 @@ export
   show (x :: (y :: r)) = "[" ++ show x  ++ ","  ++ (let z = show (y :: r) in substr 1 (length z) z)
 
 public export
-data Alt : Vect n (String, Type) -> Type where
+data Alt : List (String, Type) -> Type where
   MkAlt : Entry s t -> Elem (s, t) ts  -> Alt ts
 
 public export

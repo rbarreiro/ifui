@@ -2,6 +2,7 @@ module Ifui.ReadWidgetBulma
 
 import Ifui
 import Data.Maybe
+import Data.Vect
 import public Ifui.ExtensibleRecords
 import Ifui.Bulma
 
@@ -24,8 +25,8 @@ transformReader : (Widget (Reader a) -> Widget (Reader a)) -> Reader a -> Reader
 transformReader f (MkReader x y) = 
   MkReader (f $ transformReader f <$> x ) y
 
-data AltOptions : Vect n (String, Type) -> Type where
-  MkAltOptions : {0 ts : Vect n (String, Type)} -> Vect n String -> Vect n (Reader (Alt ts)) -> AltOptions ts
+data AltOptions : List (String, Type) -> Type where
+  MkAltOptions : {0 ts : List (String, Type)} -> Vect (List.length ts) String -> Vect (List.length ts) (Reader (Alt ts)) -> AltOptions ts
 
 public export
 interface ReadWidgetBulma a where
@@ -89,11 +90,15 @@ export
 
 
 
-getAltIdx : {0 ts : Vect n (String, Type)} ->  Alt ts -> Fin n
-getAltIdx (MkAlt x y) = elemToFin y
+listElemToFin : Elem x xs -> Fin (List.length xs)
+listElemToFin Here = FZ
+listElemToFin (There y) = FS $ listElemToFin y
+
+getAltIdx : {0 ts : List (String, Type)} ->  Alt ts -> Fin (List.length ts)
+getAltIdx (MkAlt x y) = listElemToFin y
 
 export
-interface AltReader (0 ts : Vect n (String, Type)) where
+interface AltReader (0 ts : List (String, Type)) where
   getAltOptionReader : Alt ts -> Reader (Alt ts)
   getOptions : AltOptions ts
 
@@ -114,14 +119,14 @@ export
                      (((\w => MkAlt (MkEntry s w) Here)  <$> (the (Reader t) $ getReaderBulma Nothing)) :: ((map weakenAlt) <$> readers))
 
 export
-{0 n : Nat} -> {0 ts : Vect (S n) (String,Type)} -> AltReader ts => ReadWidgetBulma (Alt (ts)) where
-  getReaderBulma x = 
+{0 ts : List (String,Type)} -> AltReader ((s, t) ::ts) => ReadWidgetBulma (Alt ((s,t) :: ts)) where
+  getReaderBulma x = ?hhhhhhh
     MkReader (w (fromMaybe FZ $ getAltIdx <$> x) (getAltOptionReader <$> x)) x
     where
-      w : Fin (S n) -> Maybe (Reader (Alt ts)) -> Widget (Reader (Alt ts))
+      w : Fin (S (List.length ts)) -> Maybe (Reader (Alt ((s, t) ::ts))) -> Widget (Reader (Alt ((s, t) ::ts)))
       w opt altreader = 
         do
-          let MkAltOptions options readers = the (AltOptions ts) getOptions
+          let MkAltOptions options readers = the (AltOptions ((s, t) ::ts)) getOptions
           let or = selectBulma options opt
           let ar = getWidget $ fromMaybe (index opt readers) altreader 
           res <- (Left <$> or) <+> (Right <$> ar)
