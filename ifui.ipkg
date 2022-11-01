@@ -10,5 +10,17 @@ modules = Ifui.Dom,
           Ifui.Widget,
           Ifui.VirtualDom,
           Ifui.Html,
+          Ifui.Bulma,
+          Ifui.ExtensibleRecords,
+          Ifui.Json,
           Ifui.Patterns,
-          Ifui
+          Ifui.ReadWidgetBulma,
+          Ifui.Variant,
+          Ifui,
+          IfuiServer.Http,
+          IfuiServer.MongoDB,
+          IfuiServer.Promise,
+          IfuiServer.Server,
+          IfuiServer.WebSockets,
+          IfuiServer
+

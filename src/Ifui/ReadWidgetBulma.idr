@@ -120,7 +120,7 @@ export
 
 export
 {0 ts : List (String,Type)} -> AltReader ((s, t) ::ts) => ReadWidgetBulma (Alt ((s,t) :: ts)) where
-  getReaderBulma x = ?hhhhhhh
+  getReaderBulma x = 
     MkReader (w (fromMaybe FZ $ getAltIdx <$> x) (getAltOptionReader <$> x)) x
     where
       w : Fin (S (List.length ts)) -> Maybe (Reader (Alt ((s, t) ::ts))) -> Widget (Reader (Alt ((s, t) ::ts)))

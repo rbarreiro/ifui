@@ -1,4 +1,7 @@
 module IfuiServer.Promise
 
-export
-data Promise a = MkPromise ((a -> IO ()) -> IO ())
+public export
+record Promise a where
+  constructor MkPromise
+  run : (a -> IO ()) -> IO ()
+  cancel : IO ()
