@@ -2,6 +2,13 @@ module Ifui.Widget
 
 import public Ifui.VirtualDom
 import public Ifui.Dom
+import public Ifui.Services
+import public Data.List.Elem
+import Ifui.WebSocketsClient
+import Data.IORef
+import Ifui.Json
+import Data.Maybe
+import Data.List
 
 public export
 data WidgetAttribute a = WidgetSimpleAttribute AttributeSpec | WidgetEventListener String  (DomEvent -> IO a)
@@ -9,7 +16,7 @@ data WidgetAttribute a = WidgetSimpleAttribute AttributeSpec | WidgetEventListen
 
 export
 data Widget a = WidgetPure a
-              | MarkupWidget (List (VNodes -> VNode -> (a -> IO ()) -> IO ()))
+              | MarkupWidget (List (VNodes -> VNode -> (a -> IO ()) -> IO ())) -- VNodes are needed for bind to work
 
 export
 Functor WidgetAttribute where
@@ -33,6 +40,7 @@ Semigroup (Widget a) where
 export
 Monoid (Widget a) where
   neutral = MarkupWidget []
+
 widgetBind : Widget a -> (a -> Widget b) -> Widget b
 widgetBind (WidgetPure x) f = f x
 widgetBind (MarkupWidget xs) f =
@@ -116,6 +124,63 @@ node tag attrs children =
     convAttr : (a -> IO ()) -> WidgetAttribute a -> Attribute
     convAttr onEvt (WidgetSimpleAttribute spec) = SimpleAttribute spec
     convAttr onEvt (WidgetEventListener x g) = EventListener x (\e => g e >>= onEvt)
+
+export
+data ServerConnection :  List (String, ServiceKind) -> Type where
+  MkServerConnection : String -> WebSocket -> Server ts -> IORef (Integer) -> IORef (List (String, JSON -> IO ())) -> ServerConnection ts
+
+
+export
+serverConnect : String -> Server ts -> IO (ServerConnection ts)
+serverConnect url server =
+  do
+    ws <- createWebSocket url
+    handles <- newIORef []
+    counter <- newIORef 0
+    setOnMessage ws $ \e =>
+                           do
+                             s <- eventData e
+                             case parse s of
+                                  (Just (JArray [JString i, x])) =>
+                                    do
+                                      h <- readIORef handles
+                                      case lookup i h of
+                                           Nothing => putStrLn $ "Invalid handle id"
+                                           (Just y) => y x
+                                  o => 
+                                    putStrLn ("Invalid request" ++ show o)
+
+    pure $ MkServerConnection url ws server counter handles 
+
+removeHandle : String -> IORef (List (String, JSON -> IO ())) -> IO ()
+removeHandle str x = 
+ do
+   h <- readIORef x
+   writeIORef x (deleteBy (\x, (y,_) => x == y)  str h)
+
+replaceHandle : String -> (JSON -> IO ()) -> IORef (List (String, JSON -> IO ())) -> IO ()
+replaceHandle str r x = 
+ do
+   h <- readIORef x
+   writeIORef x (replaceWhen (\(z,_) => z == str) (str,r) h)
+
+export
+callRPC : {0 a : Type} -> {0 b : Type} ->  ServerConnection ts -> (s : String) -> {auto p : Elem (s, RPC a b) ts} -> a -> Widget b
+callRPC (MkServerConnection url socket srv counter handles) s y = 
+   MarkupWidget [\ns, n, onEvt => 
+                   let MkRPC a2j _ _ j2b _ _ = getService p srv
+                       y_ = a2j y
+                   in setNodePromise n ("rpc/" ++ url ++ "/" ++ show y_) !(newIORef False) $ do
+                     h <- readIORef handles
+                     i <- readIORef counter
+                     let i_ = show i
+                     send socket (show $ JArray [JString s, JString i_, y_])
+                     let procOnEvt = \j =>fromMaybe (putStrLn $ "invalid json in service" ++ s)  (onEvt <$> j2b j)
+                     writeIORef handles ((i_, \j => procOnEvt j >> removeHandle i_ handles)  :: h)
+                     writeIORef counter (i+1)
+                     pure (replaceHandle i_ (\z => pure ()) handles) 
+                ]
+         
 
 export
 runWidget : Widget () -> IO ()

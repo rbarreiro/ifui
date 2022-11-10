@@ -1,12 +1,15 @@
 all: frontend backend
 
-backend:
-	idris2 -p ifui -p contrib --codegen node src/backend.idr -o backend.js
+backend: build-backend
+	cp build/exec/backend.js .
 
 frontend: build-frontend
 	cp build/exec/frontend.js www/
 
+build-backend:
+	idris2 -p ifui -p contrib --codegen node backend.idr -o backend.js
+
 build-frontend:
-	idris2 --codegen javascript src/frontend.idr -o frontend.js
+	idris2 -p ifui -p contrib --codegen javascript frontend.idr -o frontend.js
 
 

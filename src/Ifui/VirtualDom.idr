@@ -16,7 +16,9 @@ data Attribute = SimpleAttribute AttributeSpec
 data VAttribute = VSimpleAttribute  AttributeSpec
                 | VEventListener String (IO ())
 
-data VNodeRep = VNodeText String | VNodeNode String (List VAttribute)
+data VNodeRep = VNodeText String 
+              | VNodeNode String (List VAttribute) 
+              | VNodePromise String (IO ()) (IORef Bool) -- id to ckeck if is the same, cancel and is done flag
 
 mutual
   public export
@@ -66,40 +68,67 @@ export
 setNodeText : VNode -> String -> IO ()
 setNodeText node y = 
   do
-    n <- readIORef node.domNode
     rep <- readIORef node.rep
     case rep of
          (VNodeText w) => if w == y then pure ()
                                      else do
+                                        n <- readIORef node.domNode
                                         setTextContent n y
                                         writeIORef node.rep (VNodeText y)
-         (VNodeNode _ _) => do
-                            new <- createTextNode y
-                            replaceWith n new
-                            writeIORef node.domNode  (new)
-                            writeIORef node.rep (VNodeText y)
-
+         (VNodeNode _ _) => createNewNodeText
+         (VNodePromise _ cancel _) => cancel >> createNewNodeText
+  where
+    createNewNodeText : IO ()
+    createNewNodeText = 
+      do
+        n <- readIORef node.domNode
+        new <- createTextNode y
+        replaceWith n new
+        writeIORef node.domNode  (new)
+        writeIORef node.rep (VNodeText y)
 
 export
 setNodeTag : VNode -> String -> IO ()
 setNodeTag node y = 
   do
-    n <- readIORef node.domNode 
     rep <- readIORef node.rep
     case rep of
-         (VNodeText w) =>
-                         do
-                           new <- createElement y
-                           replaceWith n new
-                           writeIORef node.domNode (new)
-                           writeIORef node.rep (VNodeNode y [])
+         (VNodeText w) => createNewNodeTag
          (VNodeNode w ys) => if w == y then pure ()
-                                       else do
-                                         new <- createElement y
-                                         replaceWith n new
-                                         writeIORef node.domNode (new)
-                                         writeIORef node.rep (VNodeNode y [])
-   
+                                       else createNewNodeTag
+         (VNodePromise _ cancel _) => cancel >> createNewNodeTag
+  where
+    createNewNodeTag : IO ()
+    createNewNodeTag = 
+      do
+        n <- readIORef node.domNode 
+        new <- createElement y
+        replaceWith n new
+        writeIORef node.domNode (new)
+        writeIORef node.rep (VNodeNode y [])
+
+export
+setNodePromise : VNode -> String -> IORef Bool -> IO (IO ()) -> IO ()
+setNodePromise node id isFinished start = 
+  do
+    rep <- readIORef node.rep
+    case rep of
+         (VNodeText w) => createNewNodePromise
+         (VNodeNode w ys) => createNewNodePromise
+         (VNodePromise oldId oldCancel oldIsFinished) => ?h
+
+  where
+    createNewNodePromise : IO ()
+    createNewNodePromise = 
+      do
+        n <- readIORef node.domNode 
+        new <- createElement "span"
+        replaceWith n new
+        writeIORef node.domNode (new)
+        cancel <- start
+        writeIORef node.rep (VNodePromise id cancel isFinished) 
+
+
 addAttribute : DomNode -> Attribute -> IO VAttribute 
 addAttribute n (SimpleAttribute spec) =
  case spec of
@@ -170,7 +199,8 @@ setNodeAttributes node xs =
     n <- readIORef node.domNode 
     rep <- readIORef node.rep
     case rep of
-         (VNodeText z) => pure ()
+         (VNodeText _) => pure ()
+         (VNodePromise _ _ _) => pure ()
          (VNodeNode z zs) => 
                             do
                               updatedAttrs <- sequence (zipWith (updateAttribute n) xs zs)
