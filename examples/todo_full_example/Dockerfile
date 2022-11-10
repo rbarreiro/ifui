@@ -11,8 +11,9 @@ RUN make bootstrap && make install && make clean && make all && make install && 
 RUN echo 'export PATH="/root/.idris2/bin/:${PATH}"' >> "${HOME}/.bashrc" && echo 'alias idris=idris2' >> "${HOME}/.bashrc"
 RUN echo 'export NODE_PATH="`npm root -g`"' >> "${HOME}/.bashrc"
 RUN npm install -g node-static
+RUN npm install -g ws
 WORKDIR /deps
-ARG CACHE_DATE=2022-11-01
+ARG CACHE_DATE=2022-11-10
 RUN git clone https://github.com/rbarreiro/ifui.git
 WORKDIR /deps/ifui
 RUN idris2  --install ifui.ipkg

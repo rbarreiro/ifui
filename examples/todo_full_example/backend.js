@@ -237,7 +237,7 @@ const IfuiServer_Http_prim__listen = ( (server, port) => server.listen(port));
 const IfuiServer_Http_prim__createStaticServer = ( folder => new(require('node-static').Server)(folder));
 const IfuiServer_Http_prim__createHttpServer = ( requestListener => require('http').createServer((req, res) => requestListener(req)(res)()));
 const IfuiServer_WebSockets_prim__wsSend = ( (ws, msg) => ws.send(msg));
-const IfuiServer_WebSockets_prim__startWebSocketsServer = ( port => require('ws').WebSocket.Server({port : port}));
+const IfuiServer_WebSockets_prim__startWebSocketsServer = ( port => {const WebSocket = require('ws'); return new WebSocket.Server({port : port})});
 const IfuiServer_WebSockets_prim__setOnMessage = ( (ws, onMessage) => ws.on('message', (msg) => onMessage(msg)()));
 const IfuiServer_WebSockets_prim__setOnConnection = ( (wss, onConnection) => wss.on('connection', (ws) => onConnection(ws)()) );
 /* {$tcOpt:1} */

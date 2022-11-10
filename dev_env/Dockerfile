@@ -14,5 +14,6 @@ RUN mkdir -p /root/.vim/bundle && cd /root/.vim/bundle && git clone https://gith
 COPY .vimrc /root
 RUN echo 'export NODE_PATH="`npm root -g`"' >> "${HOME}/.bashrc"
 RUN npm install -g node-static
+RUN npm install -g ws
 WORKDIR /app
 CMD ["bash"]

@@ -6,7 +6,7 @@ data WsConnection = MkWsConnection AnyPtr
 export
 data WsServer = MkWsServer AnyPtr
 
-%foreign "node:lambda: port => require('ws').WebSocket.Server({port : port})"
+%foreign "node:lambda: port => {const WebSocket = require('ws'); return new WebSocket.Server({port : port})}"
 prim__startWebSocketsServer : Int -> PrimIO AnyPtr 
 export
 startWebSocketsServer : HasIO io => Int -> io WsServer
