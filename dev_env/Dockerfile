@@ -15,5 +15,6 @@ COPY .vimrc /root
 RUN echo 'export NODE_PATH="`npm root -g`"' >> "${HOME}/.bashrc"
 RUN npm install -g node-static
 RUN npm install -g ws
+RUN npm install -g mongodb
 WORKDIR /app
 CMD ["bash"]

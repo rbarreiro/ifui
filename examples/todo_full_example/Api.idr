@@ -1,14 +1,28 @@
 module Api
 
 import IfuiServer
+import IfuiServer.MongoDB
+
+public export
+DBTy : List (String, String, Type)
+DBTy = [("todoApp", "todoItem", String)]
+
+public export
+Schema : ClientSchema DBTy
+Schema = [MkCollectionSchema "todoApp" "todoItem" String]
 
 public export
 ApiServices : List (String, ServiceKind)
-ApiServices = [("getText", RPC () String)]
+ApiServices = [ ("todoList", RPC () (List String))
+              , ("createTodo", RPC String ())
+              ]
 
 export
-todoApi : Server ApiServices
-todoApi =
-  [ serviceRPC "getText" (\() => pure "ola")
-  ]
+todoApi : MongoClient DBTy -> Server ApiServices
+todoApi mongo  =
+  let todoApp = getDB "todoApp" mongo
+      todoItem = getCollection "todoItem" todoApp 
+  in [ MkRPC "todoList" (\() => find todoItem (\w => TrueLit))
+     , MkRPC "createTodo" (\x => do _ <- insertOne todoItem x; pure ())
+     ]
 

@@ -7,13 +7,12 @@ import Ifui.Bulma
 mainWidget : ServerConnection ApiServices -> Maybe String -> Widget ()
 mainWidget srv Nothing = 
   do
-    val <- callRPC {a=Unit} {b=String} srv "getText" ()
-    mainWidget srv (Just val)
+    val <- callRPC {a=Unit} {b=List String} srv "todoList" ()
+    mainWidget srv (Just $ show val)
 mainWidget srv (Just x) = 
   text x
 
 main : IO ()
 main =
-  do
-    srv <- serverConnect "localhost:6012" todoApi
-    runWidget $ mainWidget srv Nothing
+  serverConnect ("ws://\{!getLocationHostname}:6012") ApiServices $ \srv =>
+      runWidget $ mainWidget srv Nothing

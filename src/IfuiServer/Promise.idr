@@ -24,7 +24,7 @@ setTimeout callback delay =
 
 export
 Applicative Promise where
-  pure x = MkPromise (\w => MkPromiseHandler <$> setTimeout (w x) 0 )
+  pure x = MkPromise (\w => do w x; pure (MkPromiseHandler (pure ())))
   (<*>) f x = MkPromise $ \w =>
                 do
                   fres <- newIORef $ the (Maybe (a -> b)) Nothing
@@ -39,3 +39,12 @@ Applicative Promise where
                          Just f_ =>  w $ f_ x_
                   pure $ MkPromiseHandler $ fh.cancel >> xh.cancel
 
+export
+Monad Promise where
+  (>>=) x y = 
+    MkPromise (\w => do
+                      h <- newIORef $ MkPromiseHandler $ pure ()
+                      h1 <- x.run (\z => do h2 <- (y z).run w; writeIORef h h2)
+                      writeIORef h h1
+                      pure $ MkPromiseHandler (do h_ <- readIORef h; h_.cancel)
+              )

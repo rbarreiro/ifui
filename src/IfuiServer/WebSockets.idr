@@ -25,9 +25,9 @@ export
 wsSend : HasIO io => WsConnection -> String -> io ()
 wsSend (MkWsConnection ws) y = primIO $ prim__wsSend ws y
 
-%foreign "node:lambda: (ws, onMessage) => ws.on('message', (msg) => onMessage(msg)())"
-prim__setOnMessage: AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
+%foreign "node:lambda: (ws, onMessage) => ws.on('message', (msg) => onMessage(msg + '')())"
+prim__setOnMessageStr: AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
 export
-setOnMessage : WsConnection -> (String -> IO ()) -> IO ()
-setOnMessage (MkWsConnection ws) onMessage  = 
-  primIO $ prim__setOnMessage ws (\msg => toPrim $ onMessage msg)
+setOnMessageStr : WsConnection -> (String -> IO ()) -> IO ()
+setOnMessageStr (MkWsConnection ws) onMessage  = 
+  primIO $ prim__setOnMessageStr ws (\msg => toPrim $ onMessage msg)

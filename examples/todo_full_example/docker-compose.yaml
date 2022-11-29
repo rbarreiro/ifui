@@ -1,10 +1,22 @@
 version: "3.8"
 
 services:
-  backend:
+  todo_backend:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 50008:6011
+      - 6011:6011
+      - 6012:6012
 
+
+  todo_mongodb:
+    image:  mongo:latest
+    restart: always
+    volumes:
+      - todos_database:/data/db
+    ports:
+      - 27017:27017
+
+volumes:
+  todos_database:

@@ -127,12 +127,12 @@ node tag attrs children =
 
 export
 data ServerConnection :  List (String, ServiceKind) -> Type where
-  MkServerConnection : String -> WebSocket -> Server ts -> IORef (Integer) -> IORef (List (String, JSON -> IO ())) -> ServerConnection ts
+  MkServerConnection : String -> WebSocket -> (0 ts : List (String, ServiceKind)) -> IORef (Integer) -> IORef (List (String, JSON -> IO ())) -> ServerConnection ts
 
 
 export
-serverConnect : String -> Server ts -> IO (ServerConnection ts)
-serverConnect url server =
+serverConnect : String -> (0 ts : List (String, ServiceKind)) -> (ServerConnection ts -> IO ()) -> IO ()
+serverConnect url server onOpen =
   do
     ws <- createWebSocket url
     handles <- newIORef []
@@ -150,7 +150,7 @@ serverConnect url server =
                                   o => 
                                     putStrLn ("Invalid request" ++ show o)
 
-    pure $ MkServerConnection url ws server counter handles 
+    setOnOpen ws $ onOpen $ MkServerConnection url ws server counter handles 
 
 removeHandle : String -> IORef (List (String, JSON -> IO ())) -> IO ()
 removeHandle str x = 
@@ -165,20 +165,20 @@ replaceHandle str r x =
    writeIORef x (replaceWhen (\(z,_) => z == str) (str,r) h)
 
 export
-callRPC : {0 a : Type} -> {0 b : Type} ->  ServerConnection ts -> (s : String) -> {auto p : Elem (s, RPC a b) ts} -> a -> Widget b
+callRPC : (JsonSerializable a, JsonSerializable b) => ServerConnection ts -> (s : String) -> {auto 0 p : Elem (s, RPC a b) ts} -> a -> Widget b
 callRPC (MkServerConnection url socket srv counter handles) s y = 
    MarkupWidget [\ns, n, onEvt => 
-                   let MkRPC a2j _ _ j2b _ _ = getService p srv
-                       y_ = a2j y
-                   in setNodePromise n ("rpc/" ++ url ++ "/" ++ show y_) !(newIORef False) $ do
-                     h <- readIORef handles
-                     i <- readIORef counter
-                     let i_ = show i
-                     send socket (show $ JArray [JString s, JString i_, y_])
-                     let procOnEvt = \j =>fromMaybe (putStrLn $ "invalid json in service" ++ s)  (onEvt <$> j2b j)
-                     writeIORef handles ((i_, \j => procOnEvt j >> removeHandle i_ handles)  :: h)
-                     writeIORef counter (i+1)
-                     pure (replaceHandle i_ (\z => pure ()) handles) 
+                                 do
+                                    let y_ = toJson y
+                                    setNodePromise n ("rpc/" ++ url ++ "/" ++ show y_) !(newIORef False) $ do
+                                    h <- readIORef handles
+                                    i <- readIORef counter
+                                    let i_ = show i
+                                    send socket (show $ JArray [JString s, JString i_, y_])
+                                    let procOnEvt = \j =>fromMaybe (putStrLn $ "invalid json in service" ++ s)  (onEvt <$> fromJson j)
+                                    writeIORef handles ((i_, \j => procOnEvt j >> removeHandle i_ handles)  :: h)
+                                    writeIORef counter (i+1)
+                                    pure (replaceHandle i_ (\z => pure ()) handles) 
                 ]
          
 

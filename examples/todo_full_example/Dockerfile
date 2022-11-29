@@ -13,7 +13,7 @@ RUN echo 'export NODE_PATH="`npm root -g`"' >> "${HOME}/.bashrc"
 RUN npm install -g node-static
 RUN npm install -g ws
 WORKDIR /deps
-ARG CACHE_DATE=2022-11-10
+ARG CACHE_DATE=2022-11-10_1
 RUN git clone https://github.com/rbarreiro/ifui.git
 WORKDIR /deps/ifui
 RUN idris2  --install ifui.ipkg

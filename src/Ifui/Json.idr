@@ -18,6 +18,13 @@ JsonSerializable () where
 export
 JsonSerializable String where
   toJson x = JString x
+
   fromJson (JString x) = Just x
   fromJson _ = Nothing
 
+export
+JsonSerializable a => JsonSerializable (List a) where
+  toJson x = JArray (map toJson x)
+
+  fromJson (JArray x) = sequence $ map fromJson x
+  fromJson _ = Nothing

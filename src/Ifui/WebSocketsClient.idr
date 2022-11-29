@@ -14,13 +14,19 @@ createWebSocket : HasIO io => String -> io WebSocket
 createWebSocket url = MkWebSockest <$> (primIO $ prim__createWebSocket url)
 
 
-%foreign "browser:lambda: (ws, onMessage) => ws.onmessage((evt) => onMessage(evt)())"
+%foreign "browser:lambda: (ws, onMessage) => {ws.onmessage = (evt) => onMessage(evt)()}"
 prim__setOnMessage: AnyPtr -> (AnyPtr -> PrimIO ()) -> PrimIO ()
 export
 setOnMessage : WebSocket -> (WsEvent -> IO ()) -> IO ()
 setOnMessage (MkWebSockest ws) onMessage  = 
   primIO $ prim__setOnMessage ws (\msg => toPrim $ onMessage $ MkWsEvent msg)
 
+%foreign "browser:lambda: (ws, onOpen) => {ws.onopen = () => onOpen()}"
+prim__setOnOpen: AnyPtr -> (PrimIO ()) -> PrimIO ()
+export
+setOnOpen : WebSocket -> (IO ()) -> IO ()
+setOnOpen (MkWebSockest ws) onOpen = 
+  primIO $ prim__setOnOpen ws (toPrim onOpen)
 
 %foreign "browser:lambda: (ws, msg) => ws.send(msg)"
 prim__send : AnyPtr -> String -> PrimIO ()
