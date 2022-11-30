@@ -121,7 +121,7 @@ find (MkMongoCollection x) f =
   MkPromise $ \w => do
     let cursor = prim__find x (mkJsObj [("$expr", exprToMongo [t] ["ROOT"] (f (Var Here)))]) (mkJsObj []) 
     primIO $ prim__toArray cursor (\z => toPrim $ case the (Maybe (List t)) (fromPtr z) of
-                                                       Nothing => putStrLn "Error reading values from colection \{ptrToString x}"
+                                                       Nothing => putStrLn "Find: error reading values \{ptrToString z}"
                                                        (Just y) => w y
                                   )
     pure $ MkPromiseHandler (pure ())

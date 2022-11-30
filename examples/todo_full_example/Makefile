@@ -12,9 +12,6 @@ build-backend:
 build-frontend:
 	idris2 -p ifui -p contrib --codegen javascript frontend.idr -o frontend.js
 
-run : all
-	node backend.js
-
 clean :
 	rm -rf build
 	rm -f backend.js www/frontend.js
