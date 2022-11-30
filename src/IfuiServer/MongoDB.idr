@@ -14,7 +14,7 @@ data Expr : Vect n Type -> Type -> Type where
     FalseLit : Expr ctxt Bool 
     StringLit : String -> Expr ctxt String 
     StrEq : Expr ctxt String -> Expr ctxt String -> Expr ctxt Bool
-    GetField : (key : String) ->  {auto p : Elem (key, t) fields}  -> Expr ctxt (Record fields) -> Expr ctxt t
+    GetField : (key : String) ->  {auto 0 p : Elem (key, t) fields}  -> Expr ctxt (Record fields) -> Expr ctxt t
 
 litString : String -> AnyPtr
 litString x =
@@ -39,26 +39,26 @@ exprToMongo ctxt name FalseLit =
  jsv2ptr $ toJS False
 
 public export
-data CollectionSchema : String -> String -> Type -> Type where
-  MkCollectionSchema : (d : String) -> (c : String) -> (t : Type) -> CollectionSchema d c t
-  MigrateCollection : (Expr [] (a -> b)) -> CollectionSchema d c a -> CollectionSchema d c b
-  RenameCollection :  (d : String) -> (c : String) -> CollectionSchema d_ c_ t -> CollectionSchema d c t
+data CollectionSchema : String -> String -> List (String, Type) -> Type where
+  MkCollectionSchema : (d : String) -> (c : String) -> (ts : List (String, Type)) -> CollectionSchema d c ts
+  MigrateCollection : (Expr [] (Record ts -> Record rs)) -> CollectionSchema d c ts -> CollectionSchema d c rs
+  RenameCollection :  (d : String) -> (c : String) -> CollectionSchema d_ c_ ts -> CollectionSchema d c ts
 
 public export
-data ClientSchema : List (String, String, Type) -> Type where
+data ClientSchema : List (String, String, List (String, Type)) -> Type where
   Nil : ClientSchema [] 
-  (::) : CollectionSchema d c t -> ClientSchema ts -> ClientSchema ((d, c, t) :: ts)
+  (::) : CollectionSchema d c ts -> ClientSchema rs -> ClientSchema ((d, c, ts) :: rs)
   
 export
-data MongoClient : List (String, String, Type) -> Type where
+data MongoClient : List (String, String, List (String, Type)) -> Type where
   MkMongoClient : AnyPtr -> MongoClient a
 
 export
-data MongoDatabase : List (String, Type) -> Type where
+data MongoDatabase : List (String, List (String, Type)) -> Type where
   MkMongoDatabase : AnyPtr -> MongoDatabase a
 
 export
-data MongoCollection : Type -> Type where
+data MongoCollection : List (String, Type) -> Type where
   MkMongoCollection : AnyPtr -> MongoCollection a
 
 
@@ -77,7 +77,7 @@ createMongoClient s uri =
     pure $ MkPromiseHandler (pure ())
 
 public export
-GetDBTy : String -> List (String, String, Type) ->  List (String, Type)
+GetDBTy : String -> List (String, String, List (String, Type)) ->  List (String, List (String, Type))
 GetDBTy str xs = [(c,t) | (d, c, t) <- xs, d == str]
 
 %foreign "node:lambda: (client, db) => client.db(db)"
@@ -90,7 +90,7 @@ getDB name (MkMongoClient cli) =
 %foreign "node:lambda: (client, collection) => client.collection(collection)"
 prim__getCollection : AnyPtr -> String -> AnyPtr
 export
-getCollection : (name: String) -> MongoDatabase a -> {b : Type} -> {auto p : Elem (name, b) a} -> MongoCollection b
+getCollection : (name: String) -> MongoDatabase a -> {b : List (String, Type)} -> {auto 0 p : Elem (name, b) a} -> MongoCollection b
 getCollection name (MkMongoDatabase db) = 
   MkMongoCollection $ prim__getCollection db name
 
@@ -102,7 +102,7 @@ data InsertResult = MkInsertResult AnyPtr
 prim__insertOne : AnyPtr -> AnyPtr -> (AnyPtr -> PrimIO ()) -> PrimIO ()
 
 export
-insertOne : HasJSValue t => MongoCollection t -> t -> Promise (InsertResult)
+insertOne : HasJSValue (Record ts) => MongoCollection ts -> Record ts -> Promise (InsertResult)
 insertOne (MkMongoCollection x) y = 
   MkPromise $ \w => do
     primIO $ prim__insertOne x (jsv2ptr $ toJS y) (\z => toPrim $ w (MkInsertResult z))
@@ -116,11 +116,11 @@ prim__toArray : AnyPtr -> (AnyPtr -> PrimIO ()) -> PrimIO ()
 
 
 export
-find : HasJSValue t => MongoCollection t -> (Expr [t] t -> Expr [t] Bool) -> Promise (List t)
+find : HasJSValue (Record ts) => MongoCollection ts -> (Expr [Record ts] (Record ts) -> Expr [Record ts] Bool) -> Promise (List (Record ts))
 find (MkMongoCollection x) f = 
   MkPromise $ \w => do
-    let cursor = prim__find x (mkJsObj [("$expr", exprToMongo [t] ["ROOT"] (f (Var Here)))]) (mkJsObj []) 
-    primIO $ prim__toArray cursor (\z => toPrim $ case the (Maybe (List t)) (fromPtr z) of
+    let cursor = prim__find x (mkJsObj [("$expr", exprToMongo [Record ts] ["ROOT"] (f (Var Here)))]) (mkJsObj []) 
+    primIO $ prim__toArray cursor (\z => toPrim $ case the (Maybe (List (Record ts))) (fromPtr z) of
                                                        Nothing => putStrLn "Find: error reading values \{ptrToString z}"
                                                        (Just y) => w y
                                   )

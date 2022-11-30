@@ -26,6 +26,11 @@ export
   show (MkEntry s x) = s ++ "^= " ++ show x
 
 export
+get : (s : String) -> {auto p : Elem (s, t) ts} -> Record ts -> t
+get s {p = Here} ((MkEntry s x) :: y) = x
+get s {p = (There y)} (x :: z) = get s {p = y} z
+
+export
 Show (Record []) where
   show x = "[]"
 

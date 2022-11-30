@@ -3,6 +3,10 @@ module Main
 import Api
 import Ifui
 import Ifui.Bulma
+import Ifui.ReadWidgetBulma
+
+newTodoPrompt : Widget (Maybe (String))
+newTodoPrompt = getFormBulma
 
 mainWidget : ServerConnection ApiServices -> Maybe String -> Widget ()
 mainWidget srv Nothing = 
@@ -10,7 +14,12 @@ mainWidget srv Nothing =
     val <- callRPC {a=Unit} {b=List String} srv "todoList" ()
     mainWidget srv (Just $ show val)
 mainWidget srv (Just x) = 
-  text x
+  do
+    x <- div [] [newTodoPrompt, text x]
+    case x of
+         Nothing => pure ()
+         Just z => callRPC srv "createTodo" z
+    mainWidget srv Nothing
 
 main : IO ()
 main =
