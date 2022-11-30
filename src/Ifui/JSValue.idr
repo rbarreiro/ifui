@@ -103,9 +103,15 @@ HasJSValue t => HasJSValue (List t) where
         (prim__newArray ()) 
         [(let MkJSValue p = toJS x in p) | x <- xs]
   fromJS (MkJSValue ptr)  = 
-    [fromJS (MkJSValue $ prim__arrayGet ptr i) | i <-[0..(prim__arrayLength ptr - 1)]]
+    let len = prim__arrayLength ptr
+    in
+      if len > 0 then 
+        [fromJS (MkJSValue $ prim__arrayGet ptr i) | i <-[0..(prim__arrayLength ptr - 1)]]
+        else []
   checkPtr ptr = 
-    all (\i => (checkPtr {a=t}) $ prim__arrayGet ptr i ) [0..(prim__arrayLength ptr - 1)]
+    let len = prim__arrayLength ptr
+    in prim__isArray ptr > 0 && 
+         (len == 0 || all (\i => (checkPtr {a=t}) $ prim__arrayGet ptr i ) [0..(len - 1)])
 
 export
 mkJsObj : List (String, AnyPtr) -> AnyPtr
