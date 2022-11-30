@@ -1,6 +1,7 @@
 module Ifui.VirtualDom
 
 import Data.List
+import Data.String
 import Ifui.Dom
 import Data.IORef
 
@@ -32,6 +33,30 @@ mutual
     constructor MkVNodes
     parent : IORef DomNode
     nodes : IORef (List VNode)
+
+export
+Show VNodeRep where
+  show (VNodeText str) = "VNodeText '\{str}'"
+  show (VNodeNode str xs) = "VNodeNode '\{str}'"
+  show (VNodePromise str x y) = "VNodePromise '\{str}'"
+
+mutual
+  export
+  printVNode : VNode -> IO String
+  printVNode x = 
+    do
+      rep <- readIORef x.rep
+      childrenStr <- printVNodes x.children
+      pure "{rep: \{show rep}, children: \{childrenStr}}"
+      
+  export
+  printVNodes : VNodes -> IO String
+  printVNodes x = 
+    do
+      nodes <- readIORef x.nodes
+      nodesStrs <- sequence $ map printVNode nodes
+      let nodesS = joinBy ", " nodesStrs
+      pure "[\{nodesS}]"
 
 export
 createEmptyVNodes : DomNode -> IO VNodes
@@ -121,11 +146,16 @@ setNodePromise node id isFinished start =
                                                         if oldId == id then
                                                                        do
                                                                          done <- readIORef oldIsFinished
-                                                                         if done then createNewNodePromise 
+                                                                         if done then replacePromise 
                                                                                  else pure ()
-                                                                       else createNewNodePromise 
+                                                                       else oldCancel >> replacePromise  
 
   where
+    replacePromise : IO ()
+    replacePromise = 
+      do
+        cancel <- start
+        writeIORef node.rep (VNodePromise id cancel isFinished) 
     createNewNodePromise : IO ()
     createNewNodePromise = 
       do
