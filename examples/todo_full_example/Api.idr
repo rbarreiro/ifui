@@ -4,12 +4,12 @@ import IfuiServer
 import IfuiServer.MongoDB
 
 public export
-DBTy : List (String, String, Type)
-DBTy = [("todoApp", "todoItem", [("desc": String)])]
+DBTy : List (String, String, List (String, Type))
+DBTy = [("todoApp", "todoItem", [("desc", String)])]
 
 public export
 Schema : ClientSchema DBTy
-Schema = [MkCollectionSchema "todoApp" "todoItem"  [("desc": String)]]
+Schema = [MkCollectionSchema "todoApp" "todoItem"  [("desc", String)]]
 
 public export
 ApiServices : List (String, ServiceKind)
@@ -22,7 +22,10 @@ todoApi : MongoClient DBTy -> Server ApiServices
 todoApi mongo  =
   let todoApp = getDB "todoApp" mongo
       todoItem = getCollection "todoItem" todoApp 
-  in [ MkRPC "todoList" (\() => map (get "desc") $ find todoItem (\w => TrueLit))
+      todoListFind : Promise (List (Record [("desc", String)]))
+      todoListFind =  find todoItem (\w => TrueLit)
+  in [ MkRPC "todoList" (\() => map (get "desc") <$> todoListFind)
      , MkRPC "createTodo" (\x => do _ <- insertOne todoItem ["desc" ^= x]; pure ())
      ]
+  where
 

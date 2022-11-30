@@ -113,9 +113,17 @@ setNodePromise node id isFinished start =
   do
     rep <- readIORef node.rep
     case rep of
-         (VNodeText w) => createNewNodePromise
-         (VNodeNode w ys) => createNewNodePromise
-         (VNodePromise oldId oldCancel oldIsFinished) => ?h
+         (VNodeText w) => 
+                         createNewNodePromise
+         (VNodeNode w ys) => 
+                            createNewNodePromise
+         (VNodePromise oldId oldCancel oldIsFinished) => 
+                                                        if oldId == id then
+                                                                       do
+                                                                         done <- readIORef oldIsFinished
+                                                                         if done then createNewNodePromise 
+                                                                                 else pure ()
+                                                                       else createNewNodePromise 
 
   where
     createNewNodePromise : IO ()
