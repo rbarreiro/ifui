@@ -6,8 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 6011:6011
-      - 6012:6012
+      - 6401:6401
+      - 6402:6402
 
 
   todo_mongodb:
@@ -16,7 +16,7 @@ services:
     volumes:
       - todos_database:/data/db
     ports:
-      - 27017:27017
+      - 6403:27017
 
 volumes:
   todos_database:

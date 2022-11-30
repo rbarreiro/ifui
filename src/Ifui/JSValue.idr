@@ -114,3 +114,10 @@ mkJsObj xs = foldl (\ptr, (key, val) => prim__setItem ptr key val) (prim__newObj
 export
 mkJsArray : List AnyPtr -> AnyPtr
 mkJsArray xs = foldl (\ptr, val => prim__arrayAppend val ptr) (prim__newArray ()) xs
+
+%foreign "javascript:lambda: x => x+''"
+prim__ptrToString : AnyPtr -> String
+export
+ptrToString : AnyPtr -> String
+ptrToString = prim__ptrToString
+

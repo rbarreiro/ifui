@@ -14,5 +14,5 @@ mainWidget srv (Just x) =
 
 main : IO ()
 main =
-  serverConnect ("ws://\{!getLocationHostname}:6012") ApiServices $ \srv =>
+  serverConnect ("ws://\{!getLocationHostname}:6402") ApiServices $ \srv =>
       runWidget $ mainWidget srv Nothing

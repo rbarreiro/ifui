@@ -114,12 +114,15 @@ prim__find : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr
 %foreign "node:lambda: (cursor, callback)  => cursor.toArray().then(\w => callback(w)())"
 prim__toArray : AnyPtr -> (AnyPtr -> PrimIO ()) -> PrimIO ()
 
+
 export
 find : HasJSValue t => MongoCollection t -> (Expr [t] t -> Expr [t] Bool) -> Promise (List t)
 find (MkMongoCollection x) f = 
   MkPromise $ \w => do
     let cursor = prim__find x (mkJsObj [("$expr", exprToMongo [t] ["ROOT"] (f (Var Here)))]) (mkJsObj []) 
-    primIO $ prim__toArray cursor (\z => case the (Maybe (List t)) (fromPtr z) of
-                                              o => ?h)
+    primIO $ prim__toArray cursor (\z => toPrim $ case the (Maybe (List t)) (fromPtr z) of
+                                                       Nothing => putStrLn "Error reading values from colection \{ptrToString x}"
+                                                       (Just y) => w y
+                                  )
     pure $ MkPromiseHandler (pure ())
 
