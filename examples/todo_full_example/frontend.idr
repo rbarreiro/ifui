@@ -17,9 +17,9 @@ mainWidget srv (Just x) =
   do
     x <- div [] [newTodoPrompt, text x]
     case x of
-         Nothing => pure ()
-         Just z => callRPC srv "createTodo" z
-    mainWidget srv Nothing
+         Nothing => mainWidget srv Nothing
+         Just z => callRPC srv "createTodo" z >> mainWidget srv Nothing
+    
 
 main : IO ()
 main =

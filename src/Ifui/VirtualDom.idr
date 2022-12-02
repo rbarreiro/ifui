@@ -57,7 +57,8 @@ mutual
       nodes <- readIORef x.nodes
       nodesStrs <- sequence $ map printVNode nodes
       let nodesS = joinBy ", " nodesStrs
-      pure "[\{nodesS}]"
+      p <- readIORef x.parent
+      pure "{parentTag: \{tagName p} , nodes: [\{nodesS}]}"
 
 export
 createEmptyVNodes : DomNode -> IO VNodes

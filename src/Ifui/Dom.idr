@@ -20,6 +20,13 @@ export
 throw : HasIO io => a -> io b
 throw x = primIO $ prim__throw (believe_me x)
 
+
+%foreign "browser:lambda: x => x.tagName"
+prim__tagName : AnyPtr -> String
+export
+tagName : DomNode -> String
+tagName (MkNode x) = prim__tagName x
+
 %foreign "browser:lambda: tag => document.createElement(tag)"
 prim__createElement : String -> PrimIO AnyPtr
 export
