@@ -65,7 +65,6 @@ createEmptyVNodes : DomNode -> IO VNodes
 createEmptyVNodes n =
   pure $ MkVNodes !(newIORef n) !(newIORef [])
 
-
 export 
 createEmptyVNode : DomNode -> IO VNode
 createEmptyVNode n = 
@@ -95,6 +94,10 @@ cancelPromise : (IORef (JSON -> IO ())) -> IO ()
 cancelPromise ref =
   writeIORef ref (\w => pure ())
 
+clearChildren : VNode -> IO ()
+clearChildren n =
+  writeIORef n.children.nodes []
+
 export
 setNodeText : VNode -> String -> IO ()
 setNodeText node y = 
@@ -117,6 +120,7 @@ setNodeText node y =
         replaceWith n new
         writeIORef node.domNode  (new)
         writeIORef node.rep (VNodeText y)
+        clearChildren node
 
 export
 setNodeTag : VNode -> String -> IO ()
@@ -137,6 +141,7 @@ setNodeTag node y =
         replaceWith n new
         writeIORef node.domNode (new)
         writeIORef node.rep (VNodeNode y [])
+        clearChildren node
 
 export
 setNodePromise : VNode -> String -> IORef Bool -> (JSON -> IO ()) -> IO (IORef (JSON -> IO ())) -> IO ()
@@ -173,6 +178,7 @@ setNodePromise node id isFinished onEvt start =
         onEvtRef <- start
         writeIORef onEvtRef onEvt
         writeIORef node.rep (VNodePromise id onEvtRef isFinished) 
+        clearChildren node
 
 
 addAttribute : DomNode -> Attribute -> IO VAttribute 
