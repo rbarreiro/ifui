@@ -158,27 +158,22 @@ removeHandle str x =
    h <- readIORef x
    writeIORef x (deleteBy (\x, (y,_) => x == y)  str h)
 
-replaceHandle : String -> (JSON -> IO ()) -> IORef (List (String, JSON -> IO ())) -> IO ()
-replaceHandle str r x = 
- do
-   h <- readIORef x
-   writeIORef x (replaceWhen (\(z,_) => z == str) (str,r) h)
-
 export
 callRPC : (JsonSerializable a, JsonSerializable b) => ServerConnection ts -> (s : String) -> {auto 0 p : Elem (s, RPC a b) ts} -> a -> Widget b
 callRPC (MkServerConnection url socket srv counter handles) s y = 
    MarkupWidget [\ns, n, onEvt => 
                                  do
                                     let y_ = toJson y
-                                    setNodePromise n ("rpc/" ++ url ++ "/" ++ show y_) !(newIORef False) $ do
-                                    h <- readIORef handles
-                                    i <- readIORef counter
-                                    let i_ = show i
-                                    send socket (show $ JArray [JString s, JString i_, y_])
-                                    let procOnEvt = \j =>fromMaybe (putStrLn $ "invalid json in service" ++ s)  (onEvt <$> fromJson j)
-                                    writeIORef handles ((i_, \j => procOnEvt j >> removeHandle i_ handles)  :: h)
-                                    writeIORef counter (i+1)
-                                    pure (replaceHandle i_ (\z => pure ()) handles) 
+                                    let proc = \j => fromMaybe (putStrLn $ "invalid json in service" ++ s)  (onEvt <$> fromJson j)
+                                    setNodePromise n ("rpc/" ++ url ++ "/" ++ s ++ "?" ++ show y_) !(newIORef False) proc  $ do
+                                      h <- readIORef handles
+                                      i <- readIORef counter
+                                      let i_ = show i
+                                      send socket (show $ JArray [JString s, JString i_, y_])
+                                      procResult <- newIORef (the (JSON -> IO ()) $ \w => pure ()) 
+                                      writeIORef handles ((i_, \j => !(readIORef procResult) j >> removeHandle i_ handles)  :: h) 
+                                      writeIORef counter (i+1)
+                                      pure procResult
                 ]
          
 

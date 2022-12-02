@@ -4,6 +4,7 @@ import Data.List
 import Data.String
 import Ifui.Dom
 import Data.IORef
+import Ifui.Json
 
 public export
 data AttributeSpec = StringAttr String String 
@@ -19,7 +20,7 @@ data VAttribute = VSimpleAttribute  AttributeSpec
 
 data VNodeRep = VNodeText String 
               | VNodeNode String (List VAttribute) 
-              | VNodePromise String (IO ()) (IORef Bool) -- id to ckeck if is the same, cancel and is done flag
+              | VNodePromise String (IORef (JSON -> IO ())) (IORef Bool) -- id to ckeck if is the same, onEvt  and is done flag
 
 mutual
   public export
@@ -89,6 +90,10 @@ updateVNodes ns xs =
     sequence_ $ cleanVNode <$> drop (length xs) oldNodes
     writeIORef ns.nodes (take (length xs) oldNodes  ++ added)
 
+cancelPromise : (IORef (JSON -> IO ())) -> IO ()
+cancelPromise ref =
+  writeIORef ref (\w => pure ())
+
 export
 setNodeText : VNode -> String -> IO ()
 setNodeText node y = 
@@ -101,7 +106,7 @@ setNodeText node y =
                                         setTextContent n y
                                         writeIORef node.rep (VNodeText y)
          (VNodeNode _ _) => createNewNodeText
-         (VNodePromise _ cancel _) => cancel >> createNewNodeText
+         (VNodePromise _ onEvtRef _) => cancelPromise onEvtRef >> createNewNodeText
   where
     createNewNodeText : IO ()
     createNewNodeText = 
@@ -121,7 +126,7 @@ setNodeTag node y =
          (VNodeText w) => createNewNodeTag
          (VNodeNode w ys) => if w == y then pure ()
                                        else createNewNodeTag
-         (VNodePromise _ cancel _) => cancel >> createNewNodeTag
+         (VNodePromise _ onEvtRef _) => cancelPromise onEvtRef >> createNewNodeTag
   where
     createNewNodeTag : IO ()
     createNewNodeTag = 
@@ -133,8 +138,8 @@ setNodeTag node y =
         writeIORef node.rep (VNodeNode y [])
 
 export
-setNodePromise : VNode -> String -> IORef Bool -> IO (IO ()) -> IO ()
-setNodePromise node id isFinished start = 
+setNodePromise : VNode -> String -> IORef Bool -> (JSON -> IO ()) -> IO (IORef (JSON -> IO ())) -> IO ()
+setNodePromise node id isFinished onEvt start = 
   do
     rep <- readIORef node.rep
     case rep of
@@ -142,20 +147,21 @@ setNodePromise node id isFinished start =
                          createNewNodePromise
          (VNodeNode w ys) => 
                             createNewNodePromise
-         (VNodePromise oldId oldCancel oldIsFinished) => 
+         (VNodePromise oldId oldOnEvtRef oldIsFinished) => 
                                                         if oldId == id then
                                                                        do
                                                                          done <- readIORef oldIsFinished
                                                                          if done then replacePromise 
-                                                                                 else pure ()
-                                                                       else oldCancel >> replacePromise  
+                                                                                 else writeIORef oldOnEvtRef onEvt
+                                                                       else cancelPromise oldOnEvtRef >> replacePromise  
 
   where
     replacePromise : IO ()
     replacePromise = 
       do
-        cancel <- start
-        writeIORef node.rep (VNodePromise id cancel isFinished) 
+        onEvtRef <- start
+        writeIORef onEvtRef onEvt
+        writeIORef node.rep (VNodePromise id onEvtRef isFinished) 
     createNewNodePromise : IO ()
     createNewNodePromise = 
       do
@@ -163,8 +169,9 @@ setNodePromise node id isFinished start =
         new <- createElement "span"
         replaceWith n new
         writeIORef node.domNode (new)
-        cancel <- start
-        writeIORef node.rep (VNodePromise id cancel isFinished) 
+        onEvtRef <- start
+        writeIORef onEvtRef onEvt
+        writeIORef node.rep (VNodePromise id onEvtRef isFinished) 
 
 
 addAttribute : DomNode -> Attribute -> IO VAttribute 
