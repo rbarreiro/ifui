@@ -58,12 +58,15 @@ export
 {s : String} -> Show t => Show (Entry s t) where
   show (MkEntry s x) = s ++ "^= " ++ show x
 
+public export
 interface Get (k : String) (t : Type) (ts : UKeyList String Type) where
  get : Record ts -> t 
 
+export
 {k : String} -> {t : Type} -> {ts : UKeyList String Type} -> {p : UKeyListCanPrepend (k, t) ts} -> Get k t ((k,t)::ts) where
   get ((MkEntry s x) :: y) = x
 
+export
 {k : String} -> {t : Type} -> {o : (String, Type)} -> {ts : UKeyList String Type} -> {p : UKeyListCanPrepend o ts} -> Get k t ts  => Get k t (o::ts) where
   get (x :: y) = get {k=k} y
 

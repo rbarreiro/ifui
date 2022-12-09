@@ -4,8 +4,8 @@ import IfuiServer
 import IfuiServer.RethinkDB
 
 public export
-DBTy : UKeyList (String, String) (List (String, Type))
-DBTy = [("todoApp", "todoItem"), [("desc", String)]]
+DBTy : UKeyList (String, String) (UKeyList String Type)
+DBTy = [(("todoApp", "todoItem"), [("desc", String)])]
 
 public export
 Schema : ServerSchema DBTy
@@ -22,7 +22,7 @@ todoApi : RethinkServer DBTy -> Server ApiServices
 todoApi r =
   let todoItem = GetTable "todoApp" "todoItem"
   in [MkRPC "todoList" (\() => map (get "desc") <$> (run' r (ReadTable todoItem) >>= toArray'))
-     , MkRPC "createTodo" (\x => do _ <- run' r (Insert todoItem [["desc" ^= x]]); pure ())
+     , MkRPC "createTodo" (\x => do _ <- run' r (Insert todoItem (Lit [["desc" ^= x]])); pure ())
      ]
 --   let todoApp = getDB "todoApp" mongo
 --       todoItem = getCollection "todoItem" todoApp 
