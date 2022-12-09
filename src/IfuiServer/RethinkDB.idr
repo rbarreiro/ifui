@@ -112,16 +112,16 @@ compileExpr r vars (StrEq x y) = prim__req r (compileExpr r vars x) (compileExpr
 compileExpr r vars (GetField key x) = prim__rget (compileExpr r vars x) key
 
 %foreign "node:lambda: (q, conn, callback)  => q.run(conn, (err, res) => callback(err ? err + '' : '')(res)())"
-prim__run : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
+prim__run : AnyPtr -> AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 
 
 export
 run : HasJSValue a => RethinkServer ts -> Expr ts [] a -> Promise (Either String a)
-run s e = 
+run (MkRethinkServer s) e = 
   MkPromise $ \w => do
     r <- primIO prim__r
     let query = compileExpr r Empty e
-    primIO $ prim__run query (\err, result => toPrim $  if err == "" then case the (Maybe a) (fromPtr result) of
+    primIO $ prim__run query s (\err, result => toPrim $  if err == "" then case the (Maybe a) (fromPtr result) of
                                                                              Nothing => w $ Left "Find: error reading values \{ptrToString result}"
                                                                              (Just x) => w $ Right x
                                                                      else w $ Left err
