@@ -12,9 +12,9 @@ RUN echo 'export PATH="/root/.idris2/bin/:${PATH}"' >> "${HOME}/.bashrc" && echo
 RUN echo 'export NODE_PATH="`npm root -g`"' >> "${HOME}/.bashrc"
 RUN npm install -g node-static
 RUN npm install -g ws
-RUN npm install -g mongodb
+RUN npm install -g rethinkdb
 WORKDIR /deps
-ARG CACHE_DATE=2022-12-09_1
+ARG CACHE_DATE=2022-12-09_2
 RUN git clone https://github.com/rbarreiro/ifui.git
 WORKDIR /deps/ifui
 RUN idris2  --install ifui.ipkg

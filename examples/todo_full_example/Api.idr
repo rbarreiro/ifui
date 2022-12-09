@@ -21,7 +21,8 @@ export
 todoApi : RethinkServer DBTy -> Server ApiServices
 todoApi r =
   let todoItem = GetTable "todoApp" "todoItem"
-  in [MkRPC "todoList" (\() => map (get "desc") <$> (run' r (ReadTable todoItem) >>= toArray'))
+      descList= the (Promise (List (Record  [("desc", String)]))) $ (run' r (ReadTable todoItem) >>= toArray')
+      in [MkRPC "todoList" (\() => map (get {k="desc"}) <$> descList )
      , MkRPC "createTodo" (\x => do _ <- run' r (Insert todoItem (Lit [["desc" ^= x]])); pure ())
      ]
 --   let todoApp = getDB "todoApp" mongo

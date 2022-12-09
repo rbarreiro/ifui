@@ -45,7 +45,7 @@ data RethinkServer : UKeyList (String, String) (UKeyList String Type) -> Type wh
 %foreign "node:lambda: err  => err ? err + '' : ''"
 prim__errToStr : AnyPtr -> String
 
-%foreign "node:lambda: (host, port, callback)  => {const r = require('rethinkdb'); r,connect({host:host, port: port}, (err, conn) => callback(err)(conn)())}"
+%foreign "node:lambda: (host, port, callback)  => {const r = require('rethinkdb'); r.connect({host:host, port: port}, (err, conn) => callback(err)(conn)())}"
 prim__connect : String -> Int -> (AnyPtr -> AnyPtr -> PrimIO ()) -> PrimIO ()
 
 export
