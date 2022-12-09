@@ -6,10 +6,13 @@ export
 str2ptr : String -> AnyPtr
 str2ptr = believe_me
 
+fn2ptr : String -> AnyPtr
+fn2ptr = believe_me
+
 ptr2str : AnyPtr -> String
 ptr2str = believe_me
 
-export
+public export
 data JSValue a = MkJSValue AnyPtr
 
 export 
@@ -27,7 +30,6 @@ fromPtr : HasJSValue a => AnyPtr -> Maybe a
 fromPtr ptr =
   if checkPtr {a=a} ptr then Just $ fromJS $ MkJSValue ptr
                 else Nothing
-
 
 %foreign "javascript:lambda: x => typeof x"
 prim__typeof : AnyPtr -> String
@@ -70,7 +72,7 @@ HasJSValue (Record []) where
   checkPtr x = prim__typeof x == "object"
 
 export
-{s : String} -> (HasJSValue t, HasJSValue (Record ts)) => HasJSValue (Record ((s,t) :: ts)) where
+{s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (HasJSValue t, HasJSValue (Record ts)) => HasJSValue (Record ((s,t) :: ts)) where
   toJS ((MkEntry s x) :: y) = 
     let MkJSValue y_ = toJS y
         MkJSValue x_ = toJS x

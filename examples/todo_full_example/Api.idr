@@ -1,15 +1,15 @@
 module Api
 
 import IfuiServer
-import IfuiServer.MongoDB
+import IfuiServer.RethinkDB
 
 public export
-DBTy : List (String, String, List (String, Type))
-DBTy = [("todoApp", "todoItem", [("desc", String)])]
+DBTy : UKeyList (String, String) (List (String, Type))
+DBTy = [("todoApp", "todoItem"), [("desc", String)]]
 
 public export
-Schema : ClientSchema DBTy
-Schema = [MkCollectionSchema "todoApp" "todoItem"  [("desc", String)]]
+Schema : ServerSchema DBTy
+Schema = [MkTableSchema "todoApp" "todoItem"  [("desc", String)]]
 
 public export
 ApiServices : List (String, ServiceKind)
@@ -18,14 +18,18 @@ ApiServices = [ ("todoList", RPC () (List String))
               ]
 
 export
-todoApi : MongoClient DBTy -> Server ApiServices
-todoApi mongo  =
-  let todoApp = getDB "todoApp" mongo
-      todoItem = getCollection "todoItem" todoApp 
-      todoListFind : Promise (List (Record [("desc", String)]))
-      todoListFind =  find todoItem (\w => TrueLit)
-  in [ MkRPC "todoList" (\() => map (get "desc") <$> todoListFind)
-     , MkRPC "createTodo" (\x => do _ <- insertOne todoItem ["desc" ^= x]; pure ())
+todoApi : RethinkServer DBTy -> Server ApiServices
+todoApi r =
+  let todoItem = GetTable "todoApp" "todoItem"
+  in [MkRPC "todoList" (\() => map (get "desc") <$> (run' r (ReadTable todoItem) >>= toArray'))
+     , MkRPC "createTodo" (\x => do _ <- run' r (Insert todoItem [["desc" ^= x]]); pure ())
      ]
-  where
+--   let todoApp = getDB "todoApp" mongo
+--       todoItem = getCollection "todoItem" todoApp 
+--       todoListFind : Promise (List (Record [("desc", String)]))
+--       todoListFind = toArray todoItem
+--   in [ MkRPC "todoList" (\() => map (get "desc") <$> todoListFind)
+--      , MkRPC "createTodo" (\x => do _ <- insert todoItem ["desc" ^= x]; pure ())
+--      ]
+--   where
 

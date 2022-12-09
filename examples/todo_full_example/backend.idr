@@ -1,14 +1,14 @@
 module Main
 
 import IfuiServer
-import IfuiServer.MongoDB
+import IfuiServer.RethinkDB
 import Api
 
 main : IO ()
 main =
   do
     _ <- serveStatic 6401 "www"
-    _ <- (createMongoClient Schema "mongodb://todo_mongodb:27017").run $ 
-            \mongo => startWsServer 6402 (todoApi mongo)
+    _ <- (connect "todo_rethinkdb" 28015  Schema).run $ 
+            \db => startWsServer 6402 (todoApi db)
     pure ()
 

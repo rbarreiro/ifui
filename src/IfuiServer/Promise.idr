@@ -23,6 +23,14 @@ setTimeout callback delay =
   primIO <$> (primIO $ prim__setTimeout (toPrim callback) delay)
 
 export
+onErrPrint : Promise (Either String a) -> Promise a
+onErrPrint x =
+  MkPromise $ \w =>
+    x.run $ \z => case z of 
+                       (Left y) => putStrLn y
+                       (Right y) => w y
+
+export
 Applicative Promise where
   pure x = MkPromise (\w => do w x; pure (MkPromiseHandler (pure ())))
   (<*>) f x = MkPromise $ \w =>

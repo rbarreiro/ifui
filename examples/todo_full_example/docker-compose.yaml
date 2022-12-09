@@ -10,13 +10,13 @@ services:
       - 6402:6402
 
 
-  todo_mongodb:
-    image:  mongo:latest
+  todo_rethinkdb:
+    image: rethinkdb:latest
     restart: always
     volumes:
-      - todos_database:/data/db
+      - todos_database:/data
     ports:
-      - 6403:27017
+      - 6403:8080
 
 volumes:
   todos_database:
