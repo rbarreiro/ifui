@@ -12,6 +12,12 @@ fn2ptr = believe_me
 ptr2str : AnyPtr -> String
 ptr2str = believe_me
 
+int2ptr : Int -> AnyPtr
+int2ptr = believe_me 
+
+ptr2int : AnyPtr -> Int
+ptr2int = believe_me 
+
 public export
 data JSValue a = MkJSValue AnyPtr
 
@@ -40,6 +46,11 @@ HasJSValue String where
   fromJS (MkJSValue x) = ptr2str x
   checkPtr x = prim__typeof x == "string"
 
+export
+HasJSValue Int where
+  toJS x = MkJSValue $ int2ptr x
+  fromJS (MkJSValue x) = ptr2int x
+  checkPtr x = prim__typeof x == "number" || prim__typeof x == "bigint"
 
 %foreign "javascript:lambda: x => x>0"
 prim__mkBool : Int  -> AnyPtr
@@ -114,6 +125,13 @@ HasJSValue t => HasJSValue (List t) where
     let len = prim__arrayLength ptr
     in prim__isArray ptr > 0 && 
          (len == 0 || all (\i => (checkPtr {a=t}) $ prim__arrayGet ptr i ) [0..(len - 1)])
+
+
+export
+(HasJSValue a, HasJSValue b) => HasJSValue (a, b) where
+  toJS x = ?h1
+  fromJS (MkJSValue ptr) = ?h2
+  checkPtr ptr = ?h3
 
 export
 mkJsObj : List (String, AnyPtr) -> AnyPtr

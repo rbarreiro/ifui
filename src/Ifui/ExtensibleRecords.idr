@@ -29,6 +29,20 @@ namespace UKeyList
       Here : {auto p : UKeyListCanPrepend (k,v)  xs} -> Elem k v ((::) (k, v) xs {p = p})
       There : {auto p : UKeyListCanPrepend y  xs} -> Elem k v xs -> Elem k v ((::) y xs {p = p})
 
+  mutual
+    public export
+    mapValues : (a -> b) -> UKeyList k a -> UKeyList k b
+    mapValues f [] = []
+    mapValues f ((::) {p=prf}  (x, y) l) = (::) (x, f y) (mapValues f l) {p = mapValuesCanPrepend prf} 
+
+    public export
+    mapValuesCanPrepend : UKeyListCanPrepend (x, y) l -> UKeyListCanPrepend (x, f y) (mapValues f l)
+    mapValuesCanPrepend UKeyListCanPrependNil = 
+      UKeyListCanPrependNil
+    mapValuesCanPrepend (UKeyListCanPrependCons g z) =
+      let aux = mapValuesCanPrepend z
+      in UKeyListCanPrependCons g aux
+      
     public export
     length : UKeyList a b -> Nat
     length [] = Z

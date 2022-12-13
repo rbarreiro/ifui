@@ -56,3 +56,10 @@ Monad Promise where
                       writeIORef h h1
                       pure $ MkPromiseHandler (do h_ <- readIORef h; h_.cancel)
               )
+export
+HasIO Promise where
+  liftIO x = 
+    MkPromise $ \w => do
+      r <- x
+      w r
+      pure $ MkPromiseHandler $ pure ()
