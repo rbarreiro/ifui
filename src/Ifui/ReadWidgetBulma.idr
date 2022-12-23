@@ -25,8 +25,8 @@ transformReader : (Widget (Reader a) -> Widget (Reader a)) -> Reader a -> Reader
 transformReader f (MkReader x y) = 
   MkReader (f $ transformReader f <$> x ) y
 
-data AltOptions : UKeyList String Type -> Type where
-  MkAltOptions : {0 ts : UKeyList String Type} -> Vect (UKeyList.length ts) String -> Vect (UKeyList.length ts) (Reader (Alt ts)) -> AltOptions ts
+data AltOptions : FieldList -> Type where
+  MkAltOptions : {0 ts : FieldList} -> Vect (UKeyList.length ts) String -> Vect (UKeyList.length ts) (Reader (Alt ts)) -> AltOptions ts
 
 public export
 interface ReadWidgetBulma a where
@@ -94,11 +94,11 @@ listElemToFin : Elem x y xs -> Fin (UKeyList.length xs)
 listElemToFin Here = FZ
 listElemToFin (There y) = FS $ listElemToFin y
 
-getAltIdx : {0 ts : UKeyList String Type} ->  Alt ts -> Fin (UKeyList.length ts)
+getAltIdx : {0 ts : FieldList} ->  Alt ts -> Fin (UKeyList.length ts)
 getAltIdx (MkAlt x y) = listElemToFin y
 
 export
-interface AltReader (0 ts : UKeyList String Type) where
+interface AltReader (0 ts : FieldList) where
   getAltOptionReader : Alt ts -> Reader (Alt ts)
   getOptions : AltOptions ts
 
@@ -119,7 +119,7 @@ export
                      (((\w => MkAlt (MkEntry s w) Here)  <$> (the (Reader t) $ getReaderBulma Nothing)) :: ((map weakenAlt) <$> readers))
 
 export
-{0 ts : UKeyList String Type} -> {p : UKeyListCanPrepend (s, t) ts} -> AltReader ((s, t) ::ts) => ReadWidgetBulma (Alt ((s,t) :: ts)) where
+{0 ts : FieldList} -> {p : UKeyListCanPrepend (s, t) ts} -> AltReader ((s, t) ::ts) => ReadWidgetBulma (Alt ((s,t) :: ts)) where
   getReaderBulma x = 
     MkReader (w (fromMaybe FZ $ getAltIdx <$> x) (getAltOptionReader <$> x)) x
     where

@@ -64,7 +64,11 @@ public export
 (^=) = MkEntry 
 
 public export
-data Record : UKeyList String Type -> Type where
+FieldList : Type
+FieldList = UKeyList String Type
+
+public export
+data Record : FieldList -> Type where
   Nil : Record []
   (::) : {auto p : UKeyListCanPrepend (s, t) ts} -> Entry s t -> Record ts -> Record ((s,t) :: ts)
 
@@ -73,16 +77,33 @@ export
   show (MkEntry s x) = s ++ "^= " ++ show x
 
 public export
-interface Get (k : String) (t : Type) (ts : UKeyList String Type) where
- get : Record ts -> t 
+interface HasValue (0 k : a) (0 t : b) (0 ts : UKeyList a b) where
+  hasValue : Elem k t ts
+
 
 export
-{k : String} -> {t : Type} -> {ts : UKeyList String Type} -> {p : UKeyListCanPrepend (k, t) ts} -> Get k t ((k,t)::ts) where
-  get ((MkEntry s x) :: y) = x
+{0 k : a} -> {0 t : b} -> {0 ts : UKeyList a b} -> {p : UKeyListCanPrepend (k, t) ts} -> HasValue k t ((k,t)::ts) where
+  hasValue = Here
 
 export
-{k : String} -> {t : Type} -> {o : (String, Type)} -> {ts : UKeyList String Type} -> {p : UKeyListCanPrepend o ts} -> Get k t ts  => Get k t (o::ts) where
-  get (x :: y) = get {k=k} y
+{0 k : a} -> {0 t : b} -> {0 o : (a, b)} -> {0 ts : UKeyList a b} -> {p : UKeyListCanPrepend o ts} -> HasValue k t ts  => HasValue k t (o::ts) where
+  hasValue = There $ hasValue {ts=ts}
+
+getAux : Elem k t ts -> Record ts -> t
+getAux Here ((MkEntry _ x) :: _) = x
+getAux (There x) (_ :: z) = getAux x z
+
+export
+get : {0 t : Type} -> {0 ts : FieldList} -> (k : String) ->  HasValue k t ts => Record ts -> t
+get k x = getAux (hasValue {k=k} {t=t} {ts=ts}) x
+
+export
+Eq (Record []) where
+  (==) x y = True
+
+export
+{s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (Eq t, Eq (Record ts)) => Eq (Record ((s, t) :: ts)) where
+  (==) ((MkEntry s x) :: z) ((MkEntry s y) :: w) = x == y && z == w
 
 export
 Show (Record []) where
@@ -110,3 +131,7 @@ export
 {s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (Show (Entry s t), Show (Alt ts)) => Show (Alt ((s, t) :: ts)) where
   show (MkAlt x Here) = "(" ++ show x ++ ")"
   show (MkAlt x (There later)) = show (MkAlt x later)
+
+public export
+data Variant : FieldList -> Type where
+  MkVariant : (s : String) -> t -> Elem s t ts -> Variant ts

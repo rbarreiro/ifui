@@ -9,6 +9,6 @@ main =
   do
     _ <- serveStatic 6401 "www"
     _ <- (connect' "todo_rethinkdb" 28015  Schema).run $ 
-            \db => startWsServer 6402 (todoApi db)
+            \db => startWsServerWithAuth 6402 (todoApi db)
     pure ()
 

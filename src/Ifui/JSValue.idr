@@ -18,7 +18,7 @@ int2ptr = believe_me
 ptr2int : AnyPtr -> Int
 ptr2int = believe_me 
 
-public export
+export
 data JSValue a = MkJSValue AnyPtr
 
 export 
@@ -58,11 +58,25 @@ prim__mkBool : Int  -> AnyPtr
 %foreign "javascript:lambda: x => x+0"
 prim__readBool : AnyPtr -> Int
 
+%foreign "javascript:lambda: x => (x === null || x === undefined)+0"
+prim__isNullOrUndefined : AnyPtr -> Int
+
+%foreign "javascript:lambda: () => null"
+prim__null : () -> AnyPtr
+
 export
 HasJSValue Bool where
   toJS x = MkJSValue $ prim__mkBool $ if x then 1 else 0
   fromJS (MkJSValue x) = prim__readBool x > 0
   checkPtr x = prim__typeof x == "boolean"
+
+export
+HasJSValue a => HasJSValue (Maybe a) where
+  toJS Nothing = MkJSValue $ prim__null ()
+  toJS (Just x) = MkJSValue $ jsv2ptr $ toJS x
+  fromJS (MkJSValue x) = if prim__isNullOrUndefined x > 0 then Nothing
+                                                          else Just $ fromJS {a=a} (MkJSValue x)
+  checkPtr x = prim__isNullOrUndefined x > 0 || checkPtr {a=a} x
 
 %foreign "javascript:lambda: () => {}"
 prim__newObj : () -> AnyPtr
@@ -83,18 +97,30 @@ HasJSValue (Record []) where
   checkPtr x = prim__typeof x == "object"
 
 export
-{s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (HasJSValue t, HasJSValue (Record ts)) => HasJSValue (Record ((s,t) :: ts)) where
+{s : String} -> {t : Type} -> {p : UKeyListCanPrepend (s, t) ts} -> (HasJSValue t, HasJSValue (Record ts)) => HasJSValue (Record ((s,t) :: ts)) where
   toJS ((MkEntry s x) :: y) = 
     let MkJSValue y_ = toJS y
         MkJSValue x_ = toJS x
     in MkJSValue $ prim__setItem y_ s x_
   fromJS (MkJSValue ptr) = 
-    let x = the t $ fromJS (MkJSValue $ prim__getItem ptr s)
-        y = the (Record ts) $ fromJS (MkJSValue ptr)
-    in (MkEntry s x) :: y
+    case t of
+         Maybe t_ =>
+            let x = if prim__hasItem ptr s > 0 then the (Maybe t_) $ fromJS (MkJSValue $ prim__getItem ptr s)
+                                               else Nothing
+                y = the (Record ts) $ fromJS (MkJSValue ptr)
+            in (MkEntry s x) :: y
+         _ =>
+            let x = the t $ fromJS (MkJSValue $ prim__getItem ptr s)
+                y = the (Record ts) $ fromJS (MkJSValue ptr)
+            in (MkEntry s x) :: y
   checkPtr ptr =
-    (checkPtr {a=Record ts} ptr) && 
-        (prim__hasItem ptr s > 0 && checkPtr {a=t} (prim__getItem ptr s))
+    case t of
+         Maybe _ => 
+           (checkPtr {a=Record ts} ptr) && 
+                (prim__hasItem ptr s == 0 || checkPtr {a=t} (prim__getItem ptr s))
+         _ =>
+          (checkPtr {a=Record ts} ptr) && 
+              (prim__hasItem ptr s > 0 && checkPtr {a=t} (prim__getItem ptr s))
 
 %foreign "javascript:lambda: () => Object.freeze([])"
 prim__newArray : () -> AnyPtr
@@ -126,12 +152,6 @@ HasJSValue t => HasJSValue (List t) where
     in prim__isArray ptr > 0 && 
          (len == 0 || all (\i => (checkPtr {a=t}) $ prim__arrayGet ptr i ) [0..(len - 1)])
 
-
-export
-(HasJSValue a, HasJSValue b) => HasJSValue (a, b) where
-  toJS x = ?h1
-  fromJS (MkJSValue ptr) = ?h2
-  checkPtr ptr = ?h3
 
 export
 mkJsObj : List (String, AnyPtr) -> AnyPtr

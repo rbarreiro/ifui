@@ -40,3 +40,9 @@ prim__eventData : AnyPtr -> PrimIO String
 export
 eventData : HasIO io => WsEvent -> io String
 eventData (MkWsEvent e) = primIO $ prim__eventData e
+
+%foreign "browser:lambda: (ws) => ws.close()"
+prim__close : AnyPtr -> PrimIO ()
+export
+close : HasIO io => WebSocket -> io ()
+close (MkWebSockest ws) = primIO $ prim__close ws

@@ -4,33 +4,44 @@ import IfuiServer
 import IfuiServer.RethinkDB
 
 public export
-DBTy : UKeyList (String, String) (UKeyList String Type)
-DBTy = [(("todoApp", "todoItem"), [("desc", String)])]
+DBTy : UKeyList (String, String) FieldList
+DBTy = [(("todoApp", "todoItem"), [("id", String), ("desc", String)])]
 
 public export
 Schema : ServerSchema DBTy
-Schema = [MkTableSchema "todoApp" "todoItem"  [("desc", String)]]
+Schema = [MkTableSchema "todoApp" "todoItem" IString  [("desc", SString)]]
 
 public export
-ApiServices : List (String, ServiceKind)
-ApiServices = [ ("todoList", RPC () (List String))
+ApiServices : UKeyList String ServiceKind
+ApiServices = [ ("todoList", StreamService () (Change String))
               , ("createTodo", RPC String ())
               ]
 
-export
-todoApi : RethinkServer DBTy -> Server ApiServices
-todoApi r =
+logedInTodoApi : RethinkServer DBTy -> Server ApiServices
+logedInTodoApi r =
   let todoItem = GetTable "todoApp" "todoItem"
-      descList= the (Promise (List (Record  [("desc", String)]))) $ (run' r (ReadTable todoItem) >>= toArray')
-      in [MkRPC "todoList" (\() => map (get {k="desc"}) <$> descList )
+      descList= getChanges' r $ GetChanges $ ReadTable todoItem |> MapCursor <| GetField "desc"
+      in [MkStreamService "todoList" (\() => descList )
      , MkRPC "createTodo" (\x => do _ <- run' r (Insert todoItem (Lit [["desc" ^= x]])); pure ())
      ]
---   let todoApp = getDB "todoApp" mongo
---       todoItem = getCollection "todoItem" todoApp 
---       todoListFind : Promise (List (Record [("desc", String)]))
---       todoListFind = toArray todoItem
---   in [ MkRPC "todoList" (\() => map (get "desc") <$> todoListFind)
---      , MkRPC "createTodo" (\x => do _ <- insert todoItem ["desc" ^= x]; pure ())
---      ]
---   where
 
+public export
+RoleServer : Bool -> UKeyList String ServiceKind
+RoleServer False = []
+RoleServer True = ApiServices
+
+public export
+Login : Type
+Login = Record [("login", String), ("password", String)]
+
+export
+todoApi : RethinkServer DBTy -> ServerWithAuth Login Bool RoleServer
+todoApi r =
+  MkServerWithAuth 
+    (\x => pure $ (the String $ get "login" x) == get "password" x)
+    (\x =>
+          case x of
+            False => []
+            True => logedInTodoApi r
+    )
+    

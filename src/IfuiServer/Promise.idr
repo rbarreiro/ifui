@@ -16,12 +16,6 @@ export
 Functor Promise where
   map f (MkPromise run) = MkPromise (\w => run (w . f))
 
-%foreign "javascript:lambda:(callback, delay)=>{t = setTimeout(callback, delay); return (() => clearTimeout(t))}"
-prim__setTimeout : (PrimIO ()) -> Int -> PrimIO (PrimIO ())
-setTimeout : HasIO io => IO () -> Int -> io (IO ())
-setTimeout callback delay = 
-  primIO <$> (primIO $ prim__setTimeout (toPrim callback) delay)
-
 export
 onErrPrint : Promise (Either String a) -> Promise a
 onErrPrint x =

@@ -18,9 +18,16 @@ data Attribute = SimpleAttribute AttributeSpec
 data VAttribute = VSimpleAttribute  AttributeSpec
                 | VEventListener String (IO ())
 
+public export
+record PromiseNodeRef where
+  constructor MkPromiseNodeRef
+  callback : IORef (AnyPtr -> IO ())
+  cancel : IO ()
+  isFinished : IORef Bool
+
 data VNodeRep = VNodeText String 
               | VNodeNode String (List VAttribute) 
-              | VNodePromise String (IORef (JSON -> IO ())) (IORef Bool) -- id to ckeck if is the same, onEvt  and is done flag
+              | VNodePromise String PromiseNodeRef
 
 mutual
   public export
@@ -39,7 +46,7 @@ export
 Show VNodeRep where
   show (VNodeText str) = "VNodeText '\{str}'"
   show (VNodeNode str xs) = "VNodeNode '\{str}'"
-  show (VNodePromise str x y) = "VNodePromise '\{str}'"
+  show (VNodePromise str _) = "VNodePromise '\{str}'"
 
 mutual
   export
@@ -90,10 +97,6 @@ updateVNodes ns xs =
     sequence_ $ cleanVNode <$> drop (length xs) oldNodes
     writeIORef ns.nodes (take (length xs) oldNodes  ++ added)
 
-cancelPromise : (IORef (JSON -> IO ())) -> IO ()
-cancelPromise ref =
-  writeIORef ref (\w => pure ())
-
 clearChildren : VNode -> IO ()
 clearChildren n =
   writeIORef n.children.nodes []
@@ -110,7 +113,7 @@ setNodeText node y =
                                         setTextContent n y
                                         writeIORef node.rep (VNodeText y)
          (VNodeNode _ _) => createNewNodeText
-         (VNodePromise _ onEvtRef _) => cancelPromise onEvtRef >> createNewNodeText
+         (VNodePromise _ r) => r.cancel >> createNewNodeText
   where
     createNewNodeText : IO ()
     createNewNodeText = 
@@ -131,7 +134,7 @@ setNodeTag node y =
          (VNodeText w) => createNewNodeTag
          (VNodeNode w ys) => if w == y then pure ()
                                        else createNewNodeTag
-         (VNodePromise _ onEvtRef _) => cancelPromise onEvtRef >> createNewNodeTag
+         (VNodePromise _ r) => r.cancel >> createNewNodeTag
   where
     createNewNodeTag : IO ()
     createNewNodeTag = 
@@ -143,31 +146,32 @@ setNodeTag node y =
         writeIORef node.rep (VNodeNode y [])
         clearChildren node
 
+
 export
-setNodePromise : VNode -> String -> IORef Bool -> (JSON -> IO ()) -> IO (IORef (JSON -> IO ())) -> IO ()
-setNodePromise node id isFinished onEvt start = 
+setNodePromise : VNode -> String -> (AnyPtr -> IO ()) -> IO PromiseNodeRef -> IO ()
+setNodePromise node id onEvt start = 
   do
     rep <- readIORef node.rep
     case rep of
          (VNodeText w) => 
-                         createNewNodePromise
+              createNewNodePromise
          (VNodeNode w ys) => 
-                            createNewNodePromise
-         (VNodePromise oldId oldOnEvtRef oldIsFinished) => 
-                                                        if oldId == id then
-                                                                       do
-                                                                         done <- readIORef oldIsFinished
-                                                                         if done then replacePromise 
-                                                                                 else writeIORef oldOnEvtRef onEvt
-                                                                       else cancelPromise oldOnEvtRef >> replacePromise  
+              createNewNodePromise
+         (VNodePromise oldId oldR) => 
+              if oldId == id then
+                             do
+                               done <- readIORef oldR.isFinished
+                               if done then replacePromise 
+                                       else writeIORef oldR.callback onEvt
+                             else oldR.cancel >> replacePromise  
 
   where
     replacePromise : IO ()
     replacePromise = 
       do
-        onEvtRef <- start
-        writeIORef onEvtRef onEvt
-        writeIORef node.rep (VNodePromise id onEvtRef isFinished) 
+        r <- start
+        writeIORef r.callback onEvt
+        writeIORef node.rep (VNodePromise id r) 
     createNewNodePromise : IO ()
     createNewNodePromise = 
       do
@@ -175,9 +179,9 @@ setNodePromise node id isFinished onEvt start =
         new <- createElement "span"
         replaceWith n new
         writeIORef node.domNode (new)
-        onEvtRef <- start
-        writeIORef onEvtRef onEvt
-        writeIORef node.rep (VNodePromise id onEvtRef isFinished) 
+        r <- start
+        writeIORef r.callback onEvt
+        writeIORef node.rep (VNodePromise id r) 
         clearChildren node
 
 
@@ -252,7 +256,7 @@ setNodeAttributes node xs =
     rep <- readIORef node.rep
     case rep of
          (VNodeText _) => pure ()
-         (VNodePromise _ _ _) => pure ()
+         (VNodePromise _ _) => pure ()
          (VNodeNode z zs) => 
                             do
                               updatedAttrs <- sequence (zipWith (updateAttribute n) xs zs)

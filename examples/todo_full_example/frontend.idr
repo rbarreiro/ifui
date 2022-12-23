@@ -4,24 +4,38 @@ import Api
 import Ifui
 import Ifui.Bulma
 import Ifui.ReadWidgetBulma
+import Data.Maybe
 
 newTodoPrompt : Widget (Maybe (String))
 newTodoPrompt = getFormBulma
 
-mainWidget : ServerConnection ApiServices -> Maybe String -> Widget ()
-mainWidget srv Nothing = 
+todosView : (HasValue "createTodo" (RPC String ()) ts)  =>  
+              ServerConnection ts -> Widget ()
+todosView srv =
   do
-    val <- callRPC {a=Unit} {b=List String} srv "todoList" ()
-    mainWidget srv (Just $ show val)
-mainWidget srv (Just x) = 
+    Just desc <- newTodoPrompt | Nothing => todosView srv
+    callRPC srv "createTodo" desc
+    todosView srv
+
+
+todosView : (HasValue "todoList" (StreamService () (Change String)) ts)  =>  
+              ServerConnection ts -> Maybe (List String) -> Widget ()
+todosView srv todos =
   do
-    x <- div [] [newTodoPrompt, text x]
-    case x of
-         Nothing => mainWidget srv Nothing
-         Just z => callRPC srv "createTodo" z >> mainWidget srv Nothing
-    
+   r <- div [] [callStreamChangesAccumList "todoList" srv (), text $ show todos]
+   todosView srv $ Just r  
+
+
+
+mainWidget : Widget ()
+mainWidget =
+  do
+    Just login <- getFormBulma {a=Login} | Nothing => mainWidget
+    loginRes <- serverConnectWithAuth "ws://\{!getLocationHostname}:6402" login RoleServer 
+    case loginRes of
+         (False ** _) => text "Failed Login"
+         (True ** srv) => div [] [todosView srv, todosView srv Nothing]
 
 main : IO ()
 main =
-  serverConnect ("ws://\{!getLocationHostname}:6402") ApiServices $ \srv =>
-      runWidget $ mainWidget srv Nothing
+      runWidget $ mainWidget
