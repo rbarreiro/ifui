@@ -99,7 +99,7 @@ startWsServerWithAuth port (MkServerWithAuth checkLogin getServices) =
                             Just login => do
                               _ <- (checkLogin login).run $ \w => do
                                 writeIORef roleRef (Just w)
-                                wsSend wsc (show $ stringify w)
+                                wsSend wsc (stringify w)
                               pure ()
                             Nothing => 
                               putStrLn "Invalid login info \{msg}"
