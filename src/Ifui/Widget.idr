@@ -212,9 +212,9 @@ removeHandle str x =
 
 
 export
-callRPC : (JsonSerializable a, JsonSerializable b, HasValue s (RPC a b) ts) => 
-            ServerConnection ts -> (s : String) -> a -> Widget b
-callRPC (MkServerConnection url socket srv counter handles) s y = 
+callRPC : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (RPC a b) ts) => 
+            ServerConnection ts -> a -> Widget b
+callRPC s (MkServerConnection url socket srv counter handles) y = 
    MarkupWidget [\ns, n, onEvt => 
                                  do
                                     let y_ = toJson y

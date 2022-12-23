@@ -9,13 +9,13 @@ import Data.Maybe
 newTodoPrompt : Widget (Maybe (String))
 newTodoPrompt = getFormBulma
 
-todosView : (HasValue "createTodo" (RPC String ()) ts)  =>  
+todosInsert : (HasValue "createTodo" (RPC String ()) ts)  =>  
               ServerConnection ts -> Widget ()
-todosView srv =
+todosInsert srv =
   do
-    Just desc <- newTodoPrompt | Nothing => todosView srv
-    callRPC srv "createTodo" desc
-    todosView srv
+    Just desc <- newTodoPrompt | Nothing => todosInsert srv
+    callRPC "createTodo" srv desc
+    todosInsert srv
 
 
 todosView : (HasValue "todoList" (StreamService () (Change String)) ts)  =>  
@@ -34,7 +34,7 @@ mainWidget =
     loginRes <- serverConnectWithAuth "ws://\{!getLocationHostname}:6402" login RoleServer 
     case loginRes of
          (False ** _) => text "Failed Login"
-         (True ** srv) => div [] [todosView srv, todosView srv Nothing]
+         (True ** srv) => div [] [todosInsert srv, todosView srv Nothing]
 
 main : IO ()
 main =
