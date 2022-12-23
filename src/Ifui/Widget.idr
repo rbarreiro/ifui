@@ -191,7 +191,7 @@ serverConnectWithAuth url login sf =
                       case parse s of
                         Just j =>
                            do
-                             let Just r = the (Maybe roleTy) (fromJson j) | Nothing => putStrLn "Invalid login response"
+                             let Just r = the (Maybe roleTy) (fromJson j) | Nothing => putStrLn "Invalid login response \{show j}"
                              writeIORef onMsg (onMsgFn handles)
                              prc <- readIORef procResult
                              let serverConnection = (r ** MkServerConnection url ws (sf r) counter handles)
