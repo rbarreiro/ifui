@@ -103,8 +103,8 @@ clearChildren n =
 
 stop : PromiseNodeRef -> IO ()
 stop x = 
-  if !(readIORef x.isFinished) then x.cancel 
-                               else pure ()
+  if !(readIORef x.isFinished) then pure () 
+                               else x.cancel
 
 export
 setNodeText : VNode -> String -> IO ()
