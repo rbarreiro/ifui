@@ -126,6 +126,9 @@ prim__table_if_not_exists : AnyPtr -> String -> String -> AnyPtr
 %foreign "node:lambda: (r, db, tbl) => r.db(db).table(tbl)"
 prim__read_table : AnyPtr -> String -> String -> AnyPtr
 
+%foreign "node:lambda: (r, db, tbl) => r.db(db).table(tbl).wait()"
+prim__wait_table : AnyPtr -> String -> String -> AnyPtr
+
 %foreign "node:lambda: (r, db, tbl) => r.db('ifui_meta').table('table_versions').insert([{'id': [db, tbl], 'version': 1}])"
 prim__insert_table_version : AnyPtr -> String -> String -> AnyPtr
 
@@ -167,7 +170,9 @@ doMigration s conn =
     r <- primIO $ prim__r
     let addTableVers = prim__table_if_not_exists r "ifui_meta" "table_versions"
     Right _ <- runPtr addTableVers conn | Left x => pure $ Just x
+    let waitTblVers = prim__wait_table r "ifui_meta" "table_versions"
     let readTblVers = prim__read_table r "ifui_meta" "table_versions"
+    Right _ <- runPtr waitTblVers conn | Left x => pure $ Just x
     Right tableVersionsCursor <- runPtr readTblVers conn | Left x => pure $ Just x
     Right versionsPtr <- toArrayPtr tableVersionsCursor | Left x => pure $ Just x
     case readResultPtr versionsPtr of

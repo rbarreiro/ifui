@@ -8,6 +8,8 @@ services:
     ports:
       - 6401:6401
       - 6402:6402
+    depends_on:
+      - todo_rethinkdb
 
 
   todo_rethinkdb:

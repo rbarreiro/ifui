@@ -14,7 +14,7 @@ RUN npm install -g node-static
 RUN npm install -g ws
 RUN npm install -g rethinkdb
 WORKDIR /deps
-ARG CACHE_DATE=2022-12-23_2
+ARG CACHE_DATE=2022-12-23_3
 RUN git clone https://github.com/rbarreiro/ifui.git
 WORKDIR /deps/ifui
 RUN idris2  --install ifui.ipkg
