@@ -38,7 +38,7 @@ data Expr : UKeyList (String, String) FieldList -> List (String, Type) -> Type -
     Lit : HasJSValue a => a -> Expr db ctxt a
     StrEq : Expr db ctxt (String -> String -> Bool)
     GetField : (key : String) -> HasValue key t fields  => Expr db ctxt (Record fields -> t)
-    MapCursor : Expr db ctxt ((a -> b) -> Cursor a -> Cursor b)
+    MapCursor : Expr db ctxt (a ->b) -> Expr db ctxt (Cursor a -> Cursor b)
 
 
 infixr 0 |>
@@ -235,16 +235,17 @@ prim__insert : AnyPtr -> AnyPtr -> AnyPtr
 %foreign "node:lambda: (t, options) => t.changes(options)"
 prim__changes : AnyPtr -> AnyPtr -> AnyPtr
 
-%foreign "node:lambda: r => (f => (x => r.map(x, f)))"
-prim__rmap : AnyPtr -> AnyPtr
+%foreign "node:lambda: (r, f) => (x => r.map(x, f))"
+prim__rmap : AnyPtr -> AnyPtr -> AnyPtr
+
 
 compileExpr : AnyPtr -> VarStack ctxt ->  Expr db ctxt r -> AnyPtr 
 compileExpr r vars (Var name x) = 
   getVar x vars
 compileExpr r vars (Lambda arg a x) = 
   fnToPtr $ \w => compileExpr r (AddVar arg w vars) x
-compileExpr r vars (App x y) = 
-  prim__app r (compileExpr r vars x) (compileExpr r vars y)
+compileExpr r vars (App f x) = 
+  prim__app r (compileExpr r vars f) (compileExpr r vars x)
 compileExpr r vars (GetTable d t) = 
   prim__getTable r d t
 compileExpr r vars (ReadTable x) = 
@@ -261,8 +262,16 @@ compileExpr r vars StrEq =
   prim__req r 
 compileExpr r vars (GetField key) = 
   prim__rget key
-compileExpr r vars MapCursor =
-  prim__rmap r
+compileExpr r vars (MapCursor f) =
+  prim__rmap r (compileExpr r vars f)
+
+export
+debugShowExpr : Expr db [] t -> IO ()
+debugShowExpr x =
+  do
+    r <- primIO prim__r
+    let e = compileExpr r Empty x
+    putStrLn $ believe_me e
 
 
 export
