@@ -195,13 +195,14 @@ serverConnectWithAuth url login sf =
                              writeIORef onMsg (onMsgFn handles)
                              prc <- readIORef procResult
                              let serverConnection = (r ** MkServerConnection url ws (sf r) counter handles)
+                             writeIORef isFinished True
                              prc (believe_me $ the (DPair roleTy (\r => ServerConnection (sf r))) serverConnection)
                         Nothing =>
                              putStrLn "Invalid request \{s}"
                     setOnMessage ws $ \e => do
                       f <- readIORef onMsg
                       f e
-                    pure $ MkPromiseNodeRef procResult (close ws) isFinished
+                    pure $ MkPromiseNodeRef procResult (close ws >> writeIORef isFinished True) isFinished
                ]
 
 removeHandle : String -> IORef (List (String, a)) -> IO ()

@@ -101,6 +101,11 @@ clearChildren : VNode -> IO ()
 clearChildren n =
   writeIORef n.children.nodes []
 
+stop : PromiseNodeRef -> IO ()
+stop x = 
+  if !(readIORef x.isFinished) then x.cancel 
+                               else pure ()
+
 export
 setNodeText : VNode -> String -> IO ()
 setNodeText node y = 
@@ -113,7 +118,7 @@ setNodeText node y =
                                         setTextContent n y
                                         writeIORef node.rep (VNodeText y)
          (VNodeNode _ _) => createNewNodeText
-         (VNodePromise _ r) => r.cancel >> createNewNodeText
+         (VNodePromise _ r) => stop r >> createNewNodeText
   where
     createNewNodeText : IO ()
     createNewNodeText = 
@@ -134,7 +139,7 @@ setNodeTag node y =
          (VNodeText w) => createNewNodeTag
          (VNodeNode w ys) => if w == y then pure ()
                                        else createNewNodeTag
-         (VNodePromise _ r) => r.cancel >> createNewNodeTag
+         (VNodePromise _ r) => stop r >> createNewNodeTag
   where
     createNewNodeTag : IO ()
     createNewNodeTag = 
@@ -163,7 +168,7 @@ setNodePromise node id onEvt start =
                                done <- readIORef oldR.isFinished
                                if done then replacePromise 
                                        else writeIORef oldR.callback onEvt
-                             else oldR.cancel >> replacePromise  
+                             else stop oldR >> replacePromise  
 
   where
     replacePromise : IO ()
