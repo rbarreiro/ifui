@@ -305,10 +305,10 @@ export
 toArray' : HasJSValue a => RethinkServer ts -> Expr ts [] (Cursor a) -> Promise (List a)
 toArray' s e = onErrPrint $ toArray s e
 
-%foreign "node:lambda: (cursor, callback)  => cursor.each(res => {console.log(res); return callback(res)()})"
-prim__each : AnyPtr -> (AnyPtr -> PrimIO ()) -> PrimIO ()
+%foreign "node:lambda: (cursor, callback)  => cursor.each((err, res) => callback(err ? err + '' : '')(res)())"
+prim__each : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 
-%foreign "node:lambda: (cursor, callback)  => cursor.close((err) => callback(err + '')())"
+%foreign "node:lambda: (cursor, callback)  => cursor.close((err) => callback(err ? err + '' : '')())"
 prim__close : AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
 
 export
@@ -320,9 +320,12 @@ getChanges (MkRethinkServer conn) e =
     canceled <- newIORef False
     let query = compileExpr r Empty e
     primIO $ prim__run query conn $ 
-      \err, result => toPrim $ if err == "" then do
-                                              if !(readIORef canceled) then primIO $ prim__close result (\x => toPrim $ pure ())
-                                                                       else primIO $ prim__each result $ \z => toPrim $ w $ readResultPtr "getChanges \{debugShowExpr e}" z
+      \err, result => toPrim $ if err == "" then 
+                                             if !(readIORef canceled) 
+                                                then primIO $ prim__close result (\x => toPrim $ pure ())
+                                                else primIO $ prim__each result $ \err_, r => 
+                                                   if err_ == "" then toPrim $ w $ readResultPtr "getChanges \{debugShowExpr e}" r
+                                                                 else toPrim $ w $ Left err
                                              else w $ Left err
     pure $ MkStreamHandler $ do 
       writeIORef canceled True
