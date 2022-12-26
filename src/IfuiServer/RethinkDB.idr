@@ -274,7 +274,7 @@ debugShowExpr : Expr db [] t -> String
 debugShowExpr x =
   let r = prim__r ()
       e = compileExpr r Empty x
-  in ?h
+  in prim__toString e
 
 export
 run : HasJSValue a => RethinkServer ts -> Expr ts [] a -> Promise (Either String a)
