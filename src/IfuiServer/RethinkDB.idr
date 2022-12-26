@@ -102,7 +102,7 @@ toArrayPtr cursor =
 prim__errToStr : AnyPtr -> String
 
 %foreign "node:lambda: () => require('rethinkdb')"
-prim__r : PrimIO AnyPtr
+prim__r : () -> AnyPtr
 
 %foreign "node:lambda: (q, conn, callback)  => q.run(conn, (err, res) => callback(err ? err + '' : '')(res)())"
 prim__run : AnyPtr -> AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
@@ -114,10 +114,10 @@ runPtr query conn =
                                                                            else w $ Left err
      pure $ MkPromiseHandler $ pure ()
  
-readResultPtr : HasJSValue a => AnyPtr -> Either String a
-readResultPtr ptr = 
+readResultPtr : HasJSValue a => Lazy String -> AnyPtr -> Either String a
+readResultPtr contextForError ptr = 
   case fromPtr ptr of
-    Nothing => Left "Find: error reading values \{ptrToString ptr}"
+    Nothing => Left "Error in \{contextForError} trying to read value \{ptrToString ptr}"
     (Just x) => Right x
 
 %foreign "node:lambda: (r, db, tbl) => r.expr([r.branch(r.dbList().contains(db), r.expr({}), r.dbCreate(db)), r.branch(r.db(db).tableList().contains(tbl), r.expr({}), r.db(db).tableCreate(tbl))])"
@@ -167,7 +167,7 @@ migrateServer r (x :: y) versions conn =
 doMigration : ServerSchema ts -> AnyPtr -> Promise (Maybe String)
 doMigration s conn = 
   do
-    r <- primIO $ prim__r
+    let r =  prim__r ()
     let addTableVers = prim__table_if_not_exists r "ifui_meta" "table_versions"
     Right _ <- runPtr addTableVers conn | Left x => pure $ Just x
     let waitTblVers = prim__wait_table r "ifui_meta" "table_versions"
@@ -175,7 +175,7 @@ doMigration s conn =
     Right _ <- runPtr waitTblVers conn | Left x => pure $ Just x
     Right tableVersionsCursor <- runPtr readTblVers conn | Left x => pure $ Just x
     Right versionsPtr <- toArrayPtr tableVersionsCursor | Left x => pure $ Just x
-    case readResultPtr versionsPtr of
+    case readResultPtr "doMigration"  versionsPtr of
          Right versions => migrateServer r s versions conn
          Left err => pure $ Just err
 
@@ -265,25 +265,27 @@ compileExpr r vars (GetField key) =
 compileExpr r vars MapCursor =
   prim__rmap r
 
-export
-debugShowExpr : Expr db [] t -> IO ()
-debugShowExpr x =
-  do
-    r <- primIO prim__r
-    let e = compileExpr r Empty x
-    putStrLn $ believe_me e
 
+%foreign "javascript:lambda: x=> x+''"
+prim__toString : AnyPtr -> String
+
+export
+debugShowExpr : Expr db [] t -> String
+debugShowExpr x =
+  let r = prim__r ()
+      e = compileExpr r Empty x
+  in ?h
 
 export
 run : HasJSValue a => RethinkServer ts -> Expr ts [] a -> Promise (Either String a)
 run (MkRethinkServer s) e = 
   do
-    r <- primIO prim__r
+    let r = prim__r ()
     let query = compileExpr r Empty e
     z <- runPtr query s
     case z of 
          Left err => pure $ Left err
-         Right ptr => pure $ readResultPtr ptr
+         Right ptr => pure $ readResultPtr "run \{debugShowExpr e}"  ptr
 
 export
 run' : HasJSValue a => RethinkServer ts -> Expr ts [] a -> Promise a
@@ -293,11 +295,11 @@ export
 toArray : HasJSValue a => RethinkServer ts -> Expr ts [] (Cursor a) -> Promise (Either String (List a))
 toArray (MkRethinkServer s) e = 
   do
-    r <- primIO prim__r
+    let r = prim__r ()
     let query = compileExpr r Empty e
     Right z <- runPtr query s | Left e => pure $ Left e
     Right res <- toArrayPtr z | Left e => pure $ Left e
-    pure $ readResultPtr res
+    pure $ readResultPtr "toArray \{debugShowExpr e}" res
 
 export
 toArray' : HasJSValue a => RethinkServer ts -> Expr ts [] (Cursor a) -> Promise (List a)
@@ -313,14 +315,14 @@ export
 getChanges : HasJSValue (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Either String (Change a))
 getChanges (MkRethinkServer conn) e =
    MkIOStream $ \w => do
-    r <- primIO prim__r
+    let r = prim__r ()
     cursor <- newIORef $ the (Maybe AnyPtr) Nothing
     canceled <- newIORef False
     let query = compileExpr r Empty e
     primIO $ prim__run query conn $ 
       \err, result => toPrim $ if err == "" then do
                                               if !(readIORef canceled) then primIO $ prim__close result (\x => toPrim $ pure ())
-                                                                       else primIO $ prim__each result $ \z => toPrim $ w $ readResultPtr z
+                                                                       else primIO $ prim__each result $ \z => toPrim $ w $ readResultPtr "getChanges \{debugShowExpr e}" z
                                              else w $ Left err
     pure $ MkStreamHandler $ do 
       writeIORef canceled True
