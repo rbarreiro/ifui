@@ -305,10 +305,10 @@ export
 toArray' : HasJSValue a => RethinkServer ts -> Expr ts [] (Cursor a) -> Promise (List a)
 toArray' s e = onErrPrint $ toArray s e
 
-%foreign "node:lambda: (cursor, callback)  => cursor.each((res) => callback(res)())"
+%foreign "node:lambda: (cursor, callback)  => cursor.each(res => {console.log(res); return callback(res)()})"
 prim__each : AnyPtr -> (AnyPtr -> PrimIO ()) -> PrimIO ()
 
-%foreign "node:lambda: (cursor, callback)  => cursor.close((err) => callback(err)())"
+%foreign "node:lambda: (cursor, callback)  => cursor.close((err) => callback(err + '')())"
 prim__close : AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
 
 export
