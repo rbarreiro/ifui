@@ -94,7 +94,7 @@ export
 HasJSValue (Record []) where
   toJS [] = MkJSValue $ prim__newObj ()
   fromJS _ = []
-  checkPtr x = prim__isNullOrUndefined == 0 && prim__typeof x == "object"
+  checkPtr x = prim__isNullOrUndefined x == 0 && prim__typeof x == "object"
 
 export
 {s : String} -> {t : Type} -> {p : UKeyListCanPrepend (s, t) ts} -> (HasJSValue t, HasJSValue (Record ts)) => HasJSValue (Record ((s,t) :: ts)) where
