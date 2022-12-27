@@ -65,9 +65,6 @@ node tag attrs children =
      convAttr onEvt (WidgetSimpleAttribute spec) = SimpleAttribute spec
      convAttr onEvt (WidgetEventListener x g) = EventListener x (\e => g e >>= onEvt)
 
-groupToSpan : List (Widget a) -> Widget a
-groupToSpan xs = node "span" [] xs
-
 export
 Functor WidgetAttribute where
   map f (WidgetSimpleAttribute x) = WidgetSimpleAttribute x
@@ -345,7 +342,18 @@ callStreamChangesAccumList s conn x =
 export
 runWidget : Widget () -> IO ()
 runWidget (WidgetPure x) = pure ()
-runWidget (WidgetGroup xs) = runWidget $ groupToSpan xs
+runWidget (WidgetGroup xs) = 
+  case simplifyWList xs of
+       (Left x) => 
+          pure x
+       (Right [start]) => 
+          do
+            n <- createEmptyVNode !body
+            start n pure
+       (Right xs) => 
+          do
+            n <- createEmptyVNode !body
+            updateVNodes n.children (applyStart pure <$> xs)
 runWidget (MarkupWidget start) =
   do
     n <- createEmptyVNode !body

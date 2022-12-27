@@ -169,7 +169,6 @@ setNodePromise node id onEvt start =
                                if done then replacePromise 
                                        else writeIORef oldR.callback onEvt
                              else stop oldR >> replacePromise  
-
   where
     replacePromise : IO ()
     replacePromise = 
