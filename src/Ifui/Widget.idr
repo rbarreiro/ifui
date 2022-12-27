@@ -16,7 +16,57 @@ data WidgetAttribute a = WidgetSimpleAttribute AttributeSpec | WidgetEventListen
 
 export
 data Widget a = WidgetPure a
-              | MarkupWidget (List (VNode -> (a -> IO ()) -> IO ()))
+              | MarkupWidget (VNode -> (a -> IO ()) -> IO ())
+              | WidgetGroup (List (Widget a))
+
+export
+Semigroup (Widget a) where
+  (<+>) (WidgetPure x) _ = WidgetPure x
+  (<+>) _ (WidgetPure x) = WidgetPure x
+  (<+>) (WidgetGroup xs) (WidgetGroup ys) = WidgetGroup (xs <+> ys)
+  (<+>) (WidgetGroup xs) (MarkupWidget y) = WidgetGroup (xs <+> [MarkupWidget y])
+  (<+>) (MarkupWidget x) (WidgetGroup ys) = WidgetGroup ((MarkupWidget x) :: ys)
+  (<+>) (MarkupWidget xs) (MarkupWidget ys) = WidgetGroup  [MarkupWidget xs, MarkupWidget ys]
+
+export
+Monoid (Widget a) where
+  neutral = WidgetGroup []
+
+total
+simplifyWList : List (Widget a) -> Either a (List (VNode -> (a -> IO ()) -> IO ()))
+simplifyWList [] = Right []
+simplifyWList ((WidgetPure x) :: xs) = Left x
+simplifyWList ((MarkupWidget f) :: xs) = 
+  case simplifyWList xs of
+       (Left x) => Left x
+       (Right x) => Right $ f :: x
+simplifyWList ((WidgetGroup ys) :: xs) = 
+  case (simplifyWList ys, simplifyWList xs) of
+       ((Left x), _) => Left x
+       ((Right _), (Left y)) => Left y
+       ((Right x), (Right y)) => Right $ x ++ y
+
+applyStart : (b -> IO ()) -> (VNode -> (b -> IO ()) -> IO ()) -> VNode -> IO ()
+applyStart onEvt strt x = strt x onEvt
+
+export
+node : String -> List (WidgetAttribute a) -> List (Widget a) -> Widget a
+node tag attrs children =
+   case simplifyWList children of
+        (Left x) => 
+           WidgetPure x
+        (Right xs) => 
+           MarkupWidget $ \n, onEvt => do
+             setNodeTag n tag
+             setNodeAttributes n (convAttr onEvt <$> attrs)
+             updateVNodes n.children (applyStart onEvt <$> xs)
+   where
+     convAttr : (a -> IO ()) -> WidgetAttribute a -> Attribute
+     convAttr onEvt (WidgetSimpleAttribute spec) = SimpleAttribute spec
+     convAttr onEvt (WidgetEventListener x g) = EventListener x (\e => g e >>= onEvt)
+
+groupToSpan : List (Widget a) -> Widget a
+groupToSpan xs = node "span" [] xs
 
 export
 Functor WidgetAttribute where
@@ -26,38 +76,46 @@ Functor WidgetAttribute where
 export
 Functor Widget where
   map g (WidgetPure x) = WidgetPure $ g x
-  map g (MarkupWidget xs) = MarkupWidget $ mapStart <$> xs
-  where
-    mapStart : (VNode -> (a -> IO ()) -> IO ())-> VNode -> (b -> IO ()) -> IO ()
-    mapStart start n onEvt = start n (\w => onEvt $ g w)
+  map g (MarkupWidget start) = MarkupWidget $ \n, onEvt => start n (\w => onEvt (g w))
+  map g (WidgetGroup xs) = WidgetGroup $ (map g)  <$> xs
 
-export
-Semigroup (Widget a) where
-  (<+>) (WidgetPure x) y = WidgetPure x
-  (<+>) (MarkupWidget xs) (WidgetPure x) = WidgetPure x
-  (<+>) (MarkupWidget xs) (MarkupWidget ys) = MarkupWidget $ xs <+> ys
 
-export
-Monoid (Widget a) where
-  neutral = MarkupWidget []
+contOnEvt : VNode -> (b -> IO ()) -> (a -> Widget b) -> a -> IO ()
+contOnEvt n onEvt f w = 
+  case f w of
+    (WidgetPure x) => 
+       onEvt x
+    (MarkupWidget g) =>
+       g n onEvt
+    (WidgetGroup xs) =>
+       case simplifyWList xs of
+            Left z =>
+              onEvt z
+            Right ys =>
+              do
+                setNodeTag n "span"
+                setNodeAttributes n []
+                updateVNodes n.children (applyStart onEvt <$> ys)
 
 widgetBind : Widget a -> (a -> Widget b) -> Widget b
-widgetBind (WidgetPure x) f = f x
-widgetBind (MarkupWidget xs) f =
-  MarkupWidget [\n, onEvt =>
-    let
-      finish : (VNode -> (b -> IO ()) -> IO ()) -> VNode -> IO ()
-      finish strt x = strt x onEvt
+widgetBind (WidgetPure x) f = 
+  f x
+widgetBind (WidgetGroup xs) f = 
+  case simplifyWList xs of
+       (Left x) => 
+          f x
+       (Right xs) =>
+          MarkupWidget $ \n, onEvt => do
+            setNodeTag n "span"
+            setNodeAttributes n []
+            updateVNodes n.children (applyStart (contOnEvt n onEvt f) <$> xs)
 
-      cont : Widget b -> IO ()
-      cont (WidgetPure x) = onEvt x
-      cont (MarkupWidget ys) = updateVNodes n.children (finish <$> ys)
+widgetBind (MarkupWidget start) f =
+  MarkupWidget $ \n, onEvt =>
+     start n (contOnEvt n onEvt f)
+             
 
-      bindStart : (VNode -> (a -> IO ()) -> IO ()) -> VNode -> IO ()
-      bindStart strt x = strt x (\w => let u = f w in cont u)
-    in
-      updateVNodes n.children (bindStart <$> xs)
-  ]
+
 
 widgetLoopState :  s -> (s -> Widget (Either s a)) -> Widget a
 widgetLoopState x f = 
@@ -111,31 +169,12 @@ Monad Widget where
 export
 HasIO Widget where
   liftIO x = 
-    MarkupWidget  [\_, onEvt => x >>= onEvt]
+    MarkupWidget $ \_, onEvt => x >>= onEvt
 
 export
 text : String -> Widget a
-text x = MarkupWidget [\n, _ => setNodeText n x]
+text x = MarkupWidget $ \n, _ => setNodeText n x
 
-export
-node : String -> List (WidgetAttribute a) -> List (Widget a) -> Widget a
-node tag attrs children =
-  case concat children of
-       (WidgetPure x) =>
-          WidgetPure x
-       (MarkupWidget xs) =>
-          MarkupWidget [\n, onEvt => do
-            setNodeTag n tag
-            setNodeAttributes n (convAttr onEvt <$> attrs)
-            updateVNodes n.children (runChildrenStarts onEvt <$> xs)
-          ]
-    where
-    runChildrenStarts : (a -> IO ())  -> (VNode -> (a -> IO ()) -> IO ()) -> VNode -> IO ()
-    runChildrenStarts onEvt f x = f x onEvt
-
-    convAttr : (a -> IO ()) -> WidgetAttribute a -> Attribute
-    convAttr onEvt (WidgetSimpleAttribute spec) = SimpleAttribute spec
-    convAttr onEvt (WidgetEventListener x g) = EventListener x (\e => g e >>= onEvt)
 
 export
 data ServerConnection :  UKeyList String ServiceKind -> Type where
@@ -175,7 +214,7 @@ export
 serverConnectWithAuth : (JsonSerializable loginTy, JsonSerializable roleTy) => String -> loginTy -> 
                         (sf : roleTy -> UKeyList String ServiceKind) -> Widget (DPair roleTy (\r => ServerConnection (sf r)))
 serverConnectWithAuth url login sf = 
-  MarkupWidget [\n, onEvt => do
+  MarkupWidget $ \n, onEvt => do
                   let login_ = toJson login
                   let proc = the (AnyPtr  -> IO ()) $ \ptr => 
                               onEvt (believe_me ptr)
@@ -204,7 +243,6 @@ serverConnectWithAuth url login sf =
                       f <- readIORef onMsg
                       f e
                     pure $ MkPromiseNodeRef procResult (close ws >> writeIORef isFinished True) isFinished
-               ]
 
 removeHandle : String -> IORef (List (String, a)) -> IO ()
 removeHandle str x = 
@@ -217,7 +255,7 @@ export
 callRPC : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (RPC a b) ts) => 
             ServerConnection ts -> a -> Widget b
 callRPC s (MkServerConnection url socket srv counter handles) y = 
-   MarkupWidget [\n, onEvt => 
+   MarkupWidget $ \n, onEvt => 
                                  do
                                     let y_ = toJson y
                                     let proc = \ptr => do
@@ -234,12 +272,12 @@ callRPC s (MkServerConnection url socket srv counter handles) y =
                                       writeIORef counter (i+1)
                                       let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
                                       pure $ MkPromiseNodeRef procResult cancel isFinished
-                ]
+
 export
 callStream : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (StreamService a b) ts) => 
                ServerConnection ts -> a -> Widget b
 callStream s (MkServerConnection url socket srv counter handles) y = 
-   MarkupWidget [\n, onEvt => 
+   MarkupWidget $ \n, onEvt => 
                                  do
                                     let y_ = toJson y
                                     let proc = \ptr => do
@@ -256,13 +294,12 @@ callStream s (MkServerConnection url socket srv counter handles) y =
                                       writeIORef counter (i+1)
                                       let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
                                       pure $ MkPromiseNodeRef procResult cancel isFinished
-                ]
         
 export
 callStreamAccum : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (StreamService a b) ts) => 
                ServerConnection ts -> a -> c -> (b -> c -> c) -> Widget c
 callStreamAccum s (MkServerConnection url socket srv counter handles) y r0 acc = 
-   MarkupWidget [\n, onEvt => 
+   MarkupWidget $ \n, onEvt => 
                                  do
                                     let y_ = toJson y
                                     let proc = \ptr => onEvt (believe_me ptr)
@@ -284,7 +321,6 @@ callStreamAccum s (MkServerConnection url socket srv counter handles) y r0 acc =
                                       writeIORef counter (i+1)
                                       let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
                                       pure $ MkPromiseNodeRef procResult cancel isFinished
-                ]
 
 accListWithId : (Eq t) => Change t -> List t -> List t
 accListWithId x xs = 
@@ -305,10 +341,12 @@ callStreamChangesAccumList s conn x =
 export
 runWidget : Widget () -> IO ()
 runWidget (WidgetPure x) = pure ()
-runWidget (MarkupWidget xs) =
+runWidget (WidgetGroup xs) = runWidget $ groupToSpan xs
+runWidget (MarkupWidget start) =
   do
-    ns <- createEmptyVNodes !body
-    updateVNodes ns (runone <$> xs)
-    where
-      runone : (VNode -> (() -> IO ()) -> IO ()) -> VNode -> IO ()
-      runone f y = f y (\_ => pure ())
+    n <- createEmptyVNode !body
+    start n pure
+--    updateVNodes ns (runone ns <$> xs)
+--     where
+--       runone : VNodes -> (VNodes -> VNode -> (() -> IO ()) -> IO ()) -> VNode -> IO ()
+--       runone x f y = f x y (\_ => pure ())
