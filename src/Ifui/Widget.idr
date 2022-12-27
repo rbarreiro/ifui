@@ -85,12 +85,14 @@ contOnEvt n onEvt f w =
   case f w of
     (WidgetPure x) => 
        onEvt x
-    (MarkupWidget g) =>
-       g n onEvt
+    (MarkupWidget start) =>
+       start n onEvt
     (WidgetGroup xs) =>
        case simplifyWList xs of
             Left z =>
               onEvt z
+            Right [start] =>
+              start n onEvt
             Right ys =>
               do
                 setNodeTag n "span"
@@ -104,12 +106,14 @@ widgetBind (WidgetGroup xs) f =
   case simplifyWList xs of
        (Left x) => 
           f x
+       (Right [start]) =>
+          MarkupWidget $ \n, onEvt => do
+            start n (contOnEvt n onEvt f)
        (Right xs) =>
           MarkupWidget $ \n, onEvt => do
             setNodeTag n "span"
             setNodeAttributes n []
             updateVNodes n.children (applyStart (contOnEvt n onEvt f) <$> xs)
-
 widgetBind (MarkupWidget start) f =
   MarkupWidget $ \n, onEvt =>
      start n (contOnEvt n onEvt f)
@@ -346,7 +350,3 @@ runWidget (MarkupWidget start) =
   do
     n <- createEmptyVNode !body
     start n pure
---    updateVNodes ns (runone ns <$> xs)
---     where
---       runone : VNodes -> (VNodes -> VNode -> (() -> IO ()) -> IO ()) -> VNode -> IO ()
---       runone x f y = f x y (\_ => pure ())
