@@ -10,11 +10,8 @@ import public Ifui.Services
 import public Ifui.Json
 import Data.IORef
 
-%foreign "javascript:lambda: x => x+''"
-prim__ptrToString : AnyPtr -> String
-export
-ptrToString : AnyPtr -> String
-ptrToString = prim__ptrToString
+%foreign "javascript:lambda: x => JSON.stringify(x)"
+prim__json_stringify : AnyPtr -> String
 
 %foreign "javascript:lambda: () => null"
 prim__null : () -> AnyPtr
@@ -219,7 +216,7 @@ runPtr query conn =
 readResultPtr : JsonSerializable a => Lazy String -> AnyPtr -> Either String a
 readResultPtr contextForError ptr = 
   case fromPtr ptr of
-    Nothing => Left "Error in \{contextForError} trying to read value \{ptrToString ptr}"
+    Nothing => Left "Error in \{contextForError} trying to read value \{prim__json_stringify ptr}"
     (Just x) => Right x
 
 %foreign "node:lambda: (r, db, tbl) => r.expr([r.branch(r.dbList().contains(db), r.expr({}), r.dbCreate(db)), r.branch(r.db(db).tableList().contains(tbl), r.expr({}), r.db(db).tableCreate(tbl))])"
@@ -277,7 +274,7 @@ doMigration s conn =
     Right _ <- runPtr waitTblVers conn | Left x => pure $ Just x
     Right tableVersionsCursor <- runPtr readTblVers conn | Left x => pure $ Just x
     Right versionsPtr <- toArrayPtr tableVersionsCursor | Left x => pure $ Just x
-    case readResultPtr "doMigration"  versionsPtr of
+    case readResultPtr "doMigration read versions Ptr" versionsPtr of
          Right versions => migrateServer r s versions conn
          Left err => pure $ Just err
 
