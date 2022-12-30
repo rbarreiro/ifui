@@ -6,7 +6,7 @@ import Ifui.ReadWidgetBulma
 import Ifui.ExtensibleRecords
 
 IData : Type
-IData =  Record [("Name", String), ("Surname", String), ("whatever", Alt [("age", Double), ("age_class", String)])]
+IData =  Record [("Name", String), ("Surname", String), ("whatever", Variant [("age", Double), ("age_class", String)])]
 
 mainWidget : Widget ()
 mainWidget =

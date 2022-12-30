@@ -169,10 +169,32 @@ export
   show (x :: (y :: r)) = "[" ++ show x  ++ ","  ++ (let z = show (y :: r) in substr 1 (length z) z)
 
 
-public export
-data Variant : FieldList -> Type where
-  MkVariant : (s : String) -> t -> {auto p : Elem s t ts} -> Variant ts
+namespace Variant
+  public export
+  data Variant : FieldList -> Type where
+    MkVariant : (s : String) -> t -> Elem s t ts -> Variant ts
 
-public export
-data Tree : UKeyList String (Type -> Type) -> Type where
-  N : (s : String) -> {auto p : KElem s ts} -> ((klookup ts p) (Tree ts))  -> Tree ts
+  infixr 4 -=
+
+  public export
+  (-=) : (s : String) -> t -> {auto p : Elem s t ts} -> Variant ts
+  (-=) x y {p} = MkVariant x y p 
+
+  public export
+  weakenVariant : {auto p : UKeyListCanPrepend (s, t) ts} -> Variant ts -> Variant ((s,t):: ts)
+  weakenVariant (MkVariant k v y) = MkVariant k v (There y)
+  
+  export
+  Show (Variant []) where
+    show (MkVariant _ _ Here) impossible
+    show (MkVariant _ _ (There later)) impossible
+ 
+  export
+  {s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (Show  t, Show (Variant ts)) => Show (Variant ((s, t) :: ts)) where
+    show (MkVariant k v Here) = "(" ++ k ++ " -= " ++ show v ++ ")"
+    show (MkVariant k v (There later)) = show (MkVariant k v later)
+
+namespace Tree
+  public export
+  data Tree : UKeyList String (Type -> Type) -> Type where
+    N : (s : String) -> {auto p : KElem s ts} -> ((klookup ts p) (Tree ts))  -> Tree ts

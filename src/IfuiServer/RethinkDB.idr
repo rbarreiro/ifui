@@ -413,6 +413,10 @@ prim__each : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 %foreign "node:lambda: (cursor, callback)  => cursor.close((err) => callback(err ? err + '' : '')())"
 prim__close : AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
 
+%foreign "javascript:lambda: (k,x) => {if(x.hasOwnProperty(k)) then return x;else {const res = {...x}; x[k]=null; return res}} "
+prim__add_null_key : String -> AnyPtr -> AnyPtr
+
+
 export
 getChanges : JsonSerializable (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Either String (Change a))
 getChanges (MkRethinkServer conn) e =
@@ -426,7 +430,7 @@ getChanges (MkRethinkServer conn) e =
                                              if !(readIORef canceled) 
                                                 then primIO $ prim__close result (\x => toPrim $ pure ())
                                                 else primIO $ prim__each result $ \err_, r => 
-                                                   if err_ == "" then toPrim $ w $ readResultPtr "getChanges \{debugShowExpr e}" r
+                                                   if err_ == "" then toPrim $ w $ readResultPtr "getChanges \{debugShowExpr e}" (prim__add_null_key "old_val" r)
                                                                  else toPrim $ w $ Left err
                                              else w $ Left err
     pure $ MkStreamHandler $ do 

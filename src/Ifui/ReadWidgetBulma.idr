@@ -25,8 +25,8 @@ transformReader : (Widget (Reader a) -> Widget (Reader a)) -> Reader a -> Reader
 transformReader f (MkReader x y) = 
   MkReader (f $ transformReader f <$> x ) y
 
-data AltOptions : FieldList -> Type where
-  MkAltOptions : {0 ts : FieldList} -> Vect (UKeyList.length ts) String -> Vect (UKeyList.length ts) (Reader (Alt ts)) -> AltOptions ts
+data VariantOptions : FieldList -> Type where
+  MkVariantOptions : {0 ts : FieldList} -> Vect (UKeyList.length ts) String -> Vect (UKeyList.length ts) (Reader (Variant ts)) -> VariantOptions ts
 
 public export
 interface ReadWidgetBulma a where
@@ -94,39 +94,39 @@ listElemToFin : Elem x y xs -> Fin (UKeyList.length xs)
 listElemToFin Here = FZ
 listElemToFin (There y) = FS $ listElemToFin y
 
-getAltIdx : {0 ts : FieldList} ->  Alt ts -> Fin (UKeyList.length ts)
-getAltIdx (MkAlt x y) = listElemToFin y
+getVariantIdx : {0 ts : FieldList} ->  Variant ts -> Fin (UKeyList.length ts)
+getVariantIdx (MkVariant _ _ y) = listElemToFin y
 
 export
-interface AltReader (0 ts : FieldList) where
-  getAltOptionReader : Alt ts -> Reader (Alt ts)
-  getOptions : AltOptions ts
+interface VariantReader (0 ts : FieldList) where
+  getVariantOptionReader : Variant ts -> Reader (Variant ts)
+  getOptions : VariantOptions ts
 
 export
-AltReader [] where
-  getAltOptionReader (MkAlt _ Here) impossible
-  getAltOptionReader (MkAlt _ (There later)) impossible
-  getOptions = MkAltOptions [] []
+VariantReader [] where
+  getVariantOptionReader (MkVariant _ _ Here) impossible
+  getVariantOptionReader (MkVariant _ _ (There later)) impossible
+  getOptions = MkVariantOptions [] []
 
 export
-{s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (AltReader ts, ReadWidgetBulma t) => AltReader ((s, t) :: ts) where
-  getAltOptionReader (MkAlt x Here) = (\w => MkAlt (MkEntry s w) Here) <$> getReaderBulma (Just $ value x)
-  getAltOptionReader (MkAlt x (There later)) = weakenAlt <$> (the (Reader (Alt ts)) $ getAltOptionReader (MkAlt x later) )
+{s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (VariantReader ts, ReadWidgetBulma t) => VariantReader ((s, t) :: ts) where
+  getVariantOptionReader (MkVariant s x Here) = (\w => MkVariant s w Here) <$> getReaderBulma (Just x)
+  getVariantOptionReader (MkVariant s x (There later)) = weakenVariant <$> (the (Reader (Variant ts)) $ getVariantOptionReader (MkVariant s x later) )
 
   getOptions =
-    let MkAltOptions options readers = the (AltOptions ts) getOptions
-    in  MkAltOptions (s :: options) 
-                     (((\w => MkAlt (MkEntry s w) Here)  <$> (the (Reader t) $ getReaderBulma Nothing)) :: ((map weakenAlt) <$> readers))
+    let MkVariantOptions options readers = the (VariantOptions ts) getOptions
+    in  MkVariantOptions (s :: options) 
+                     (((\w => MkVariant s w Here)  <$> (the (Reader t) $ getReaderBulma Nothing)) :: ((map weakenVariant) <$> readers))
 
 export
-{0 ts : FieldList} -> {p : UKeyListCanPrepend (s, t) ts} -> AltReader ((s, t) ::ts) => ReadWidgetBulma (Alt ((s,t) :: ts)) where
+{0 ts : FieldList} -> {p : UKeyListCanPrepend (s, t) ts} -> VariantReader ((s, t) ::ts) => ReadWidgetBulma (Variant ((s,t) :: ts)) where
   getReaderBulma x = 
-    MkReader (w (fromMaybe FZ $ getAltIdx <$> x) (getAltOptionReader <$> x)) x
+    MkReader (w (fromMaybe FZ $ getVariantIdx <$> x) (getVariantOptionReader <$> x)) x
     where
-      w : Fin (S (UKeyList.length ts)) -> Maybe (Reader (Alt ((s, t) ::ts))) -> Widget (Reader (Alt ((s, t) ::ts)))
+      w : Fin (S (UKeyList.length ts)) -> Maybe (Reader (Variant ((s, t) ::ts))) -> Widget (Reader (Variant ((s, t) ::ts)))
       w opt altreader = 
         do
-          let MkAltOptions options readers = the (AltOptions ((s, t) ::ts)) getOptions
+          let MkVariantOptions options readers = the (VariantOptions ((s, t) ::ts)) getOptions
           let or = selectBulma options opt
           let ar = getWidget $ fromMaybe (index opt readers) altreader 
           res <- (Left <$> or) <+> (Right <$> ar)
@@ -135,7 +135,7 @@ export
                Right y => pure $ MkReader (w opt (Just y)) (getValue y)
         
 export
-{s : String } -> ReadWidgetBulma (Alt ts) => ReadWidgetBulma (Entry s (Alt ts)) where
+{s : String } -> ReadWidgetBulma (Variant ts) => ReadWidgetBulma (Entry s (Variant ts)) where
   getReaderBulma x = 
     MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
     where

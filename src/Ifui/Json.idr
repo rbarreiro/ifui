@@ -79,23 +79,6 @@ JsonObjectSerializable (Record []) where
   fromListJson _ = Nothing
 
 export
-{s : String} -> {p : UKeyListCanPrepend (s, Maybe t) ts} -> (JsonSerializable (Maybe t), JsonObjectSerializable (Record ts)) => JsonObjectSerializable (Record ((s, Maybe t) :: ts)) where
-  toListJson ((MkEntry s x) :: y) =
-    (s, toJson x) :: toListJson y
-
-  fromListJson [] = 
-    Nothing 
-  fromListJson (xs) = 
-    do
-      ws <-fromListJson {a = Record ts} xs 
-      case lookup s xs of
-        Nothing => pure $ MkEntry s Nothing  :: ws
-        Just j =>
-          do
-           w <- fromJson {a=Maybe t} j
-           pure $ MkEntry s w :: ws
-
-export
 {s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (JsonSerializable t, JsonObjectSerializable (Record ts)) => JsonObjectSerializable (Record ((s,t) :: ts)) where
   toListJson ((MkEntry s x) :: y) =
     (s, toJson x) :: toListJson y
@@ -127,32 +110,32 @@ fromListJsonUKeyListAux ((x, y) :: xs) =
 
 export
 {s : String} -> JsonSerializable t => JsonSerializable (Variant [(s, t)]) where
-  toJson (MkVariant s x {p=Here}) = 
+  toJson (MkVariant s x Here) = 
     JObject [("k", JString s), ("v", toJson x)]
-  toJson (MkVariant s x {p=(There y)}) impossible
+  toJson (MkVariant s x (There y)) impossible
 
   fromJson (JObject [("k", JString k), ("v", v)]) = 
     if s == k then do
                       w <- fromJson {a = t}  v
-                      pure $ MkVariant s w {p=Here}
+                      pure $ MkVariant s w Here
               else Nothing
   fromJson _ = 
     Nothing
 
 export
 {s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (JsonSerializable t, JsonSerializable (Variant ts)) => JsonSerializable (Variant ((s, t) :: ts)) where
-  toJson (MkVariant s x {p=Here}) = 
+  toJson (MkVariant s x Here) = 
     JObject [("k", JString s), ("v", toJson x)]
-  toJson (MkVariant str x {p=(There y)}) =
-    toJson {a=Variant ts} (MkVariant str x {p=y})
+  toJson (MkVariant str x (There y)) =
+    toJson {a=Variant ts} (MkVariant str x y)
   
   fromJson z@(JObject [("k", JString k), ("v", v)]) = 
     if s == k then do
                       w <- fromJson {a = t}  v
-                      pure $ MkVariant s w {p=Here}
+                      pure $ MkVariant s w Here
               else case fromJson {a=Variant ts} z of
                       Nothing => Nothing 
-                      (Just (MkVariant str x {p = pe})) => Just $ MkVariant str x {p = There pe}
+                      (Just (MkVariant str x pe)) => Just $ MkVariant str x (There pe)
   fromJson _ = 
     Nothing
 

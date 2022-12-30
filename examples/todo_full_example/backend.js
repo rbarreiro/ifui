@@ -228,41 +228,45 @@ const _strReverse = x => x.split('').reverse().join('')
 
 const _substr = (o,l,x) => x.slice(o, o + l)
 
+const IfuiServer_RethinkDB_prim__wait_table = ( (r, db, tbl) => r.db(db).table(tbl).wait());
+const IfuiServer_RethinkDB_prim__typeof = ( x => typeof x);
+const IfuiServer_RethinkDB_prim__toString = ( x=> x+'');
 const IfuiServer_RethinkDB_prim__toArray = ( (cursor, callback)  => cursor.toArray((err, res) => callback(err ? err + '' : '')(res)()));
 const IfuiServer_RethinkDB_prim__table_if_not_exists = ( (r, db, tbl) => r.expr([r.branch(r.dbList().contains(db), r.expr({}), r.dbCreate(db)), r.branch(r.db(db).tableList().contains(tbl), r.expr({}), r.db(db).tableCreate(tbl))]));
+const IfuiServer_RethinkDB_prim__setItem = ( (x, k, v) => {const res= {...x}; res[k]=v; return res});
 const IfuiServer_RethinkDB_prim__run = ( (q, conn, callback)  => q.run(conn, (err, res) => callback(err ? err + '' : '')(res)()));
 const IfuiServer_RethinkDB_prim__rmap = ( r => (f => (x => r.map(x, f))));
 const IfuiServer_RethinkDB_prim__rget = ( k => (x => x(k)));
 const IfuiServer_RethinkDB_prim__req = ( r => (x => (y => r.eq(x,y))));
 const IfuiServer_RethinkDB_prim__read_table = ( (r, db, tbl) => r.db(db).table(tbl));
+const IfuiServer_RethinkDB_prim__readBool = ( x => x+0);
 const IfuiServer_RethinkDB_prim__r = ( () => require('rethinkdb'));
+const IfuiServer_RethinkDB_prim__ptrToString = ( x => x+'');
+const IfuiServer_RethinkDB_prim__objectKeys = ( (x) => Object.keys(x));
+const IfuiServer_RethinkDB_prim__null = ( () => null);
+const IfuiServer_RethinkDB_prim__newObj = ( () => {});
+const IfuiServer_RethinkDB_prim__newArray = ( () => Object.freeze([]));
+const IfuiServer_RethinkDB_prim__mkBool = ( x => x>0);
+const IfuiServer_RethinkDB_prim__isNullOrUndefined = ( x => (x === null || x === undefined)+0);
+const IfuiServer_RethinkDB_prim__isArray = ( x => Array.isArray(x)+0 );
 const IfuiServer_RethinkDB_prim__insert_table_version = ( (r, db, tbl) => r.db('ifui_meta').table('table_versions').insert([{'id': [db, tbl], 'version': 1}]));
 const IfuiServer_RethinkDB_prim__insert = ( (t, xs) => t.insert(xs));
 const IfuiServer_RethinkDB_prim__getTable = ( (r, d, t) => r.db(d).table(t));
+const IfuiServer_RethinkDB_prim__getItem = ( (x, k) => x[k]);
 const IfuiServer_RethinkDB_prim__expr = ( (r, x) => r.expr(x));
 const IfuiServer_RethinkDB_prim__errToStr = ( err  => err ? err + '' : '');
-const IfuiServer_RethinkDB_prim__each = ( (cursor, callback)  => cursor.each((res) => callback(res)()));
+const IfuiServer_RethinkDB_prim__each = ( (cursor, callback)  => cursor.each((err, res) => callback(err ? err + '' : '')(res)()));
 const IfuiServer_RethinkDB_prim__connect = ( (host, port, callback)  => {const r = require('rethinkdb'); r.connect({host:host, port: port}, (err, conn) => callback(err)(conn)())});
-const IfuiServer_RethinkDB_prim__close = ( (cursor, callback)  => cursor.close((err) => callback(err)()));
+const IfuiServer_RethinkDB_prim__close = ( (cursor, callback)  => cursor.close((err) => callback(err ? err + '' : '')()));
 const IfuiServer_RethinkDB_prim__changes = ( (t, options) => t.changes(options));
-const IfuiServer_RethinkDB_prim__app = ( (r, f, x) => r.do(x, f));
+const IfuiServer_RethinkDB_prim__arrayLength = ( x => x.length);
+const IfuiServer_RethinkDB_prim__arrayGet = ( (x, pos) => x[pos]);
+const IfuiServer_RethinkDB_prim__arrayAppend = ( (val, ori) => Object.freeze(ori.concat([Object.freeze(val)])));
+const IfuiServer_RethinkDB_prim__app = ( (r, f, x) => f(x));
+const IfuiServer_RethinkDB_prim__add_null_key = ( (k,x) => {if(x.hasOwnProperty(k)) then return x;else {const res = {...x}; x[k]=null; return res}} );
 const Prelude_Types_fastUnpack = ((str)=>__prim_js2idris_array(Array.from(str)));
 const Prelude_Types_fastPack = ((xs)=>__prim_idris2js_array(xs).join(''));
 const Prelude_IO_prim__putStr = (x=>process.stdout.write(x));
-const Ifui_JSValue_prim__typeof = ( x => typeof x);
-const Ifui_JSValue_prim__setItem = ( (x, k, v) => {const res= {...x}; res[k]=v; return res});
-const Ifui_JSValue_prim__ptrToString = ( x => x+'');
-const Ifui_JSValue_prim__null = ( () => null);
-const Ifui_JSValue_prim__newObj = ( () => {});
-const Ifui_JSValue_prim__newArray = ( () => Object.freeze([]));
-const Ifui_JSValue_prim__mkBool = ( x => x>0);
-const Ifui_JSValue_prim__isNullOrUndefined = ( x => (x === null || x === undefined)+0);
-const Ifui_JSValue_prim__isArray = ( x => Array.isArray(x)+0 );
-const Ifui_JSValue_prim__hasItem = ( (x, k) => x.hasOwnProperty(k) + 0);
-const Ifui_JSValue_prim__getItem = ( (x, k) => x[k]);
-const Ifui_JSValue_prim__arrayLength = ( x => x.length);
-const Ifui_JSValue_prim__arrayGet = ( (x, pos) => x[pos]);
-const Ifui_JSValue_prim__arrayAppend = ( (val, ori) => Object.freeze(ori.concat([Object.freeze(val)])));
 const IfuiServer_Http_prim__serve = ( (staticServer, req, res) => staticServer.serve(req,res));
 const IfuiServer_Http_prim__listen = ( (server, port) => server.listen(port));
 const IfuiServer_Http_prim__createStaticServer = ( folder => new(require('node-static').Server)(folder));
@@ -411,37 +415,24 @@ function Data_List_replicateTR($0, $1, $2) {
 /* {$tcOpt:7} */
 function x24tcOpt_7($0) {
  switch($0.a3.h) {
-  case 0: /* nil */ return {h: 0 /* {TcDone:7} */, a1: $0.a2};
-  case undefined: /* cons */ return {h: 1 /* {TcContinue7:1} */, a1: $0.a1, a2: $0.a1($0.a2)($0.a3.a1), a3: $0.a3.a2};
+  case undefined: /* cons */ return {h: 1 /* {TcContinue7:1} */, a1: {a1: $0.a1, a2: $0.a2($0.a3.a1)}, a2: $0.a2, a3: $0.a3.a2};
+  case 0: /* nil */ return {h: 0 /* {TcDone:7} */, a1: Prelude_Types_SnocList_x3cx3ex3e($0.a1, {h: 0})};
  }
 }
 
-/* Prelude.Types.foldl */
-function Prelude_Types_foldl_Foldable_List($0, $1, $2) {
+/* Prelude.Types.List.mapAppend : SnocList b -> (a -> b) -> List a -> List b */
+function Prelude_Types_List_mapAppend($0, $1, $2) {
  return __tailRec(x24tcOpt_7, {h: 1 /* {TcContinue7:1} */, a1: $0, a2: $1, a3: $2});
 }
 
 /* {$tcOpt:8} */
 function x24tcOpt_8($0) {
  switch($0.a3.h) {
-  case undefined: /* cons */ return {h: 1 /* {TcContinue8:1} */, a1: {a1: $0.a1, a2: $0.a2($0.a3.a1)}, a2: $0.a2, a3: $0.a3.a2};
-  case 0: /* nil */ return {h: 0 /* {TcDone:8} */, a1: Prelude_Types_SnocList_x3cx3ex3e($0.a1, {h: 0})};
- }
-}
-
-/* Prelude.Types.List.mapAppend : SnocList b -> (a -> b) -> List a -> List b */
-function Prelude_Types_List_mapAppend($0, $1, $2) {
- return __tailRec(x24tcOpt_8, {h: 1 /* {TcContinue8:1} */, a1: $0, a2: $1, a3: $2});
-}
-
-/* {$tcOpt:9} */
-function x24tcOpt_9($0) {
- switch($0.a3.h) {
-  case 0: /* nil */ return {h: 0 /* {TcDone:9} */, a1: {h: 0}};
+  case 0: /* nil */ return {h: 0 /* {TcDone:8} */, a1: {h: 0}};
   case undefined: /* cons */ {
    switch($0.a1($0.a2)($0.a3.a1.a1)) {
-    case 1: return {h: 0 /* {TcDone:9} */, a1: {a1: $0.a3.a1.a2}};
-    case 0: return {h: 1 /* {TcContinue9:1} */, a1: $0.a1, a2: $0.a2, a3: $0.a3.a2};
+    case 1: return {h: 0 /* {TcDone:8} */, a1: {a1: $0.a3.a1.a2}};
+    case 0: return {h: 1 /* {TcContinue8:1} */, a1: $0.a1, a2: $0.a2, a3: $0.a3.a2};
    }
   }
  }
@@ -449,46 +440,59 @@ function x24tcOpt_9($0) {
 
 /* Data.List.lookupBy : (a -> b -> Bool) -> a -> List (b, v) -> Maybe v */
 function Data_List_lookupBy($0, $1, $2) {
- return __tailRec(x24tcOpt_9, {h: 1 /* {TcContinue9:1} */, a1: $0, a2: $1, a3: $2});
+ return __tailRec(x24tcOpt_8, {h: 1 /* {TcContinue8:1} */, a1: $0, a2: $1, a3: $2});
 }
 
-/* {$tcOpt:10} */
-function x24tcOpt_10($0) {
+/* {$tcOpt:9} */
+function x24tcOpt_9($0) {
  switch($0.a3.h) {
-  case 0: /* nil */ return {h: 0 /* {TcDone:10} */, a1: Prelude_Types_List_reverse($0.a2)};
-  case undefined: /* cons */ return {h: 1 /* {TcContinue10:1} */, a1: $0.a1, a2: Prelude_Types_List_reverseOnto($0.a2, $0.a1($0.a3.a1)), a3: $0.a3.a2};
+  case 0: /* nil */ return {h: 0 /* {TcDone:9} */, a1: Prelude_Types_List_reverse($0.a2)};
+  case undefined: /* cons */ return {h: 1 /* {TcContinue9:1} */, a1: $0.a1, a2: Prelude_Types_List_reverseOnto($0.a2, $0.a1($0.a3.a1)), a3: $0.a3.a2};
  }
 }
 
 /* Prelude.Types.listBindOnto : (a -> List b) -> List b -> List a -> List b */
 function Prelude_Types_listBindOnto($0, $1, $2) {
- return __tailRec(x24tcOpt_10, {h: 1 /* {TcContinue10:1} */, a1: $0, a2: $1, a3: $2});
+ return __tailRec(x24tcOpt_9, {h: 1 /* {TcContinue9:1} */, a1: $0, a2: $1, a3: $2});
+}
+
+/* {$tcOpt:10} */
+function x24tcOpt_10($0) {
+ switch($0.a2.h) {
+  case 0: /* nil */ return {h: 0 /* {TcDone:10} */, a1: $0.a1};
+  case undefined: /* cons */ return {h: 1 /* {TcContinue10:1} */, a1: {a1: $0.a2.a1, a2: $0.a1}, a2: $0.a2.a2};
+ }
+}
+
+/* Prelude.Types.List.reverseOnto : List a -> List a -> List a */
+function Prelude_Types_List_reverseOnto($0, $1) {
+ return __tailRec(x24tcOpt_10, {h: 1 /* {TcContinue10:1} */, a1: $0, a2: $1});
 }
 
 /* {$tcOpt:11} */
 function x24tcOpt_11($0) {
  switch($0.a2.h) {
   case 0: /* nil */ return {h: 0 /* {TcDone:11} */, a1: $0.a1};
-  case undefined: /* cons */ return {h: 1 /* {TcContinue11:1} */, a1: {a1: $0.a2.a1, a2: $0.a1}, a2: $0.a2.a2};
- }
-}
-
-/* Prelude.Types.List.reverseOnto : List a -> List a -> List a */
-function Prelude_Types_List_reverseOnto($0, $1) {
- return __tailRec(x24tcOpt_11, {h: 1 /* {TcContinue11:1} */, a1: $0, a2: $1});
-}
-
-/* {$tcOpt:12} */
-function x24tcOpt_12($0) {
- switch($0.a2.h) {
-  case 0: /* nil */ return {h: 0 /* {TcDone:12} */, a1: $0.a1};
-  case undefined: /* cons */ return {h: 1 /* {TcContinue12:1} */, a1: ($0.a1+1n), a2: $0.a2.a2};
+  case undefined: /* cons */ return {h: 1 /* {TcContinue11:1} */, a1: ($0.a1+1n), a2: $0.a2.a2};
  }
 }
 
 /* Prelude.Types.List.lengthPlus : Nat -> List a -> Nat */
 function Prelude_Types_List_lengthPlus($0, $1) {
- return __tailRec(x24tcOpt_12, {h: 1 /* {TcContinue12:1} */, a1: $0, a2: $1});
+ return __tailRec(x24tcOpt_11, {h: 1 /* {TcContinue11:1} */, a1: $0, a2: $1});
+}
+
+/* {$tcOpt:12} */
+function x24tcOpt_12($0) {
+ switch($0.a3.h) {
+  case 0: /* nil */ return {h: 0 /* {TcDone:12} */, a1: $0.a2};
+  case undefined: /* cons */ return {h: 1 /* {TcContinue12:1} */, a1: $0.a1, a2: $0.a1($0.a2)($0.a3.a1), a3: $0.a3.a2};
+ }
+}
+
+/* Prelude.Types.foldl */
+function Prelude_Types_foldl_Foldable_List($0, $1, $2) {
+ return __tailRec(x24tcOpt_12, {h: 1 /* {TcContinue12:1} */, a1: $0, a2: $1, a3: $2});
 }
 
 /* {$tcOpt:13} */
@@ -643,10 +647,10 @@ function x24tcOpt_20($0) {
   case 2: /* App */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__app($0.a1, IfuiServer_RethinkDB_compileExpr($0.a1, $0.a2, $0.a3.a1), IfuiServer_RethinkDB_compileExpr($0.a1, $0.a2, $0.a3.a2))};
   case 3: /* GetTable */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__getTable($0.a1, $0.a3.a1, $0.a3.a2)};
   case 4: /* ReadTable */ return {h: 1 /* {TcContinue20:1} */, a1: $0.a1, a2: $0.a2, a3: $0.a3.a1};
-  case 5: /* GetChanges */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__changes(IfuiServer_RethinkDB_compileExpr($0.a1, $0.a2, $0.a3.a1), Ifui_JSValue_mkJsObj({a1: {a1: 'includeInitial', a2: Ifui_JSValue_jsv2ptr(Ifui_JSValue_toJS_HasJSValue_Bool($0.a3.a2))}, a2: {h: 0}}))};
+  case 5: /* GetChanges */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__changes(IfuiServer_RethinkDB_compileExpr($0.a1, $0.a2, $0.a3.a1), IfuiServer_RethinkDB_json2ptr({h: 5 /* JObject */, a1: {a1: {a1: 'includeInitial', a2: {h: 1 /* JBoolean */, a1: $0.a3.a2}}, a2: {h: 0}}}))};
   case 7: /* Insert */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__insert(IfuiServer_RethinkDB_compileExpr($0.a1, $0.a2, $0.a3.a2), IfuiServer_RethinkDB_compileExpr($0.a1, $0.a2, $0.a3.a3))};
   case 6: /* Insert' */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__insert(IfuiServer_RethinkDB_compileExpr($0.a1, $0.a2, $0.a3.a1), IfuiServer_RethinkDB_compileExpr($0.a1, $0.a2, $0.a3.a2))};
-  case 8: /* Lit */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__expr($0.a1, Ifui_JSValue_jsv2ptr($0.a3.a1.a1($0.a3.a2)))};
+  case 8: /* Lit */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__expr($0.a1, IfuiServer_RethinkDB_toPtr($0.a3.a1, $0.a3.a2))};
   case 9: /* StrEq */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__req($0.a1)};
   case 10: /* GetField */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__rget($0.a3.a1)};
   case 11: /* MapCursor */ return {h: 0 /* {TcDone:20} */, a1: IfuiServer_RethinkDB_prim__rmap($0.a1)};
@@ -724,29 +728,29 @@ const csegen_31 = __lazy(function () {
  return {a1: $1 => Ifui_ExtensibleRecords_strNotEq('old_val', 'new_val', undefined, $1), a2: {h: 0}};
 });
 
-/* {csegen:32} */
-const csegen_32 = __lazy(function () {
- return {a1: $1 => Ifui_JSValue_toJS_HasJSValue_String($1), a2: $5 => Ifui_JSValue_fromJS_HasJSValue_String($5), a3: $9 => Ifui_JSValue_checkPtr_HasJSValue_String($9)};
+/* {csegen:35} */
+const csegen_35 = __lazy(function () {
+ return {a1: $1 => Ifui_Json_toJson_JsonSerializable_x28Maybex20x24ax29(csegen_5(), $1), a2: $7 => Ifui_Json_fromJson_JsonSerializable_x28Maybex20x24ax29(csegen_5(), $7), a3: $d => Ifui_Json_stringify_JsonSerializable_x28Maybex20x24ax29(csegen_5(), $d)};
 });
 
 /* {csegen:36} */
 const csegen_36 = __lazy(function () {
- return {a1: $1 => Ifui_JSValue_toJS_HasJSValue_x28Maybex20x24ax29(csegen_32(), $1), a2: $7 => Ifui_JSValue_fromJS_HasJSValue_x28Maybex20x24ax29(csegen_32(), $7), a3: $d => Ifui_JSValue_checkPtr_HasJSValue_x28Maybex20x24ax29(csegen_32(), $d)};
+ return {a1: csegen_35(), a2: csegen_6()};
 });
 
-/* {csegen:37} */
-const csegen_37 = __lazy(function () {
- return {a1: $1 => Ifui_JSValue_toJS_HasJSValue_x28Recordx20Nilx29($1), a2: $5 => Ifui_JSValue_fromJS_HasJSValue_x28Recordx20Nilx29($5), a3: $9 => Ifui_JSValue_checkPtr_HasJSValue_x28Recordx20Nilx29($9)};
-});
-
-/* {csegen:38} */
-const csegen_38 = __lazy(function () {
- return {a1: csegen_36(), a2: csegen_37()};
+/* {csegen:40} */
+const csegen_40 = __lazy(function () {
+ return {a1: csegen_35(), a2: {a1: $4 => Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('new_val', {h: 0}, csegen_36(), $4), a2: $c => Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('new_val', {h: 0}, csegen_36(), $c)}};
 });
 
 /* {csegen:43} */
 const csegen_43 = __lazy(function () {
- return {a1: csegen_36(), a2: {a1: $4 => Ifui_JSValue_toJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('new_val', {h: 'Prelude.Types.Maybe', a1: {h: 'String'}}, {h: 0}, csegen_38(), $4), a2: $e => Ifui_JSValue_fromJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('new_val', {h: 'Prelude.Types.Maybe', a1: {h: 'String'}}, {h: 0}, csegen_38(), $e), a3: $18 => Ifui_JSValue_checkPtr_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('new_val', {h: 'Prelude.Types.Maybe', a1: {h: 'String'}}, {h: 0}, csegen_38(), $18)}};
+ return {a1: $1 => Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('old_val', csegen_31(), csegen_40(), $1), a2: $a => Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('old_val', csegen_31(), csegen_40(), $a)};
+});
+
+/* {csegen:47} */
+const csegen_47 = __lazy(function () {
+ return {a1: $1 => Ifui_Json_toJson_JsonSerializable_x24a(csegen_43(), $1), a2: $7 => Ifui_Json_fromJson_JsonSerializable_x24a(csegen_43(), $7), a3: $d => Ifui_Json_stringify_JsonSerializable_x24a(csegen_43(), $d)};
 });
 
 /* {csegen:49} */
@@ -759,200 +763,201 @@ const csegen_55 = __lazy(function () {
  return {a1: $1 => Ifui_Json_toJson_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($1), a2: $5 => Ifui_Json_fromJson_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($5), a3: $9 => Ifui_Json_stringify_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($9)};
 });
 
-/* {csegen:59} */
-const csegen_59 = __lazy(function () {
- return {a1: $1 => Ifui_Json_toJson_JsonSerializable_x28Maybex20x24ax29(csegen_5(), $1), a2: $7 => Ifui_Json_fromJson_JsonSerializable_x28Maybex20x24ax29(csegen_5(), $7), a3: $d => Ifui_Json_stringify_JsonSerializable_x28Maybex20x24ax29(csegen_5(), $d)};
-});
-
-/* {csegen:60} */
-const csegen_60 = __lazy(function () {
- return {a1: csegen_59(), a2: csegen_6()};
-});
-
 /* {csegen:64} */
 const csegen_64 = __lazy(function () {
- return {a1: csegen_59(), a2: {a1: $4 => Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('new_val', {h: 0}, csegen_60(), $4), a2: $c => Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('new_val', {h: 0}, csegen_60(), $c)}};
+ return {a1: $1 => Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('desc', {h: 0}, csegen_7(), $1), a2: $9 => Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('desc', {h: 0}, csegen_7(), $9)};
 });
 
-/* {csegen:67} */
-const csegen_67 = __lazy(function () {
- return {a1: $1 => Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('old_val', csegen_31(), csegen_64(), $1), a2: $a => Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('old_val', csegen_31(), csegen_64(), $a)};
+/* {csegen:68} */
+const csegen_68 = __lazy(function () {
+ return {a1: $1 => Ifui_Json_toJson_JsonSerializable_x24a(csegen_64(), $1), a2: $7 => Ifui_Json_fromJson_JsonSerializable_x24a(csegen_64(), $7), a3: $d => Ifui_Json_stringify_JsonSerializable_x24a(csegen_64(), $d)};
 });
 
-/* {csegen:74} */
-const csegen_74 = __lazy(function () {
- return {a1: csegen_32(), a2: csegen_37()};
-});
-
-/* {csegen:78} */
-const csegen_78 = __lazy(function () {
- return {a1: $1 => Ifui_JSValue_toJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('desc', {h: 'String'}, {h: 0}, csegen_74(), $1), a2: $a => Ifui_JSValue_fromJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('desc', {h: 'String'}, {h: 0}, csegen_74(), $a), a3: $13 => Ifui_JSValue_checkPtr_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('desc', {h: 'String'}, {h: 0}, csegen_74(), $13)};
-});
-
-/* {csegen:100} */
-const csegen_100 = __lazy(function () {
+/* {csegen:90} */
+const csegen_90 = __lazy(function () {
  return {a1: {a1: b => a => func => $2 => Prelude_IO_map_Functor_IO(func, $2), a2: a => $7 => $8 => $7, a3: b => a => $a => $b => PrimIO_io_bind($a, fx27 => PrimIO_io_bind($b, ax27 => $12 => fx27(ax27)))}, a2: b => a => $16 => $17 => PrimIO_io_bind($16, $17), a3: a => $1c => PrimIO_io_bind($1c, $20 => $20)};
 });
 
-/* {csegen:101} */
-const csegen_101 = __lazy(function () {
- return $0 => IfuiServer_Promise_liftIO_HasIO_Promise($3 => IfuiServer_RethinkDB_prim__r($3), $0);
-});
-
-/* {csegen:103} */
-const csegen_103 = __lazy(function () {
+/* {csegen:92} */
+const csegen_92 = __lazy(function () {
  return {a1: $1 => $2 => ($1+$2), a2: ''};
 });
 
-/* {csegen:118} */
-const csegen_118 = __lazy(function () {
+/* {csegen:107} */
+const csegen_107 = __lazy(function () {
  return {a1: acc => elem => func => init => input => Prelude_Types_foldr_Foldable_List(func, init, input), a2: elem => acc => func => init => input => Prelude_Types_foldl_Foldable_List(func, init, input), a3: elem => $b => Prelude_Types_null_Foldable_List($b), a4: elem => acc => m => $f => funcM => init => input => Prelude_Types_foldlM_Foldable_List($f, funcM, init, input), a5: elem => $16 => $16, a6: a => m => $18 => f => $19 => Prelude_Types_foldMap_Foldable_List($18, f, $19)};
 });
 
-/* {csegen:121} */
-const csegen_121 = __lazy(function () {
- return {a1: x => Prelude_Show_show_Show_String(x), a2: d => x => Prelude_Show_showPrec_Show_String(d, x)};
+/* {csegen:108} */
+const csegen_108 = __lazy(function () {
+ const $0 = $1 => $1;
+ return $2 => $0($2);
 });
 
-/* {csegen:124} */
-const csegen_124 = __lazy(function () {
+/* {csegen:112} */
+const csegen_112 = __lazy(function () {
  return $0 => $1 => $2 => $3 => Prelude_Types_map_Functor_Maybe($2, $3);
 });
 
-/* {csegen:126} */
-const csegen_126 = __lazy(function () {
+/* {csegen:119} */
+const csegen_119 = __lazy(function () {
+ return {a1: b => a => func => $1 => Prelude_Types_map_Functor_Maybe(func, $1), a2: a => $6 => ({a1: $6}), a3: b => a => $9 => $a => Prelude_Types_x3cx2ax3e_Applicative_Maybe($9, $a)};
+});
+
+/* {csegen:127} */
+const csegen_127 = __lazy(function () {
+ return {a1: b => a => func => $1 => Prelude_Types_List_mapAppend({h: 0}, func, $1), a2: csegen_107(), a3: b => a => f => $9 => $a => $b => Prelude_Types_traverse_Traversable_List($9, $a, $b)};
+});
+
+/* {csegen:130} */
+const csegen_130 = __lazy(function () {
+ return {a1: $1 => $2 => _add32s($1, $2), a2: $6 => $7 => _mul32s($6, $7), a3: $b => Number(_truncBigInt32($b))};
+});
+
+/* {csegen:144} */
+const csegen_144 = __lazy(function () {
+ return {a1: {a1: $2 => $3 => Prelude_EqOrd_x3dx3d_Eq_Int($2, $3), a2: $8 => $9 => Prelude_EqOrd_x2fx3d_Eq_Int($8, $9)}, a2: $e => $f => Prelude_EqOrd_compare_Ord_Int($e, $f), a3: $14 => $15 => Prelude_EqOrd_x3c_Ord_Int($14, $15), a4: $1a => $1b => Prelude_EqOrd_x3e_Ord_Int($1a, $1b), a5: $20 => $21 => Prelude_EqOrd_x3cx3d_Ord_Int($20, $21), a6: $26 => $27 => Prelude_EqOrd_x3ex3d_Ord_Int($26, $27), a7: $2c => $2d => Prelude_EqOrd_max_Ord_Int($2c, $2d), a8: $32 => $33 => Prelude_EqOrd_min_Ord_Int($32, $33)};
+});
+
+/* {csegen:148} */
+const csegen_148 = __lazy(function () {
+ return {a1: {a1: csegen_130(), a2: $4 => $5 => Prelude_Num_div_Integral_Int($4, $5), a3: $a => $b => Prelude_Num_mod_Integral_Int($a, $b)}, a2: {a1: csegen_144(), a2: {a1: csegen_130(), a2: $16 => _sub32s(0, $16), a3: $1a => $1b => _sub32s($1a, $1b)}}};
+});
+
+/* {csegen:152} */
+const csegen_152 = __lazy(function () {
+ return {a1: x => Prelude_Show_show_Show_String(x), a2: d => x => Prelude_Show_showPrec_Show_String(d, x)};
+});
+
+/* {csegen:156} */
+const csegen_156 = __lazy(function () {
+ const $0 = $1 => $2 => $3 => $4 => Prelude_Types_List_mapAppend({h: 0}, $3, $4);
+ return $9 => $a => $0(undefined)(undefined)($9)($a);
+});
+
+/* {csegen:161} */
+const csegen_161 = __lazy(function () {
  return {a1: $1 => Ifui_ExtensibleRecords_strNotEq('id', 'version', undefined, $1), a2: {h: 0}};
 });
 
-/* {csegen:131} */
-const csegen_131 = __lazy(function () {
+/* {csegen:166} */
+const csegen_166 = __lazy(function () {
  return {a1: $1 => $2 => Prelude_EqOrd_x3dx3d_Eq_String($1, $2), a2: $7 => $8 => Prelude_EqOrd_x2fx3d_Eq_String($7, $8)};
 });
 
-/* {csegen:133} */
-const csegen_133 = __lazy(function () {
- return {a1: csegen_100(), a2: a => $3 => $3};
+/* {csegen:168} */
+const csegen_168 = __lazy(function () {
+ return {a1: csegen_90(), a2: a => $3 => $3};
 });
 
-/* {csegen:134} */
-const csegen_134 = __lazy(function () {
- return Data_IORef_newIORef(csegen_133(), {h: 0});
+/* {csegen:169} */
+const csegen_169 = __lazy(function () {
+ return Data_IORef_newIORef(csegen_168(), {h: 0});
 });
 
-/* {csegen:136} */
-const csegen_136 = __lazy(function () {
+/* {csegen:171} */
+const csegen_171 = __lazy(function () {
  return x => {
   const $0 = $1 => (undefined);
   return $0;
  };
 });
 
-/* {csegen:137} */
-const csegen_137 = __lazy(function () {
- const $0 = $1 => $1;
- return $2 => $0($2);
+/* {csegen:173} */
+const csegen_173 = __lazy(function () {
+ return csegen_108()('table_versions');
 });
 
-/* {csegen:144} */
-const csegen_144 = __lazy(function () {
- return {a1: {a1: $2 => Ifui_JSValue_toJS_HasJSValue_Int($2), a2: $6 => Ifui_JSValue_fromJS_HasJSValue_Int($6), a3: $a => Ifui_JSValue_checkPtr_HasJSValue_Int($a)}, a2: csegen_37()};
+/* {csegen:179} */
+const csegen_179 = __lazy(function () {
+ return {a1: {a1: $2 => Ifui_Json_toJson_JsonSerializable_Int($2), a2: $6 => Ifui_Json_fromJson_JsonSerializable_Int($6), a3: $a => Ifui_Json_stringify_JsonSerializable_Int($a)}, a2: csegen_6()};
 });
 
-/* {csegen:149} */
-const csegen_149 = __lazy(function () {
- return {a1: {a1: $2 => Ifui_JSValue_toJS_HasJSValue_x28Listx20x24tx29(csegen_32(), $2), a2: $8 => Ifui_JSValue_fromJS_HasJSValue_x28Listx20x24tx29(csegen_32(), $8), a3: $e => Ifui_JSValue_checkPtr_HasJSValue_x28Listx20x24tx29(csegen_32(), $e)}, a2: {a1: $15 => Ifui_JSValue_toJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('version', {h: 'Int'}, {h: 0}, csegen_144(), $15), a2: $1e => Ifui_JSValue_fromJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('version', {h: 'Int'}, {h: 0}, csegen_144(), $1e), a3: $27 => Ifui_JSValue_checkPtr_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('version', {h: 'Int'}, {h: 0}, csegen_144(), $27)}};
+/* {csegen:183} */
+const csegen_183 = __lazy(function () {
+ return {a1: {a1: $2 => Ifui_Json_toJson_JsonSerializable_x28Listx20x24ax29(csegen_5(), $2), a2: $8 => Ifui_Json_fromJson_JsonSerializable_x28Listx20x24ax29(csegen_5(), $8), a3: $e => Ifui_Json_stringify_JsonSerializable_x28Listx20x24ax29(csegen_5(), $e)}, a2: {a1: $15 => Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('version', {h: 0}, csegen_179(), $15), a2: $1d => Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('version', {h: 0}, csegen_179(), $1d)}};
 });
 
-/* {csegen:153} */
-const csegen_153 = __lazy(function () {
- return {a1: $1 => Ifui_JSValue_toJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('id', {h: 'Prelude.Basics.List', a1: {h: 'String'}}, csegen_126(), csegen_149(), $1), a2: $c => Ifui_JSValue_fromJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('id', {h: 'Prelude.Basics.List', a1: {h: 'String'}}, csegen_126(), csegen_149(), $c), a3: $17 => Ifui_JSValue_checkPtr_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('id', {h: 'Prelude.Basics.List', a1: {h: 'String'}}, csegen_126(), csegen_149(), $17)};
+/* {csegen:186} */
+const csegen_186 = __lazy(function () {
+ return {a1: $1 => Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('id', csegen_161(), csegen_183(), $1), a2: $a => Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('id', csegen_161(), csegen_183(), $a)};
 });
 
-/* {csegen:175} */
-const csegen_175 = __lazy(function () {
+/* {csegen:190} */
+const csegen_190 = __lazy(function () {
+ return {a1: $1 => Ifui_Json_toJson_JsonSerializable_x24a(csegen_186(), $1), a2: $7 => Ifui_Json_fromJson_JsonSerializable_x24a(csegen_186(), $7), a3: $d => Ifui_Json_stringify_JsonSerializable_x24a(csegen_186(), $d)};
+});
+
+/* {csegen:214} */
+const csegen_214 = __lazy(function () {
  return {a1: $1 => $2 => Prelude_EqOrd_x3dx3d_Eq_Char($1, $2), a2: $7 => $8 => Prelude_EqOrd_x2fx3d_Eq_Char($7, $8)};
 });
 
-/* {csegen:218} */
-const csegen_218 = __lazy(function () {
+/* {csegen:255} */
+const csegen_255 = __lazy(function () {
  return b => a => func => $0 => Text_Bounded_map_Functor_WithBounds(func, $0);
 });
 
-/* {csegen:229} */
-const csegen_229 = __lazy(function () {
- return {a1: {a1: $2 => $3 => Prelude_EqOrd_x3dx3d_Eq_Int($2, $3), a2: $8 => $9 => Prelude_EqOrd_x2fx3d_Eq_Int($8, $9)}, a2: $e => $f => Prelude_EqOrd_compare_Ord_Int($e, $f), a3: $14 => $15 => Prelude_EqOrd_x3c_Ord_Int($14, $15), a4: $1a => $1b => Prelude_EqOrd_x3e_Ord_Int($1a, $1b), a5: $20 => $21 => Prelude_EqOrd_x3cx3d_Ord_Int($20, $21), a6: $26 => $27 => Prelude_EqOrd_x3ex3d_Ord_Int($26, $27), a7: $2c => $2d => Prelude_EqOrd_max_Ord_Int($2c, $2d), a8: $32 => $33 => Prelude_EqOrd_min_Ord_Int($32, $33)};
-});
-
-/* {csegen:238} */
-const csegen_238 = __lazy(function () {
+/* {csegen:264} */
+const csegen_264 = __lazy(function () {
  return $0 => $1 => $2 => $3 => Text_Parser_Core_map_Functor_x28x28x28Grammarx20x24statex29x20x24tokx29x20x24cx29(1, $2, $3);
 });
 
-/* {csegen:239} */
-const csegen_239 = __lazy(function () {
- const $0 = csegen_238();
+/* {csegen:265} */
+const csegen_265 = __lazy(function () {
+ const $0 = csegen_264();
  return $2 => $3 => $0(undefined)(undefined)($2)($3);
 });
 
-/* {csegen:243} */
-const csegen_243 = __lazy(function () {
+/* {csegen:269} */
+const csegen_269 = __lazy(function () {
  return {a1: $1 => Language_JSON_Tokens_TokType_TokenKind_JSONTokenKind($1), a2: kind => $5 => Language_JSON_Tokens_tokValue_TokenKind_JSONTokenKind(kind, $5)};
 });
 
-/* {csegen:246} */
-const csegen_246 = __lazy(function () {
+/* {csegen:272} */
+const csegen_272 = __lazy(function () {
  return {a1: $1 => $2 => Language_JSON_Tokens_x3dx3d_Eq_JSONTokenKind($1, $2), a2: $7 => $8 => Language_JSON_Tokens_x2fx3d_Eq_JSONTokenKind($7, $8)};
-});
-
-/* {csegen:292} */
-const csegen_292 = __lazy(function () {
- return {a1: $1 => Language_JSON_String_Tokens_TokType_TokenKind_JSONStringTokenKind($1), a2: kind => $5 => Language_JSON_String_Tokens_tokValue_TokenKind_JSONStringTokenKind(kind, $5)};
-});
-
-/* {csegen:295} */
-const csegen_295 = __lazy(function () {
- return {a1: $1 => $2 => Language_JSON_String_Tokens_x3dx3d_Eq_JSONStringTokenKind($1, $2), a2: $7 => $8 => Language_JSON_String_Tokens_x2fx3d_Eq_JSONStringTokenKind($7, $8)};
-});
-
-/* {csegen:313} */
-const csegen_313 = __lazy(function () {
- const $0 = b => a => func => $1 => Text_Parser_Core_map_Functor_x28x28x28Grammarx20x24statex29x20x24tokx29x20x24cx29(1, func, $1);
- return $6 => $7 => $0(undefined)(undefined)($6)($7);
 });
 
 /* {csegen:314} */
 const csegen_314 = __lazy(function () {
- return csegen_313()($3 => $4 => $4);
+ return {a1: $1 => Language_JSON_String_Tokens_TokType_TokenKind_JSONStringTokenKind($1), a2: kind => $5 => Language_JSON_String_Tokens_tokValue_TokenKind_JSONStringTokenKind(kind, $5)};
 });
 
-/* {csegen:318} */
-const csegen_318 = __lazy(function () {
+/* {csegen:317} */
+const csegen_317 = __lazy(function () {
+ return {a1: $1 => $2 => Language_JSON_String_Tokens_x3dx3d_Eq_JSONStringTokenKind($1, $2), a2: $7 => $8 => Language_JSON_String_Tokens_x2fx3d_Eq_JSONStringTokenKind($7, $8)};
+});
+
+/* {csegen:335} */
+const csegen_335 = __lazy(function () {
+ const $0 = b => a => func => $1 => Text_Parser_Core_map_Functor_x28x28x28Grammarx20x24statex29x20x24tokx29x20x24cx29(1, func, $1);
+ return $6 => $7 => $0(undefined)(undefined)($6)($7);
+});
+
+/* {csegen:336} */
+const csegen_336 = __lazy(function () {
+ return csegen_335()($3 => $4 => $4);
+});
+
+/* {csegen:340} */
+const csegen_340 = __lazy(function () {
  return $0 => $1 => $2 => $3 => Text_Bounded_map_Functor_WithBounds($2, $3);
 });
 
-/* {csegen:319} */
-const csegen_319 = __lazy(function () {
- const $0 = csegen_124();
+/* {csegen:341} */
+const csegen_341 = __lazy(function () {
+ const $0 = csegen_112();
  return $2 => $3 => $0(undefined)(undefined)($2)($3);
 });
 
-/* {csegen:323} */
-const csegen_323 = __lazy(function () {
- return {a1: {a1: csegen_137()('End of input'), a2: {h: 0}}, a2: {h: 0}};
+/* {csegen:345} */
+const csegen_345 = __lazy(function () {
+ return {a1: {a1: csegen_108()('End of input'), a2: {h: 0}}, a2: {h: 0}};
 });
 
-/* {csegen:368} */
-const csegen_368 = __lazy(function () {
- return {a1: $1 => $2 => _add32s($1, $2), a2: $6 => $7 => _mul32s($6, $7), a3: $b => Number(_truncBigInt32($b))};
-});
-
-/* {csegen:375} */
-const csegen_375 = __lazy(function () {
- return {a1: {a1: csegen_368(), a2: $4 => $5 => Prelude_Num_div_Integral_Int($4, $5), a3: $a => $b => Prelude_Num_mod_Integral_Int($a, $b)}, a2: {a1: csegen_229(), a2: {a1: csegen_368(), a2: $16 => _sub32s(0, $16), a3: $1a => $1b => _sub32s($1a, $1b)}}};
-});
-
-/* {csegen:378} */
-const csegen_378 = __lazy(function () {
+/* {csegen:389} */
+const csegen_389 = __lazy(function () {
  return {a1: x => Language_JSON_Data_show_Show_JSON(x), a2: d => x => Language_JSON_Data_showPrec_Show_JSON(d, x)};
 });
 
@@ -966,7 +971,7 @@ const Main_main = __lazy(function () {
  const $6 = _ => {
   const $a = $b => IfuiServer_RethinkDB_connectx27('todo_rethinkdb', Number(_truncBigInt32(28015n)), Api_Schema(), $b);
   const $9 = $a;
-  const $8 = $9(db => IfuiServer_Server_startWsServerWithAuth({a1: {a1: $18 => Ifui_Json_toJson_JsonSerializable_x28Recordx20x24tsx29(csegen_14(), $18), a2: $1e => Ifui_Json_fromJson_JsonSerializable_x28Recordx20x24tsx29(csegen_14(), $1e), a3: $24 => Ifui_Json_stringify_JsonSerializable_x28Recordx20x24tsx29(csegen_14(), $24)}, a2: {a1: $2b => Ifui_Json_toJson_JsonSerializable_Bool($2b), a2: $2f => Ifui_Json_fromJson_JsonSerializable_Bool($2f), a3: $33 => Ifui_Json_stringify_JsonSerializable_Bool($33)}}, Number(_truncBigInt32(6402n)), Api_todoApi(db)));
+  const $8 = $9(db => IfuiServer_Server_startWsServerWithAuth({a1: {a1: $18 => Ifui_Json_toJson_JsonSerializable_x24a(csegen_14(), $18), a2: $1e => Ifui_Json_fromJson_JsonSerializable_x24a(csegen_14(), $1e), a3: $24 => Ifui_Json_stringify_JsonSerializable_x24a(csegen_14(), $24)}, a2: {a1: $2b => Ifui_Json_toJson_JsonSerializable_Bool($2b), a2: $2f => Ifui_Json_fromJson_JsonSerializable_Bool($2f), a3: $33 => Ifui_Json_stringify_JsonSerializable_Bool($33)}}, Number(_truncBigInt32(6402n)), Api_todoApi(db)));
   return PrimIO_io_bind($8, $3c => $3d => (undefined));
  };
  return PrimIO_io_bind(IfuiServer_Server_serveStatic(Number(_truncBigInt32(6401n)), 'www'), $6);
@@ -986,8 +991,8 @@ function Api_todoApi($0) {
 /* Api.logedInTodoApi : RethinkServer DBTy -> Server ApiServices */
 function Api_logedInTodoApi($0) {
  const $1 = {h: 3 /* GetTable */, a1: 'todoApp', a2: 'todoItem', a3: Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24kx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24kx29x20x24tx29x7cx29x29x20x24tsx29({h: 0})};
- const $7 = $8 => IfuiServer_RethinkDB_getChangesx27({a1: $c => Ifui_JSValue_toJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('old_val', {h: 'Prelude.Types.Maybe', a1: {h: 'String'}}, csegen_31(), csegen_43(), $c), a2: $17 => Ifui_JSValue_fromJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('old_val', {h: 'Prelude.Types.Maybe', a1: {h: 'String'}}, csegen_31(), csegen_43(), $17), a3: $22 => Ifui_JSValue_checkPtr_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29('old_val', {h: 'Prelude.Types.Maybe', a1: {h: 'String'}}, csegen_31(), csegen_43(), $22)}, $0, {h: 5 /* GetChanges */, a1: IfuiServer_RethinkDB_x7cx3e({h: 4 /* ReadTable */, a1: $1}, IfuiServer_RethinkDB_x3cx7c({h: 11 /* MapCursor */}, {h: 10 /* GetField */, a1: 'desc', a2: Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x24ox29x20x24tsx29(csegen_49(), Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24kx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24kx29x20x24tx29x7cx29x29x20x24tsx29({h: 0}))})), a2: 0}, $8);
- return {h: 1 /* :: */, a1: {a1: $42 => Ifui_ExtensibleRecords_strNotEq('todoList', 'createTodo', undefined, $42), a2: {h: 0}}, a2: {h: 1 /* MkStreamService */, a1: {a1: csegen_55(), a2: {a1: $4f => Ifui_Json_toJson_JsonSerializable_x28Recordx20x24tsx29(csegen_67(), $4f), a2: $55 => Ifui_Json_fromJson_JsonSerializable_x28Recordx20x24tsx29(csegen_67(), $55), a3: $5b => Ifui_Json_stringify_JsonSerializable_x28Recordx20x24tsx29(csegen_67(), $5b)}}, a2: 'todoList', a3: $62 => $7}, a3: {h: 1 /* :: */, a1: {h: 0}, a2: {h: 0 /* MkRPC */, a1: {a1: csegen_5(), a2: csegen_55()}, a2: 'createTodo', a3: x => $6d => IfuiServer_Promise_x3ex3ex3d_Monad_Promise($70 => IfuiServer_RethinkDB_runx27(csegen_37(), $0, {h: 7 /* Insert */, a1: csegen_49(), a2: $1, a3: {h: 8 /* Lit */, a1: {a1: $7c => Ifui_JSValue_toJS_HasJSValue_x28Listx20x24tx29(csegen_78(), $7c), a2: $82 => Ifui_JSValue_fromJS_HasJSValue_x28Listx20x24tx29(csegen_78(), $82), a3: $88 => Ifui_JSValue_checkPtr_HasJSValue_x28Listx20x24tx29(csegen_78(), $88)}, a2: {a1: {h: 1 /* :: */, a1: {h: 0}, a2: x, a3: {h: 0 /* Nil */}}, a2: {h: 0}}}}, $70), _ => $95 => IfuiServer_Promise_pure_Applicative_Promise(undefined, $95), $6d)}, a3: {h: 0 /* Nil */}}};
+ const $7 = $8 => IfuiServer_RethinkDB_getChangesx27(csegen_47(), $0, {h: 5 /* GetChanges */, a1: IfuiServer_RethinkDB_x7cx3e({h: 4 /* ReadTable */, a1: $1}, IfuiServer_RethinkDB_x3cx7c({h: 11 /* MapCursor */}, {h: 10 /* GetField */, a1: 'desc', a2: Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x24ox29x20x24tsx29(csegen_49(), Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24kx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24kx29x20x24tx29x7cx29x29x20x24tsx29({h: 0}))})), a2: 1}, $8);
+ return {h: 1 /* :: */, a1: {a1: $22 => Ifui_ExtensibleRecords_strNotEq('todoList', 'createTodo', undefined, $22), a2: {h: 0}}, a2: {h: 1 /* MkStreamService */, a1: {a1: csegen_55(), a2: csegen_47()}, a2: 'todoList', a3: $31 => $7}, a3: {h: 1 /* :: */, a1: {h: 0}, a2: {h: 0 /* MkRPC */, a1: {a1: csegen_5(), a2: csegen_55()}, a2: 'createTodo', a3: x => $3c => IfuiServer_Promise_x3ex3ex3d_Monad_Promise($3f => IfuiServer_RethinkDB_runx27({a1: $43 => Ifui_Json_toJson_JsonSerializable_x24a(csegen_6(), $43), a2: $49 => Ifui_Json_fromJson_JsonSerializable_x24a(csegen_6(), $49), a3: $4f => Ifui_Json_stringify_JsonSerializable_x24a(csegen_6(), $4f)}, $0, {h: 7 /* Insert */, a1: csegen_49(), a2: $1, a3: {h: 8 /* Lit */, a1: {a1: $5c => Ifui_Json_toJson_JsonSerializable_x28Listx20x24ax29(csegen_68(), $5c), a2: $62 => Ifui_Json_fromJson_JsonSerializable_x28Listx20x24ax29(csegen_68(), $62), a3: $68 => Ifui_Json_stringify_JsonSerializable_x28Listx20x24ax29(csegen_68(), $68)}, a2: {a1: {h: 1 /* :: */, a1: {h: 0}, a2: x, a3: {h: 0 /* Nil */}}, a2: {h: 0}}}}, $3f), _ => $75 => IfuiServer_Promise_pure_Applicative_Promise(undefined, $75), $3c)}, a3: {h: 0 /* Nil */}}};
 }
 
 /* Api.Schema : ServerSchema DBTy */
@@ -998,6 +1003,11 @@ const Api_Schema = __lazy(function () {
 /* IfuiServer.RethinkDB.|> : Expr db ctxt a -> Expr db ctxt (a -> b) -> Expr db ctxt b */
 function IfuiServer_RethinkDB_x7cx3e($0, $1) {
  return {h: 2 /* App */, a1: $1, a2: $0};
+}
+
+/* IfuiServer.RethinkDB.toPtr : JsonSerializable a => a -> AnyPtr */
+function IfuiServer_RethinkDB_toPtr($0, $1) {
+ return IfuiServer_RethinkDB_json2ptr($0.a1($1));
 }
 
 /* IfuiServer.RethinkDB.toArrayPtr : AnyPtr -> Promise (Either String AnyPtr) */
@@ -1019,7 +1029,12 @@ function IfuiServer_RethinkDB_toArrayPtr($0, $1) {
   };
   return IfuiServer_RethinkDB_prim__toArray($0, $9, $6);
  };
- return Prelude_Interfaces_x3ex3e(csegen_100(), $5, () => $17 => $18 => (undefined));
+ return Prelude_Interfaces_x3ex3e(csegen_90(), $5, () => $17 => $18 => (undefined));
+}
+
+/* IfuiServer.RethinkDB.str2ptr : String -> AnyPtr */
+function IfuiServer_RethinkDB_str2ptr($0) {
+ return $0;
 }
 
 /* IfuiServer.RethinkDB.runPtr : AnyPtr -> AnyPtr -> Promise (Either String AnyPtr) */
@@ -1041,41 +1056,94 @@ function IfuiServer_RethinkDB_runPtr($0, $1, $2) {
   };
   return IfuiServer_RethinkDB_prim__run($0, $1, $b, $7);
  };
- return Prelude_Interfaces_x3ex3e(csegen_100(), $6, () => $19 => $1a => (undefined));
+ return Prelude_Interfaces_x3ex3e(csegen_90(), $6, () => $19 => $1a => (undefined));
 }
 
-/* IfuiServer.RethinkDB.run' : HasJSValue a => RethinkServer ts -> Expr ts [] a -> Promise a */
+/* IfuiServer.RethinkDB.run' : JsonSerializable a => RethinkServer ts -> Expr ts [] a -> Promise a */
 function IfuiServer_RethinkDB_runx27($0, $1, $2, $3) {
  return IfuiServer_Promise_onErrPrint(IfuiServer_RethinkDB_run($0, $1, $2), $3);
 }
 
-/* IfuiServer.RethinkDB.run : HasJSValue a => RethinkServer ts -> Expr ts [] a -> Promise (Either String a) */
+/* IfuiServer.RethinkDB.run : JsonSerializable a =>
+RethinkServer ts -> Expr ts [] a -> Promise (Either String a) */
 function IfuiServer_RethinkDB_run($0, $1, $2) {
  const $3 = $1;
- return $4 => {
-  const $8 = r => {
-   const $9 = IfuiServer_RethinkDB_compileExpr(r, {h: 0 /* Empty */}, $2);
-   return $e => {
-    const $16 = z => $17 => {
-     switch(z.h) {
-      case 0: /* Left */ return IfuiServer_Promise_pure_Applicative_Promise({h: 0 /* Left */, a1: z.a1}, $17);
-      case 1: /* Right */ return IfuiServer_Promise_pure_Applicative_Promise(IfuiServer_RethinkDB_readResultPtr($0, z.a1), $17);
-     }
-    };
-    return IfuiServer_Promise_x3ex3ex3d_Monad_Promise($11 => IfuiServer_RethinkDB_runPtr($9, $3, $11), $16, $e);
-   };
+ const $4 = IfuiServer_RethinkDB_prim__r(undefined);
+ const $7 = IfuiServer_RethinkDB_compileExpr($4, {h: 0 /* Empty */}, $2);
+ return $c => {
+  const $14 = z => $15 => {
+   switch(z.h) {
+    case 0: /* Left */ return IfuiServer_Promise_pure_Applicative_Promise({h: 0 /* Left */, a1: z.a1}, $15);
+    case 1: /* Right */ return IfuiServer_Promise_pure_Applicative_Promise(IfuiServer_RethinkDB_readResultPtr($0, () => Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: csegen_108()('run '), a2: {a1: csegen_108()(IfuiServer_RethinkDB_debugShowExpr($2)), a2: {h: 0}}}), z.a1), $15);
+   }
   };
-  return IfuiServer_Promise_x3ex3ex3d_Monad_Promise(csegen_101(), $8, $4);
+  return IfuiServer_Promise_x3ex3ex3d_Monad_Promise($f => IfuiServer_RethinkDB_runPtr($7, $3, $f), $14, $c);
  };
 }
 
-/* IfuiServer.RethinkDB.readResultPtr : HasJSValue a => AnyPtr -> Either String a */
-function IfuiServer_RethinkDB_readResultPtr($0, $1) {
- const $2 = Ifui_JSValue_fromPtr($0, $1);
- switch($2.h) {
-  case 0: /* nothing */ return {h: 0 /* Left */, a1: Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Find: error reading values ', a2: {a1: Ifui_JSValue_ptrToString($1), a2: {h: 0}}})};
-  case undefined: /* just */ return {h: 1 /* Right */, a1: $2.a1};
+/* IfuiServer.RethinkDB.readResultPtr : JsonSerializable a => Lazy String -> AnyPtr -> Either String a */
+function IfuiServer_RethinkDB_readResultPtr($0, $1, $2) {
+ const $3 = IfuiServer_RethinkDB_fromPtr($0, $2);
+ switch($3.h) {
+  case 0: /* nothing */ return {h: 0 /* Left */, a1: Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Error in ', a2: {a1: csegen_108()($1()), a2: {a1: ' trying to read value ', a2: {a1: IfuiServer_RethinkDB_ptrToString($2), a2: {h: 0}}}}})};
+  case undefined: /* just */ return {h: 1 /* Right */, a1: $3.a1};
  }
+}
+
+/* IfuiServer.RethinkDB.ptrToString : AnyPtr -> String */
+function IfuiServer_RethinkDB_ptrToString($0) {
+ return IfuiServer_RethinkDB_prim__ptrToString($0);
+}
+
+/* IfuiServer.RethinkDB.ptr2str : AnyPtr -> String */
+function IfuiServer_RethinkDB_ptr2str($0) {
+ return $0;
+}
+
+/* IfuiServer.RethinkDB.ptr2json : AnyPtr -> Maybe JSON */
+function IfuiServer_RethinkDB_ptr2json($0) {
+ switch(Prelude_EqOrd_x3e_Ord_Int(IfuiServer_RethinkDB_prim__isNullOrUndefined($0), Number(_truncBigInt32(0n)))) {
+  case 1: return {a1: {h: 0 /* JNull */}};
+  case 0: {
+   switch(Prelude_EqOrd_x3e_Ord_Int(IfuiServer_RethinkDB_prim__isArray($0), Number(_truncBigInt32(0n)))) {
+    case 1: return Prelude_Interfaces_x3cx24x3e(csegen_112(), $14 => ({h: 4 /* JArray */, a1: $14}), Prelude_Interfaces_sequence(csegen_119(), csegen_127(), Prelude_Types_listBind(Prelude_Types_rangeFromTo_Range_x24a(csegen_148(), 0, _sub32s(IfuiServer_RethinkDB_prim__arrayLength($0), 1)), i => Prelude_Types_pure_Applicative_List(IfuiServer_RethinkDB_ptr2json(IfuiServer_RethinkDB_prim__arrayGet($0, i))))));
+    case 0: {
+     switch(IfuiServer_RethinkDB_prim__typeof($0)) {
+      case 'string': return {a1: {h: 3 /* JString */, a1: IfuiServer_RethinkDB_ptr2str($0)}};
+      case 'number': return {a1: {h: 2 /* JNumber */, a1: IfuiServer_RethinkDB_ptr2double($0)}};
+      case 'boolean': return {a1: {h: 1 /* JBoolean */, a1: Prelude_EqOrd_x3e_Ord_Int(IfuiServer_RethinkDB_prim__readBool($0), Number(_truncBigInt32(0n)))}};
+      case 'object': {
+       const $43 = IfuiServer_RethinkDB_prim__objectKeys($0);
+       const $5e = i => {
+        const $61 = IfuiServer_RethinkDB_ptr2str(IfuiServer_RethinkDB_prim__arrayGet($43, i));
+        const $60 = Prelude_Interfaces_x3cx24x3e(csegen_112(), $6b => ({a1: $61, a2: $6b}), IfuiServer_RethinkDB_ptr2json(IfuiServer_RethinkDB_prim__getItem($0, $61)));
+        return Prelude_Types_pure_Applicative_List($60);
+       };
+       const $52 = Prelude_Types_listBind(Prelude_Types_rangeFromTo_Range_x24a(csegen_148(), 0, _sub32s(IfuiServer_RethinkDB_prim__arrayLength($43), 1)), $5e);
+       const $4c = Prelude_Interfaces_sequence(csegen_119(), csegen_127(), $52);
+       return Prelude_Interfaces_x3cx24x3e(csegen_112(), $4a => ({h: 5 /* JObject */, a1: $4a}), $4c);
+      }
+      default: return {h: 0};
+     }
+    }
+   }
+  }
+ }
+}
+
+/* IfuiServer.RethinkDB.ptr2double : AnyPtr -> Double */
+function IfuiServer_RethinkDB_ptr2double($0) {
+ return $0;
+}
+
+/* IfuiServer.RethinkDB.mkJsObj : List (String, AnyPtr) -> AnyPtr */
+function IfuiServer_RethinkDB_mkJsObj($0) {
+ return Prelude_Types_foldl_Foldable_List(ptr => $3 => IfuiServer_RethinkDB_prim__setItem(ptr, $3.a1, $3.a2), IfuiServer_RethinkDB_prim__newObj(undefined), $0);
+}
+
+/* IfuiServer.RethinkDB.mkJsArray : List AnyPtr -> AnyPtr */
+function IfuiServer_RethinkDB_mkJsArray($0) {
+ return Prelude_Types_foldl_Foldable_List(ptr => val => IfuiServer_RethinkDB_prim__arrayAppend(val, ptr), IfuiServer_RethinkDB_prim__newArray(undefined), $0);
 }
 
 /* IfuiServer.RethinkDB.migrateTable : AnyPtr -> TableSchema d t xs -> Int -> AnyPtr -> Promise (Maybe String) */
@@ -1105,10 +1173,10 @@ function IfuiServer_RethinkDB_migrateTable($0, $1, $2, $3) {
      };
     }
     case 1: return $34 => IfuiServer_Promise_pure_Applicative_Promise({h: 0}, $34);
-    default: return $38 => IfuiServer_Promise_pure_Applicative_Promise({a1: Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Unexpected version ', a2: {a1: Prelude_Show_show_Show_Int($2), a2: {a1: ' for table ', a2: {a1: Prelude_Show_show_Show_x28Listx20x24ax29(csegen_121(), IfuiServer_RethinkDB_getDbTableNames($1)), a2: {h: 0}}}}})}, $38);
+    default: return $38 => IfuiServer_Promise_pure_Applicative_Promise({a1: Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Unexpected version ', a2: {a1: Prelude_Show_show_Show_Int($2), a2: {a1: ' for table ', a2: {a1: Prelude_Show_show_Show_x28Listx20x24ax29(csegen_152(), IfuiServer_RethinkDB_getDbTableNames($1)), a2: {h: 0}}}}})}, $38);
    }
   }
-  default: return $53 => IfuiServer_Promise_pure_Applicative_Promise({a1: Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Unexpected version ', a2: {a1: Prelude_Show_show_Show_Int($2), a2: {a1: ' for table ', a2: {a1: Prelude_Show_show_Show_x28Listx20x24ax29(csegen_121(), IfuiServer_RethinkDB_getDbTableNames($1)), a2: {h: 0}}}}})}, $53);
+  default: return $53 => IfuiServer_Promise_pure_Applicative_Promise({a1: Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Unexpected version ', a2: {a1: Prelude_Show_show_Show_Int($2), a2: {a1: ' for table ', a2: {a1: Prelude_Show_show_Show_x28Listx20x24ax29(csegen_152(), IfuiServer_RethinkDB_getDbTableNames($1)), a2: {h: 0}}}}})}, $53);
  }
 }
 
@@ -1130,10 +1198,35 @@ function IfuiServer_RethinkDB_migrateServer($0, $1, $2, $3, $4) {
  }
 }
 
+/* IfuiServer.RethinkDB.json2ptr : JSON -> AnyPtr */
+function IfuiServer_RethinkDB_json2ptr($0) {
+ switch($0.h) {
+  case 0: /* JNull */ return IfuiServer_RethinkDB_prim__null(undefined);
+  case 1: /* JBoolean */ {
+   let $5;
+   switch($0.a1) {
+    case 1: {
+     $5 = 1;
+     break;
+    }
+    case 0: {
+     $5 = 0;
+     break;
+    }
+   }
+   return IfuiServer_RethinkDB_prim__mkBool($5);
+  }
+  case 2: /* JNumber */ return IfuiServer_RethinkDB_double2ptr($0.a1);
+  case 3: /* JString */ return IfuiServer_RethinkDB_str2ptr($0.a1);
+  case 4: /* JArray */ return IfuiServer_RethinkDB_mkJsArray(csegen_156()($11 => IfuiServer_RethinkDB_json2ptr($11))($0.a1));
+  case 5: /* JObject */ return IfuiServer_RethinkDB_mkJsObj(csegen_156()($1b => ({a1: $1b.a1, a2: IfuiServer_RethinkDB_json2ptr($1b.a2)}))($0.a1));
+ }
+}
+
 /* IfuiServer.RethinkDB.getVersion : TableSchema d t xs -> List (Record [("id", List String),
                                     ("version", Int)]) -> Int */
 function IfuiServer_RethinkDB_getVersion($0, $1) {
- return Data_Maybe_fromMaybe(() => Number(_truncBigInt32(0n)), Prelude_Interfaces_x3cx24x3e(csegen_124(), $a => Ifui_ExtensibleRecords_get('version', Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x24ox29x20x24tsx29(csegen_126(), Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24kx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24kx29x20x24tx29x7cx29x29x20x24tsx29({h: 0})), $a), Data_List_find(w => Prelude_Types_x3dx3d_Eq_x28Listx20x24ax29(csegen_131(), IfuiServer_RethinkDB_getDbTableNames($0), Ifui_ExtensibleRecords_get('id', Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24kx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24kx29x20x24tx29x7cx29x29x20x24tsx29(csegen_126()), w)), $1)));
+ return Data_Maybe_fromMaybe(() => Number(_truncBigInt32(0n)), Prelude_Interfaces_x3cx24x3e(csegen_112(), $a => Ifui_ExtensibleRecords_get('version', Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x24ox29x20x24tsx29(csegen_161(), Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24kx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24kx29x20x24tx29x7cx29x29x20x24tsx29({h: 0})), $a), Data_List_find(w => Prelude_Types_x3dx3d_Eq_x28Listx20x24ax29(csegen_166(), IfuiServer_RethinkDB_getDbTableNames($0), Ifui_ExtensibleRecords_get('id', Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24kx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24kx29x20x24tx29x7cx29x29x20x24tsx29(csegen_161()), w)), $1)));
 }
 
 /* IfuiServer.RethinkDB.getDbTableNames : TableSchema d t xs -> List String */
@@ -1141,75 +1234,86 @@ function IfuiServer_RethinkDB_getDbTableNames($0) {
  return {a1: $0.a1, a2: {a1: $0.a2, a2: {h: 0}}};
 }
 
-/* IfuiServer.RethinkDB.getChanges' : HasJSValue (Change a) =>
+/* IfuiServer.RethinkDB.getChanges' : JsonSerializable (Change a) =>
 RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Change a) */
 function IfuiServer_RethinkDB_getChangesx27($0, $1, $2, $3) {
  return IfuiServer_IOStream_onErrPrint(IfuiServer_RethinkDB_getChanges($0, $1, $2), $3);
 }
 
-/* IfuiServer.RethinkDB.getChanges : HasJSValue (Change a) =>
+/* IfuiServer.RethinkDB.getChanges : JsonSerializable (Change a) =>
 RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Either String (Change a)) */
 function IfuiServer_RethinkDB_getChanges($0, $1, $2) {
  const $3 = $1;
  return w => {
-  const $9 = r => {
-   const $d = cursor => {
-    const $14 = canceled => {
-     const $15 = IfuiServer_RethinkDB_compileExpr(r, {h: 0 /* Empty */}, $2);
-     const $1d = $1e => {
-      const $22 = err => result => {
-       let $23;
-       switch(Prelude_EqOrd_x3dx3d_Eq_String(err, '')) {
-        case 1: {
-         const $2a = canceled;
-         const $29 = $2b => ($2a.value);
-         const $2f = $30 => $31 => {
-          switch($30) {
-           case 1: return IfuiServer_RethinkDB_prim__close(result, csegen_136(), $31);
-           case 0: {
-            const $3a = z => {
-             const $3b = w(IfuiServer_RethinkDB_readResultPtr($0, z));
-             return $3b;
-            };
-            return IfuiServer_RethinkDB_prim__each(result, $3a, $31);
-           }
+  const $4 = IfuiServer_RethinkDB_prim__r(undefined);
+  const $a = cursor => {
+   const $11 = canceled => {
+    const $12 = IfuiServer_RethinkDB_compileExpr($4, {h: 0 /* Empty */}, $2);
+    const $1a = $1b => {
+     const $1f = err => result => {
+      let $20;
+      switch(Prelude_EqOrd_x3dx3d_Eq_String(err, '')) {
+       case 1: {
+        const $27 = canceled;
+        const $26 = $28 => ($27.value);
+        const $2c = $2d => $2e => {
+         switch($2d) {
+          case 1: return IfuiServer_RethinkDB_prim__close(result, csegen_171(), $2e);
+          case 0: {
+           const $37 = err_ => $38 => {
+            switch(Prelude_EqOrd_x3dx3d_Eq_String(err_, csegen_108()(''))) {
+             case 1: {
+              const $40 = w(IfuiServer_RethinkDB_readResultPtr($0, () => Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'getChanges ', a2: {a1: IfuiServer_RethinkDB_debugShowExpr($2), a2: {h: 0}}}), IfuiServer_RethinkDB_prim__add_null_key('old_val', $38)));
+              return $40;
+             }
+             case 0: {
+              const $56 = w({h: 0 /* Left */, a1: err});
+              return $56;
+             }
+            }
+           };
+           return IfuiServer_RethinkDB_prim__each(result, $37, $2e);
           }
-         };
-         $23 = PrimIO_io_bind($29, $2f);
-         break;
-        }
-        case 0: {
-         $23 = w({h: 0 /* Left */, a1: err});
-         break;
-        }
+         }
+        };
+        $20 = PrimIO_io_bind($26, $2c);
+        break;
        }
-       return $23;
-      };
-      return IfuiServer_RethinkDB_prim__run($15, $3, $22, $1e);
+       case 0: {
+        $20 = w({h: 0 /* Left */, a1: err});
+        break;
+       }
+      }
+      return $20;
      };
-     return Prelude_Interfaces_x3ex3e(csegen_100(), $1d, () => $47 => {
-      const $4c = canceled;
-      const $4b = $4d => ($4c.value=1);
-      const $52 = () => {
-       const $55 = cursor;
-       const $54 = $56 => ($55.value);
-       const $5a = $5b => $5c => {
-        switch($5b.h) {
-         case 0: /* nothing */ return undefined;
-         case undefined: /* just */ return IfuiServer_RethinkDB_prim__close($5b.a1, csegen_136(), $5c);
-        }
-       };
-       return PrimIO_io_bind($54, $5a);
-      };
-      return Prelude_Interfaces_x3ex3e(csegen_100(), $4b, $52);
-     });
+     return IfuiServer_RethinkDB_prim__run($12, $3, $1f, $1b);
     };
-    return PrimIO_io_bind(Data_IORef_newIORef(csegen_133(), 0), $14);
+    return Prelude_Interfaces_x3ex3e(csegen_90(), $1a, () => $60 => {
+     const $65 = canceled;
+     const $64 = $66 => ($65.value=1);
+     const $6b = () => {
+      const $6e = cursor;
+      const $6d = $6f => ($6e.value);
+      const $73 = $74 => $75 => {
+       switch($74.h) {
+        case 0: /* nothing */ return undefined;
+        case undefined: /* just */ return IfuiServer_RethinkDB_prim__close($74.a1, csegen_171(), $75);
+       }
+      };
+      return PrimIO_io_bind($6d, $73);
+     };
+     return Prelude_Interfaces_x3ex3e(csegen_90(), $64, $6b);
+    });
    };
-   return PrimIO_io_bind(csegen_134(), $d);
+   return PrimIO_io_bind(Data_IORef_newIORef(csegen_168(), 0), $11);
   };
-  return PrimIO_io_bind($6 => IfuiServer_RethinkDB_prim__r($6), $9);
+  return PrimIO_io_bind(csegen_169(), $a);
  };
+}
+
+/* IfuiServer.RethinkDB.fromPtr : JsonSerializable a => AnyPtr -> Maybe a */
+function IfuiServer_RethinkDB_fromPtr($0, $1) {
+ return Prelude_Types_x3ex3ex3d_Monad_Maybe(IfuiServer_RethinkDB_ptr2json($1), $7 => $0.a2($7));
 }
 
 /* IfuiServer.RethinkDB.fnToPtr : (AnyPtr -> AnyPtr) -> AnyPtr */
@@ -1217,48 +1321,67 @@ function IfuiServer_RethinkDB_fnToPtr($0) {
  return $0;
 }
 
+/* IfuiServer.RethinkDB.double2ptr : Double -> AnyPtr */
+function IfuiServer_RethinkDB_double2ptr($0) {
+ return $0;
+}
+
 /* IfuiServer.RethinkDB.doMigration : ServerSchema ts -> AnyPtr -> Promise (Maybe String) */
-function IfuiServer_RethinkDB_doMigration($0, $1, $2) {
- const $6 = r => {
-  const $7 = IfuiServer_RethinkDB_prim__table_if_not_exists(r, 'ifui_meta', 'table_versions');
-  return $c => {
-   const $14 = $15 => {
-    switch($15.h) {
-     case 1: /* Right */ {
-      const $17 = IfuiServer_RethinkDB_prim__read_table(r, 'ifui_meta', csegen_137()('table_versions'));
-      return $1f => {
-       const $27 = $28 => $29 => {
-        switch($28.h) {
-         case 1: /* Right */ {
-          const $31 = $32 => {
-           switch($32.h) {
-            case 1: /* Right */ {
-             return $34 => {
-              const $35 = IfuiServer_RethinkDB_readResultPtr({a1: $39 => Ifui_JSValue_toJS_HasJSValue_x28Listx20x24tx29(csegen_153(), $39), a2: $3f => Ifui_JSValue_fromJS_HasJSValue_x28Listx20x24tx29(csegen_153(), $3f), a3: $45 => Ifui_JSValue_checkPtr_HasJSValue_x28Listx20x24tx29(csegen_153(), $45)}, $32.a1);
-              switch($35.h) {
-               case 1: /* Right */ return IfuiServer_RethinkDB_migrateServer(r, $0, $35.a1, $1, $34);
-               case 0: /* Left */ return IfuiServer_Promise_pure_Applicative_Promise({a1: $35.a1}, $34);
+function IfuiServer_RethinkDB_doMigration($0, $1) {
+ const $2 = IfuiServer_RethinkDB_prim__r(undefined);
+ const $5 = IfuiServer_RethinkDB_prim__table_if_not_exists($2, 'ifui_meta', 'table_versions');
+ return $a => {
+  const $12 = $13 => {
+   switch($13.h) {
+    case 1: /* Right */ {
+     const $15 = IfuiServer_RethinkDB_prim__wait_table($2, 'ifui_meta', csegen_173());
+     const $1b = IfuiServer_RethinkDB_prim__read_table($2, 'ifui_meta', csegen_173());
+     return $21 => {
+      const $29 = $2a => $2b => {
+       switch($2a.h) {
+        case 1: /* Right */ {
+         const $34 = $35 => $36 => {
+          switch($35.h) {
+           case 1: /* Right */ {
+            const $3e = $3f => {
+             switch($3f.h) {
+              case 1: /* Right */ {
+               return $41 => {
+                const $42 = IfuiServer_RethinkDB_readResultPtr({a1: $46 => Ifui_Json_toJson_JsonSerializable_x28Listx20x24ax29(csegen_190(), $46), a2: $4c => Ifui_Json_fromJson_JsonSerializable_x28Listx20x24ax29(csegen_190(), $4c), a3: $52 => Ifui_Json_stringify_JsonSerializable_x28Listx20x24ax29(csegen_190(), $52)}, () => csegen_108()('doMigration'), $3f.a1);
+                switch($42.h) {
+                 case 1: /* Right */ return IfuiServer_RethinkDB_migrateServer($2, $0, $42.a1, $1, $41);
+                 case 0: /* Left */ return IfuiServer_Promise_pure_Applicative_Promise({a1: $42.a1}, $41);
+                }
+               };
               }
-             };
-            }
-            case 0: /* Left */ return $55 => IfuiServer_Promise_pure_Applicative_Promise({a1: $32.a1}, $55);
+              case 0: /* Left */ return $66 => IfuiServer_Promise_pure_Applicative_Promise({a1: $3f.a1}, $66);
+             }
+            };
+            return IfuiServer_Promise_x3ex3ex3d_Monad_Promise($3a => IfuiServer_RethinkDB_toArrayPtr($35.a1, $3a), $3e, $36);
            }
-          };
-          return IfuiServer_Promise_x3ex3ex3d_Monad_Promise($2d => IfuiServer_RethinkDB_toArrayPtr($28.a1, $2d), $31, $29);
-         }
-         case 0: /* Left */ return IfuiServer_Promise_pure_Applicative_Promise({a1: $28.a1}, $29);
+           case 0: /* Left */ return IfuiServer_Promise_pure_Applicative_Promise({a1: $35.a1}, $36);
+          }
+         };
+         return IfuiServer_Promise_x3ex3ex3d_Monad_Promise($2f => IfuiServer_RethinkDB_runPtr($1b, $1, $2f), $34, $2b);
         }
-       };
-       return IfuiServer_Promise_x3ex3ex3d_Monad_Promise($22 => IfuiServer_RethinkDB_runPtr($17, $1, $22), $27, $1f);
+        case 0: /* Left */ return IfuiServer_Promise_pure_Applicative_Promise({a1: $2a.a1}, $2b);
+       }
       };
-     }
-     case 0: /* Left */ return $60 => IfuiServer_Promise_pure_Applicative_Promise({a1: $15.a1}, $60);
+      return IfuiServer_Promise_x3ex3ex3d_Monad_Promise($24 => IfuiServer_RethinkDB_runPtr($15, $1, $24), $29, $21);
+     };
     }
-   };
-   return IfuiServer_Promise_x3ex3ex3d_Monad_Promise($f => IfuiServer_RethinkDB_runPtr($7, $1, $f), $14, $c);
+    case 0: /* Left */ return $76 => IfuiServer_Promise_pure_Applicative_Promise({a1: $13.a1}, $76);
+   }
   };
+  return IfuiServer_Promise_x3ex3ex3d_Monad_Promise($d => IfuiServer_RethinkDB_runPtr($5, $1, $d), $12, $a);
  };
- return IfuiServer_Promise_x3ex3ex3d_Monad_Promise(csegen_101(), $6, $2);
+}
+
+/* IfuiServer.RethinkDB.debugShowExpr : Expr db [] t -> String */
+function IfuiServer_RethinkDB_debugShowExpr($0) {
+ const $1 = IfuiServer_RethinkDB_prim__r(undefined);
+ const $4 = IfuiServer_RethinkDB_compileExpr($1, {h: 0 /* Empty */}, $0);
+ return IfuiServer_RethinkDB_prim__toString($4);
 }
 
 /* IfuiServer.RethinkDB.connect' : String -> Int -> ServerSchema ts -> Promise (RethinkServer ts) */
@@ -1274,16 +1397,16 @@ function IfuiServer_RethinkDB_connect($0, $1, $2, $3) {
    let $d;
    switch(Prelude_EqOrd_x3dx3d_Eq_String($e, '')) {
     case 1: {
-     const $18 = $19 => IfuiServer_RethinkDB_doMigration($2, conn, $19);
+     const $18 = IfuiServer_RethinkDB_doMigration($2, conn);
      const $17 = $18;
-     const $1e = z => {
+     const $1c = z => {
       switch(z.h) {
        case 0: /* nothing */ return $3({h: 1 /* Right */, a1: conn});
        case undefined: /* just */ return $3({h: 0 /* Left */, a1: z.a1});
       }
      };
-     const $16 = $17($1e);
-     $d = PrimIO_io_bind($16, _ => $27 => (undefined));
+     const $16 = $17($1c);
+     $d = PrimIO_io_bind($16, _ => $25 => (undefined));
      break;
     }
     case 0: {
@@ -1295,7 +1418,7 @@ function IfuiServer_RethinkDB_connect($0, $1, $2, $3) {
   };
   return IfuiServer_RethinkDB_prim__connect($0, $1, $c, $8);
  };
- return Prelude_Interfaces_x3ex3e(csegen_100(), $7, () => $2d => $2e => (undefined));
+ return Prelude_Interfaces_x3ex3e(csegen_90(), $7, () => $2b => $2c => (undefined));
 }
 
 /* IfuiServer.RethinkDB.<| : Expr db ctxt (a -> b) -> Expr db ctxt a -> Expr db ctxt b */
@@ -1331,6 +1454,14 @@ function Builtin_fst($0) {
 /* Prelude.Types.9932:9115:hexChars */
 function Prelude_Types_n__9932_9115_hexChars($0) {
  return {a1: '0', a2: {a1: '1', a2: {a1: '2', a2: {a1: '3', a2: {a1: '4', a2: {a1: '5', a2: {a1: '6', a2: {a1: '7', a2: {a1: '8', a2: {a1: '9', a2: {a1: 'A', a2: {a1: 'B', a2: {a1: 'C', a2: {a1: 'D', a2: {a1: 'E', a2: {a1: 'F', a2: {h: 0}}}}}}}}}}}}}}}}};
+}
+
+/* Prelude.Types.traverse */
+function Prelude_Types_traverse_Traversable_List($0, $1, $2) {
+ switch($2.h) {
+  case 0: /* nil */ return $0.a2(undefined)({h: 0});
+  case undefined: /* cons */ return $0.a3(undefined)(undefined)($0.a3(undefined)(undefined)($0.a2(undefined)($1e => $1f => ({a1: $1e, a2: $1f})))($1($2.a1)))(Prelude_Types_traverse_Traversable_List($0, $1, $2.a2));
+ }
 }
 
 /* Prelude.Types.rangeFromTo */
@@ -1428,6 +1559,19 @@ function Prelude_Types_x3cx7cx3e_Alternative_Maybe($0, $1) {
  switch($0.h) {
   case undefined: /* just */ return {a1: $0.a1};
   case 0: /* nothing */ return $1();
+ }
+}
+
+/* Prelude.Types.<*> */
+function Prelude_Types_x3cx2ax3e_Applicative_Maybe($0, $1) {
+ switch($0.h) {
+  case undefined: /* just */ {
+   switch($1.h) {
+    case undefined: /* just */ return {a1: $0.a1($1.a1)};
+    default: return {h: 0};
+   }
+  }
+  default: return {h: 0};
  }
 }
 
@@ -1539,7 +1683,7 @@ function Prelude_Types_isLower($0) {
 
 /* Prelude.Types.isHexDigit : Char -> Bool */
 function Prelude_Types_isHexDigit($0) {
- return Prelude_Types_elem(csegen_118(), csegen_175(), Prelude_Types_toUpper($0), Prelude_Types_n__9932_9115_hexChars($0));
+ return Prelude_Types_elem(csegen_107(), csegen_214(), Prelude_Types_toUpper($0), Prelude_Types_n__9932_9115_hexChars($0));
 }
 
 /* Prelude.Types.isDigit : Char -> Bool */
@@ -1890,12 +2034,9 @@ function Prelude_Interfaces_Bool_Semigroup_x3cx2bx3e_Semigroup_AnyBool($0, $1) {
  }
 }
 
-/* Prelude.Interfaces.Bool.Semigroup.<+> */
-function Prelude_Interfaces_Bool_Semigroup_x3cx2bx3e_Semigroup_AllBool($0, $1) {
- switch($0) {
-  case 1: return $1;
-  case 0: return 0;
- }
+/* Prelude.Interfaces.sequence : Applicative f => Traversable t => t (f a) -> f (t a) */
+function Prelude_Interfaces_sequence($0, $1, $2) {
+ return $1.a3(undefined)(undefined)(undefined)($0)($f => $f)($2);
 }
 
 /* Prelude.Interfaces.concatMap : Monoid m => Foldable t => (a -> m) -> t a -> m */
@@ -1911,11 +2052,6 @@ function Prelude_Interfaces_concat($0, $1, $2) {
 /* Prelude.Interfaces.any : Foldable t => (a -> Bool) -> t a -> Bool */
 function Prelude_Interfaces_any($0, $1, $2) {
  return $0.a6(undefined)(undefined)({a1: $d => $e => Prelude_Interfaces_Bool_Semigroup_x3cx2bx3e_Semigroup_AnyBool($d, $e), a2: 0})($1)($2);
-}
-
-/* Prelude.Interfaces.all : Foldable t => (a -> Bool) -> t a -> Bool */
-function Prelude_Interfaces_all($0, $1, $2) {
- return $0.a6(undefined)(undefined)({a1: $d => $e => Prelude_Interfaces_Bool_Semigroup_x3cx2bx3e_Semigroup_AllBool($d, $e), a2: 1})($1)($2);
 }
 
 /* Prelude.Interfaces.>> : Monad m => m () -> Lazy (m b) -> m b */
@@ -2163,59 +2299,174 @@ function PrimIO_io_bind($0, $1) {
  return w => PrimIO_case__io_bind_933($1, $2(w));
 }
 
-/* Ifui.ExtensibleRecords.hasValue */
-function Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24kx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24kx29x20x24tx29x7cx29x29x20x24tsx29($0) {
- return {h: 0 /* Here */, a1: $0};
+/* Ifui.Json.toListJson */
+function Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20Nilx29($0) {
+ return {h: 0};
 }
 
-/* Ifui.ExtensibleRecords.hasValue */
-function Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x24ox29x20x24tsx29($0, $1) {
- const $4 = $1;
- const $3 = $4;
- return {h: 1 /* There */, a1: $0, a2: $3};
+/* Ifui.Json.toListJson */
+function Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29($0, $1, $2, $3) {
+ const $5 = $3.a2;
+ const $9 = Builtin_fst($2);
+ const $8 = $9.a1($5);
+ const $6 = {a1: $0, a2: $8};
+ const $f = Builtin_snd($2);
+ const $e = $f.a1($3.a3);
+ return {a1: $6, a2: $e};
 }
 
-/* Ifui.ExtensibleRecords.strNotEq : So (a /= b) => Not (a = b) */
-function Ifui_ExtensibleRecords_strNotEq($0, $1, $2, $3) {
- return $2;
+/* Ifui.Json.toJson */
+function Ifui_Json_toJson_JsonSerializable_String($0) {
+ return {h: 3 /* JString */, a1: $0};
 }
 
-/* Ifui.ExtensibleRecords.get : (k : String) -> HasValue k t ts => Record ts -> t */
-function Ifui_ExtensibleRecords_get($0, $1, $2) {
- const $5 = $1;
- const $4 = $5;
- return Ifui_ExtensibleRecords_getAux($4, $2);
+/* Ifui.Json.toJson */
+function Ifui_Json_toJson_JsonSerializable_Int($0) {
+ return {h: 2 /* JNumber */, a1: $0};
 }
 
-/* Data.Maybe.isJust : Maybe a -> Bool */
-function Data_Maybe_isJust($0) {
- switch($0.h) {
-  case 0: /* nothing */ return 0;
-  case undefined: /* just */ return 1;
- }
+/* Ifui.Json.toJson */
+function Ifui_Json_toJson_JsonSerializable_Bool($0) {
+ return {h: 1 /* JBoolean */, a1: $0};
 }
 
-/* Data.Maybe.fromMaybe : Lazy a -> Maybe a -> a */
-function Data_Maybe_fromMaybe($0, $1) {
+/* Ifui.Json.toJson */
+function Ifui_Json_toJson_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($0) {
+ return {h: 0 /* JNull */};
+}
+
+/* Ifui.Json.toJson */
+function Ifui_Json_toJson_JsonSerializable_x28Maybex20x24ax29($0, $1) {
  switch($1.h) {
-  case 0: /* nothing */ return $0();
-  case undefined: /* just */ return $1.a1;
+  case 0: /* nothing */ return {h: 0 /* JNull */};
+  case undefined: /* just */ return $0.a1($1.a1);
  }
 }
 
-/* Data.List1.forget : List1 a -> List a */
-function Data_List1_forget($0) {
- return {a1: $0.a1, a2: $0.a2};
+/* Ifui.Json.toJson */
+function Ifui_Json_toJson_JsonSerializable_x28Listx20x24ax29($0, $1) {
+ return {h: 4 /* JArray */, a1: csegen_156()($7 => $0.a1($7))($1)};
 }
 
-/* Data.List1.appendl : List1 a -> List a -> List1 a */
-function Data_List1_appendl($0, $1) {
- return {a1: $0.a1, a2: Prelude_Types_List_tailRecAppend($0.a2, $1)};
+/* Ifui.Json.toJson */
+function Ifui_Json_toJson_JsonSerializable_x24a($0, $1) {
+ return {h: 5 /* JObject */, a1: $0.a1($1)};
 }
 
-/* Data.List1.++ : List1 a -> List1 a -> List1 a */
-function Data_List1_x2bx2b($0, $1) {
- return Data_List1_appendl($0, Data_List1_forget($1));
+/* Ifui.Json.stringify */
+function Ifui_Json_stringify_JsonSerializable_String($0) {
+ return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_String($0));
+}
+
+/* Ifui.Json.stringify */
+function Ifui_Json_stringify_JsonSerializable_Int($0) {
+ return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_Int($0));
+}
+
+/* Ifui.Json.stringify */
+function Ifui_Json_stringify_JsonSerializable_Bool($0) {
+ return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_Bool($0));
+}
+
+/* Ifui.Json.stringify */
+function Ifui_Json_stringify_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($0) {
+ return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($0));
+}
+
+/* Ifui.Json.stringify */
+function Ifui_Json_stringify_JsonSerializable_x28Maybex20x24ax29($0, $1) {
+ return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_x28Maybex20x24ax29($0, $1));
+}
+
+/* Ifui.Json.stringify */
+function Ifui_Json_stringify_JsonSerializable_x28Listx20x24ax29($0, $1) {
+ return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_x28Listx20x24ax29($0, $1));
+}
+
+/* Ifui.Json.stringify */
+function Ifui_Json_stringify_JsonSerializable_x24a($0, $1) {
+ return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_x24a($0, $1));
+}
+
+/* Ifui.Json.fromListJson */
+function Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20Nilx29($0) {
+ switch($0.h) {
+  case 0: /* nil */ return {a1: {h: 0 /* Nil */}};
+  default: return {h: 0};
+ }
+}
+
+/* Ifui.Json.fromListJson */
+function Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29($0, $1, $2, $3) {
+ switch($3.h) {
+  case 0: /* nil */ return {h: 0};
+  default: {
+   const $7 = Builtin_snd($2);
+   const $6 = $7.a2($3);
+   const $c = ws => {
+    const $14 = j => {
+     const $17 = Builtin_fst($2);
+     const $16 = $17.a2(j);
+     return Prelude_Types_x3ex3ex3d_Monad_Maybe($16, w => ({a1: {h: 1 /* :: */, a1: $1, a2: w, a3: ws}}));
+    };
+    return Prelude_Types_x3ex3ex3d_Monad_Maybe(Data_List_lookup(csegen_166(), $0, $3), $14);
+   };
+   return Prelude_Types_x3ex3ex3d_Monad_Maybe($6, $c);
+  }
+ }
+}
+
+/* Ifui.Json.fromJson */
+function Ifui_Json_fromJson_JsonSerializable_String($0) {
+ switch($0.h) {
+  case 3: /* JString */ return {a1: $0.a1};
+  default: return {h: 0};
+ }
+}
+
+/* Ifui.Json.fromJson */
+function Ifui_Json_fromJson_JsonSerializable_Int($0) {
+ switch($0.h) {
+  case 2: /* JNumber */ return {a1: _truncInt32(Math.trunc($0.a1))};
+  default: return {h: 0};
+ }
+}
+
+/* Ifui.Json.fromJson */
+function Ifui_Json_fromJson_JsonSerializable_Bool($0) {
+ switch($0.h) {
+  case 1: /* JBoolean */ return {a1: $0.a1};
+  default: return {h: 0};
+ }
+}
+
+/* Ifui.Json.fromJson */
+function Ifui_Json_fromJson_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($0) {
+ return {a1: undefined};
+}
+
+/* Ifui.Json.fromJson */
+function Ifui_Json_fromJson_JsonSerializable_x28Maybex20x24ax29($0, $1) {
+ switch($1.h) {
+  case 0: /* JNull */ return {a1: {h: 0}};
+  default: return Prelude_Interfaces_x3cx24x3e(csegen_112(), $8 => ({a1: $8}), $0.a2($1));
+ }
+}
+
+/* Ifui.Json.fromJson */
+function Ifui_Json_fromJson_JsonSerializable_x28Listx20x24ax29($0, $1) {
+ switch($1.h) {
+  case 4: /* JArray */ return Prelude_Interfaces_sequence(csegen_119(), csegen_127(), csegen_156()($d => $0.a2($d))($1.a1));
+  default: return {h: 0};
+ }
+}
+
+/* Ifui.Json.fromJson */
+function Ifui_Json_fromJson_JsonSerializable_x24a($0, $1) {
+ switch($1.h) {
+  case 5: /* JObject */ return $0.a2($1.a1);
+  default: return {h: 0};
+ }
 }
 
 /* Data.List.span : (a -> Bool) -> List a -> (List a, List a) */
@@ -2268,135 +2519,59 @@ function Data_List_deleteBy($0, $1, $2) {
  }
 }
 
-/* Ifui.Json.toListJson */
-function Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20Nilx29($0) {
- return {h: 0};
-}
-
-/* Ifui.Json.toListJson */
-function Ifui_Json_toListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29($0, $1, $2, $3) {
- const $5 = $3.a2;
- const $9 = Builtin_fst($2);
- const $8 = $9.a1($5);
- const $6 = {a1: $0, a2: $8};
- const $f = Builtin_snd($2);
- const $e = $f.a1($3.a3);
- return {a1: $6, a2: $e};
-}
-
-/* Ifui.Json.toJson */
-function Ifui_Json_toJson_JsonSerializable_String($0) {
- return {h: 3 /* JString */, a1: $0};
-}
-
-/* Ifui.Json.toJson */
-function Ifui_Json_toJson_JsonSerializable_Bool($0) {
- return {h: 1 /* JBoolean */, a1: $0};
-}
-
-/* Ifui.Json.toJson */
-function Ifui_Json_toJson_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($0) {
- return {h: 0 /* JNull */};
-}
-
-/* Ifui.Json.toJson */
-function Ifui_Json_toJson_JsonSerializable_x28Recordx20x24tsx29($0, $1) {
- return {h: 5 /* JObject */, a1: $0.a1($1)};
-}
-
-/* Ifui.Json.toJson */
-function Ifui_Json_toJson_JsonSerializable_x28Maybex20x24ax29($0, $1) {
- switch($1.h) {
-  case 0: /* nothing */ return {h: 0 /* JNull */};
-  case undefined: /* just */ return $0.a1($1.a1);
- }
-}
-
-/* Ifui.Json.stringify */
-function Ifui_Json_stringify_JsonSerializable_String($0) {
- return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_String($0));
-}
-
-/* Ifui.Json.stringify */
-function Ifui_Json_stringify_JsonSerializable_Bool($0) {
- return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_Bool($0));
-}
-
-/* Ifui.Json.stringify */
-function Ifui_Json_stringify_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($0) {
- return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($0));
-}
-
-/* Ifui.Json.stringify */
-function Ifui_Json_stringify_JsonSerializable_x28Recordx20x24tsx29($0, $1) {
- return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_x28Recordx20x24tsx29($0, $1));
-}
-
-/* Ifui.Json.stringify */
-function Ifui_Json_stringify_JsonSerializable_x28Maybex20x24ax29($0, $1) {
- return Language_JSON_Data_show_Show_JSON(Ifui_Json_toJson_JsonSerializable_x28Maybex20x24ax29($0, $1));
-}
-
-/* Ifui.Json.fromListJson */
-function Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20Nilx29($0) {
+/* Data.Maybe.isJust : Maybe a -> Bool */
+function Data_Maybe_isJust($0) {
  switch($0.h) {
-  case 0: /* nil */ return {a1: {h: 0 /* Nil */}};
-  default: return {h: 0};
+  case 0: /* nothing */ return 0;
+  case undefined: /* just */ return 1;
  }
 }
 
-/* Ifui.Json.fromListJson */
-function Ifui_Json_fromListJson_JsonObjectSerializable_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29($0, $1, $2, $3) {
- switch($3.h) {
-  case 0: /* nil */ return {h: 0};
-  case undefined: /* cons */ {
-   const $8 = Builtin_snd($2);
-   const $7 = $8.a2($3.a2);
-   const $d = ws => {
-    const $10 = Builtin_fst($2);
-    const $f = $10.a2($3.a1.a2);
-    return Prelude_Types_x3ex3ex3d_Monad_Maybe($f, w => ({a1: {h: 1 /* :: */, a1: $1, a2: w, a3: ws}}));
-   };
-   return Prelude_Types_x3ex3ex3d_Monad_Maybe($7, $d);
-  }
- }
-}
-
-/* Ifui.Json.fromJson */
-function Ifui_Json_fromJson_JsonSerializable_String($0) {
- switch($0.h) {
-  case 3: /* JString */ return {a1: $0.a1};
-  default: return {h: 0};
- }
-}
-
-/* Ifui.Json.fromJson */
-function Ifui_Json_fromJson_JsonSerializable_Bool($0) {
- switch($0.h) {
-  case 1: /* JBoolean */ return {a1: $0.a1};
-  default: return {h: 0};
- }
-}
-
-/* Ifui.Json.fromJson */
-function Ifui_Json_fromJson_JsonSerializable_x28x7cUnitx2cMkUnitx7cx29($0) {
- return {a1: undefined};
-}
-
-/* Ifui.Json.fromJson */
-function Ifui_Json_fromJson_JsonSerializable_x28Recordx20x24tsx29($0, $1) {
+/* Data.Maybe.fromMaybe : Lazy a -> Maybe a -> a */
+function Data_Maybe_fromMaybe($0, $1) {
  switch($1.h) {
-  case 5: /* JObject */ return $0.a2($1.a1);
-  default: return {h: 0};
+  case 0: /* nothing */ return $0();
+  case undefined: /* just */ return $1.a1;
  }
 }
 
-/* Ifui.Json.fromJson */
-function Ifui_Json_fromJson_JsonSerializable_x28Maybex20x24ax29($0, $1) {
- switch($1.h) {
-  case 0: /* JNull */ return {a1: {h: 0}};
-  default: return Prelude_Interfaces_x3cx24x3e(csegen_124(), $8 => ({a1: $8}), $0.a2($1));
- }
+/* Data.List1.forget : List1 a -> List a */
+function Data_List1_forget($0) {
+ return {a1: $0.a1, a2: $0.a2};
+}
+
+/* Data.List1.appendl : List1 a -> List a -> List1 a */
+function Data_List1_appendl($0, $1) {
+ return {a1: $0.a1, a2: Prelude_Types_List_tailRecAppend($0.a2, $1)};
+}
+
+/* Data.List1.++ : List1 a -> List1 a -> List1 a */
+function Data_List1_x2bx2b($0, $1) {
+ return Data_List1_appendl($0, Data_List1_forget($1));
+}
+
+/* Ifui.ExtensibleRecords.hasValue */
+function Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24kx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24kx29x20x24tx29x7cx29x29x20x24tsx29($0) {
+ return {h: 0 /* Here */, a1: $0};
+}
+
+/* Ifui.ExtensibleRecords.hasValue */
+function Ifui_ExtensibleRecords_hasValue_HasValue_x24k_x24t_x28x28x3ax3ax20x24ox29x20x24tsx29($0, $1) {
+ const $4 = $1;
+ const $3 = $4;
+ return {h: 1 /* There */, a1: $0, a2: $3};
+}
+
+/* Ifui.ExtensibleRecords.strNotEq : So (a /= b) => Not (a = b) */
+function Ifui_ExtensibleRecords_strNotEq($0, $1, $2, $3) {
+ return $2;
+}
+
+/* Ifui.ExtensibleRecords.get : (k : String) -> HasValue k t ts => Record ts -> t */
+function Ifui_ExtensibleRecords_get($0, $1, $2) {
+ const $5 = $1;
+ const $4 = $5;
+ return Ifui_ExtensibleRecords_getAux($4, $2);
 }
 
 /* Language.JSON.parse : String -> Maybe JSON */
@@ -2444,17 +2619,17 @@ function Text_Bounded_mergeBounds($0, $1) {
      switch($1.h) {
       case undefined: /* record */ {
        switch($1.a2) {
-        case 1: return Prelude_Interfaces_x3cx24x3e(csegen_218(), $e => $1.a1, $0);
+        case 1: return Prelude_Interfaces_x3cx24x3e(csegen_255(), $e => $1.a1, $0);
         default: {
-         const $10 = Prelude_EqOrd_min_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_229(), csegen_229(), Text_Bounded_start($0), Text_Bounded_start($1));
-         const $1c = Prelude_EqOrd_max_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_229(), csegen_229(), Text_Bounded_end($0), Text_Bounded_end($1));
+         const $10 = Prelude_EqOrd_min_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_144(), csegen_144(), Text_Bounded_start($0), Text_Bounded_start($1));
+         const $1c = Prelude_EqOrd_max_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_144(), csegen_144(), Text_Bounded_end($0), Text_Bounded_end($1));
          return {a1: $1.a1, a2: 0, a3: {a1: $10.a1, a2: $10.a2, a3: $1c.a1, a4: $1c.a2}};
         }
        }
       }
       default: {
-       const $30 = Prelude_EqOrd_min_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_229(), csegen_229(), Text_Bounded_start($0), Text_Bounded_start($1));
-       const $3c = Prelude_EqOrd_max_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_229(), csegen_229(), Text_Bounded_end($0), Text_Bounded_end($1));
+       const $30 = Prelude_EqOrd_min_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_144(), csegen_144(), Text_Bounded_start($0), Text_Bounded_start($1));
+       const $3c = Prelude_EqOrd_max_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_144(), csegen_144(), Text_Bounded_end($0), Text_Bounded_end($1));
        return {a1: $1.a1, a2: 0, a3: {a1: $30.a1, a2: $30.a2, a3: $3c.a1, a4: $3c.a2}};
       }
      }
@@ -2465,17 +2640,17 @@ function Text_Bounded_mergeBounds($0, $1) {
    switch($1.h) {
     case undefined: /* record */ {
      switch($1.a2) {
-      case 1: return Prelude_Interfaces_x3cx24x3e(csegen_218(), $56 => $1.a1, $0);
+      case 1: return Prelude_Interfaces_x3cx24x3e(csegen_255(), $56 => $1.a1, $0);
       default: {
-       const $58 = Prelude_EqOrd_min_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_229(), csegen_229(), Text_Bounded_start($0), Text_Bounded_start($1));
-       const $64 = Prelude_EqOrd_max_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_229(), csegen_229(), Text_Bounded_end($0), Text_Bounded_end($1));
+       const $58 = Prelude_EqOrd_min_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_144(), csegen_144(), Text_Bounded_start($0), Text_Bounded_start($1));
+       const $64 = Prelude_EqOrd_max_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_144(), csegen_144(), Text_Bounded_end($0), Text_Bounded_end($1));
        return {a1: $1.a1, a2: 0, a3: {a1: $58.a1, a2: $58.a2, a3: $64.a1, a4: $64.a2}};
       }
      }
     }
     default: {
-     const $78 = Prelude_EqOrd_min_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_229(), csegen_229(), Text_Bounded_start($0), Text_Bounded_start($1));
-     const $84 = Prelude_EqOrd_max_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_229(), csegen_229(), Text_Bounded_end($0), Text_Bounded_end($1));
+     const $78 = Prelude_EqOrd_min_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_144(), csegen_144(), Text_Bounded_start($0), Text_Bounded_start($1));
+     const $84 = Prelude_EqOrd_max_Ord_x28x7cx28x28Builtinx2ePairx20x24ax29x20x24bx29x2cx28x28Builtinx2eMkPairx20x24ax29x20x24bx29x7cx29(csegen_144(), csegen_144(), Text_Bounded_end($0), Text_Bounded_end($1));
      return {a1: $1.a1, a2: 0, a3: {a1: $78.a1, a2: $78.a2, a3: $84.a1, a4: $84.a2}};
     }
    }
@@ -2574,7 +2749,7 @@ function Language_JSON_Data_stringify($0) {
 
 /* Language.JSON.Data.showString : String -> String */
 function Language_JSON_Data_showString($0) {
- return ('\"'+(Prelude_Interfaces_concatMap(csegen_103(), csegen_118(), $a => Language_JSON_Data_showChar($a), Prelude_Types_fastUnpack($0))+'\"'));
+ return ('\"'+(Prelude_Interfaces_concatMap(csegen_92(), csegen_107(), $a => Language_JSON_Data_showChar($a), Prelude_Types_fastUnpack($0))+'\"'));
 }
 
 /* Language.JSON.Data.showChar : Char -> String */
@@ -2595,7 +2770,7 @@ function Language_JSON_Data_showChar($0) {
      break;
     }
     case 0: {
-     $2 = Prelude_EqOrd_x3ex3d_Ord_Char($0, csegen_137()('\u{7f}'));
+     $2 = Prelude_EqOrd_x3ex3d_Ord_Char($0, csegen_108()('\u{7f}'));
      break;
     }
    }
@@ -2665,22 +2840,22 @@ const Language_JSON_Parser_n__3632_2316_properties = __lazy(function () {
 
 /* Language.JSON.Parser.string : Grammar state JSONToken True JSON */
 const Language_JSON_Parser_string = __lazy(function () {
- return csegen_239()($4 => ({h: 3 /* JString */, a1: $4}))(Language_JSON_Parser_rawString());
+ return csegen_265()($4 => ({h: 3 /* JString */, a1: $4}))(Language_JSON_Parser_rawString());
 });
 
 /* Language.JSON.Parser.rawString : Grammar state JSONToken True String */
 const Language_JSON_Parser_rawString = __lazy(function () {
- return {h: 8 /* SeqEat */, a1: 0, a2: Text_Parser_match(csegen_243(), csegen_246(), {h: 2 /* JTString */}), a3: () => mstr => {
+ return {h: 8 /* SeqEat */, a1: 0, a2: Text_Parser_match(csegen_269(), csegen_272(), {h: 2 /* JTString */}), a3: () => mstr => {
   switch(mstr.h) {
    case undefined: /* just */ return {h: 0 /* Empty */, a1: mstr.a1};
-   case 0: /* nothing */ return {h: 4 /* Fail */, a1: {h: 0}, a2: 0, a3: csegen_137()('invalid string')};
+   case 0: /* nothing */ return {h: 4 /* Fail */, a1: {h: 0}, a2: 0, a3: csegen_108()('invalid string')};
   }
  }};
 });
 
 /* Language.JSON.Parser.punct : Punctuation -> Grammar state JSONToken True () */
 function Language_JSON_Parser_punct($0) {
- return Text_Parser_match(csegen_243(), csegen_246(), {h: 4 /* JTPunct */, a1: $0});
+ return Text_Parser_match(csegen_269(), csegen_272(), {h: 4 /* JTPunct */, a1: $0});
 }
 
 /* Language.JSON.Parser.parseJSON : List (WithBounds JSONToken) -> Maybe JSON */
@@ -2716,12 +2891,12 @@ const Language_JSON_Parser_object = __lazy(function () {
 
 /* Language.JSON.Parser.number : Grammar state JSONToken True JSON */
 const Language_JSON_Parser_number = __lazy(function () {
- return csegen_239()($4 => ({h: 2 /* JNumber */, a1: $4}))(Text_Parser_match(csegen_243(), csegen_246(), {h: 1 /* JTNumber */}));
+ return csegen_265()($4 => ({h: 2 /* JNumber */, a1: $4}))(Text_Parser_match(csegen_269(), csegen_272(), {h: 1 /* JTNumber */}));
 });
 
 /* Language.JSON.Parser.null : Grammar state JSONToken True JSON */
 const Language_JSON_Parser_null$ = __lazy(function () {
- return csegen_239()($4 => ({h: 0 /* JNull */}))(Text_Parser_match(csegen_243(), csegen_246(), {h: 3 /* JTNull */}));
+ return csegen_265()($4 => ({h: 0 /* JNull */}))(Text_Parser_match(csegen_269(), csegen_272(), {h: 3 /* JTNull */}));
 });
 
 /* Language.JSON.Parser.json : Grammar state JSONToken True JSON */
@@ -2731,7 +2906,7 @@ const Language_JSON_Parser_json = __lazy(function () {
 
 /* Language.JSON.Parser.boolean : Grammar state JSONToken True JSON */
 const Language_JSON_Parser_boolean = __lazy(function () {
- return csegen_239()($4 => ({h: 1 /* JBoolean */, a1: $4}))(Text_Parser_match(csegen_243(), csegen_246(), {h: 0 /* JTBoolean */}));
+ return csegen_265()($4 => ({h: 1 /* JBoolean */, a1: $4}))(Text_Parser_match(csegen_269(), csegen_272(), {h: 0 /* JTBoolean */}));
 });
 
 /* Language.JSON.Parser.array : Grammar state JSONToken True JSON */
@@ -2888,9 +3063,7 @@ const Language_JSON_String_permissiveStringLit = __lazy(function () {
 
 /* Text.Lexer.toTokenMap : List (Lexer, k) -> TokenMap (Token k) */
 const Text_Lexer_toTokenMap = __lazy(function () {
- const $1 = $2 => $3 => $4 => $5 => Prelude_Types_List_mapAppend({h: 0}, $4, $5);
- const $0 = $a => $b => $1(undefined)(undefined)($a)($b);
- return $0($15 => ({a1: $15.a1, a2: $19 => ({a1: $15.a2, a2: $19})}));
+ return csegen_156()($3 => ({a1: $3.a1, a2: $7 => ({a1: $3.a2, a2: $7})}));
 });
 
 /* Text.Lexer.spaces : Lexer */
@@ -2926,7 +3099,7 @@ function Text_Lexer_opt($0) {
 
 /* Text.Lexer.oneOf : String -> Lexer */
 function Text_Lexer_oneOf($0) {
- return Text_Lexer_Core_pred(x => Prelude_Types_elem(csegen_118(), csegen_175(), x, Prelude_Types_fastUnpack($0)));
+ return Text_Lexer_Core_pred(x => Prelude_Types_elem(csegen_107(), csegen_214(), x, Prelude_Types_fastUnpack($0)));
 }
 
 /* Text.Lexer.non : Lexer -> Lexer */
@@ -3239,12 +3412,12 @@ function Language_JSON_String_Tokens_charValue($0) {
 
 /* Language.JSON.String.Parser.stringChar : Grammar state JSONStringToken True Char */
 const Language_JSON_String_Parser_stringChar = __lazy(function () {
- return {h: 12 /* Alt */, a1: 1, a2: 1, a3: Text_Parser_match(csegen_292(), csegen_295(), 1), a4: () => ({h: 12 /* Alt */, a1: 1, a2: 1, a3: Text_Parser_match(csegen_292(), csegen_295(), 2), a4: () => Text_Parser_match(csegen_292(), csegen_295(), 3)})};
+ return {h: 12 /* Alt */, a1: 1, a2: 1, a3: Text_Parser_match(csegen_314(), csegen_317(), 1), a4: () => ({h: 12 /* Alt */, a1: 1, a2: 1, a3: Text_Parser_match(csegen_314(), csegen_317(), 2), a4: () => Text_Parser_match(csegen_314(), csegen_317(), 3)})};
 });
 
 /* Language.JSON.String.Parser.quotedString : Grammar state JSONStringToken True String */
 const Language_JSON_String_Parser_quotedString = __lazy(function () {
- const $0 = Text_Parser_match(csegen_292(), csegen_295(), 0);
+ const $0 = Text_Parser_match(csegen_314(), csegen_317(), 0);
  return {h: 8 /* SeqEat */, a1: 0, a2: Text_Parser_between(0, $0, $0, Text_Parser_many(Language_JSON_String_Parser_stringChar())), a3: () => chars => ({h: 11 /* ThenEmpty */, a1: 0, a2: 0, a3: {h: 3 /* EOF */}, a4: {h: 0 /* Empty */, a1: Prelude_Types_fastPack(chars)}})};
 });
 
@@ -3291,7 +3464,7 @@ function Text_Parser_sepBy1($0, $1, $2) {
    const $42 = $43($41);
    return $42($2);
   };
-  const $39 = {h: 9 /* SeqEmpty */, a1: 1, a2: $0, a3: csegen_314()($1), a4: $40};
+  const $39 = {h: 9 /* SeqEmpty */, a1: 1, a2: $0, a3: csegen_336()($1), a4: $40};
   const $37 = Text_Parser_many($39);
   return $24($37);
  };
@@ -3325,7 +3498,7 @@ function Text_Parser_match($0, $1, $2) {
 
 /* Text.Parser.many : Grammar state tok True a -> Grammar state tok False (List a) */
 function Text_Parser_many($0) {
- return Text_Parser_option(1, {h: 0}, Prelude_Interfaces_x3cx24x3e(csegen_238(), $9 => Data_List1_forget($9), Text_Parser_some($0)));
+ return Text_Parser_option(1, {h: 0}, Prelude_Interfaces_x3cx24x3e(csegen_264(), $9 => Data_List1_forget($9), Text_Parser_some($0)));
 }
 
 /* Text.Parser.between : Grammar state tok True l -> Grammar state tok True r -> Grammar state tok c a -> Grammar state tok True a */
@@ -3336,16 +3509,16 @@ function Text_Parser_between($0, $1, $2, $3) {
   const $15 = $16(f);
   return $15($3);
  };
- const $d = {h: 9 /* SeqEmpty */, a1: 1, a2: $0, a3: csegen_314()($1), a4: $14};
- const $6 = csegen_313()($b => $c => $b)($d);
- return {h: 9 /* SeqEmpty */, a1: 1, a2: 1, a3: $6, a4: f => csegen_313()(f)($2)};
+ const $d = {h: 9 /* SeqEmpty */, a1: 1, a2: $0, a3: csegen_336()($1), a4: $14};
+ const $6 = csegen_335()($b => $c => $b)($d);
+ return {h: 9 /* SeqEmpty */, a1: 1, a2: 1, a3: $6, a4: f => csegen_335()(f)($2)};
 }
 
 /* Text.Parser.Core.case block in doParse */
 function Text_Parser_Core_case__doParse_5194($0, $1, $2, $3, $4, $5) {
  switch($5.h) {
   case 0: /* Failure */ return {h: 0 /* Failure */, a1: $5.a1, a2: $5.a2, a3: $5.a3};
-  case 1: /* Res */ return {h: 1 /* Res */, a1: $5.a1, a2: $5.a2, a3: Prelude_Interfaces_x3cx24x3e(csegen_318(), $11 => $5.a3, $5.a3), a4: $5.a4};
+  case 1: /* Res */ return {h: 1 /* Res */, a1: $5.a1, a2: $5.a2, a3: Prelude_Interfaces_x3cx24x3e(csegen_340(), $11 => $5.a3, $5.a3), a4: $5.a4};
  }
 }
 
@@ -3456,7 +3629,7 @@ function Text_Parser_Core_map_Functor_x28x28x28Grammarx20x24statex29x20x24tokx29
        switch($0) {
         case 1: {
          switch($2.h) {
-          case 1: /* Terminal */ return {h: 1 /* Terminal */, a1: $2.a1, a2: $3a => csegen_319()($1)($2.a2($3a))};
+          case 1: /* Terminal */ return {h: 1 /* Terminal */, a1: $2.a1, a2: $3a => csegen_341()($1)($2.a2($3a))};
           default: {
            switch($2.h) {
             case 12: /* Alt */ {
@@ -3776,7 +3949,7 @@ function Text_Parser_Core_map_Functor_x28x28x28Grammarx20x24statex29x20x24tokx29
      switch($0) {
       case 1: {
        switch($2.h) {
-        case 1: /* Terminal */ return {h: 1 /* Terminal */, a1: $2.a1, a2: $32c => csegen_319()($1)($2.a2($32c))};
+        case 1: /* Terminal */ return {h: 1 /* Terminal */, a1: $2.a1, a2: $32c => csegen_341()($1)($2.a2($32c))};
         default: {
          switch($2.h) {
           case 12: /* Alt */ {
@@ -4099,18 +4272,18 @@ state -> Bool -> Grammar state tok c ty -> List (WithBounds tok) -> ParseResult 
 function Text_Parser_Core_doParse($0, $1, $2, $3, $4) {
  switch($3.h) {
   case 0: /* Empty */ return {h: 1 /* Res */, a1: $1, a2: $2, a3: Text_Bounded_irrelevantBounds($3.a1), a4: $4};
-  case 4: /* Fail */ return {h: 0 /* Failure */, a1: $2, a2: $3.a2, a3: {a1: {a1: $3.a3, a2: Prelude_Types_x3cx7cx3e_Alternative_Maybe($3.a1, () => Prelude_Interfaces_x3cx24x3e(csegen_124(), $19 => $19.a3, Data_List_headx27($4)))}, a2: {h: 0}}};
+  case 4: /* Fail */ return {h: 0 /* Failure */, a1: $2, a2: $3.a2, a3: {a1: {a1: $3.a3, a2: Prelude_Types_x3cx7cx3e_Alternative_Maybe($3.a1, () => Prelude_Interfaces_x3cx24x3e(csegen_112(), $19 => $19.a3, Data_List_headx27($4)))}, a2: {h: 0}}};
   case 5: /* Try */ return Text_Parser_Core_case__doParse_3951($0, $1, $3.a1, $4, $2, Text_Parser_Core_doParse($0, $1, $2, $3.a1, $4));
   case 6: /* Commit */ return {h: 1 /* Res */, a1: $1, a2: 1, a3: Text_Bounded_irrelevantBounds(undefined), a4: $4};
   case 7: /* MustWork */ return Text_Parser_Core_case__doParse_4048($0, $1, $3.a1, $4, $2, Text_Parser_Core_doParse($0, $1, $2, $3.a1, $4));
   case 1: /* Terminal */ {
    switch($4.h) {
-    case 0: /* nil */ return {h: 0 /* Failure */, a1: $2, a2: 0, a3: csegen_323()};
+    case 0: /* nil */ return {h: 0 /* Failure */, a1: $2, a2: 0, a3: csegen_345()};
     case undefined: /* cons */ {
      const $44 = $3.a2($4.a1.a1);
      switch($44.h) {
       case 0: /* nothing */ return {h: 0 /* Failure */, a1: $2, a2: 0, a3: {a1: {a1: $3.a1, a2: {a1: $4.a1.a3}}, a2: {h: 0}}};
-      case undefined: /* just */ return {h: 1 /* Res */, a1: $1, a2: $2, a3: Prelude_Interfaces_x3cx24x3e(csegen_318(), $58 => $44.a1, $4.a1), a4: $4.a2};
+      case undefined: /* just */ return {h: 1 /* Res */, a1: $1, a2: $2, a3: Prelude_Interfaces_x3cx24x3e(csegen_340(), $58 => $44.a1, $4.a1), a4: $4.a2};
      }
     }
    }
@@ -4118,12 +4291,12 @@ function Text_Parser_Core_doParse($0, $1, $2, $3, $4) {
   case 3: /* EOF */ {
    switch($4.h) {
     case 0: /* nil */ return {h: 1 /* Res */, a1: $1, a2: $2, a3: Text_Bounded_irrelevantBounds(undefined), a4: {h: 0}};
-    case undefined: /* cons */ return {h: 0 /* Failure */, a1: $2, a2: 0, a3: {a1: {a1: csegen_137()('Expected end of input'), a2: {a1: $4.a1.a3}}, a2: {h: 0}}};
+    case undefined: /* cons */ return {h: 0 /* Failure */, a1: $2, a2: 0, a3: {a1: {a1: csegen_108()('Expected end of input'), a2: {a1: $4.a1.a3}}, a2: {h: 0}}};
    }
   }
   case 2: /* NextIs */ {
    switch($4.h) {
-    case 0: /* nil */ return {h: 0 /* Failure */, a1: $2, a2: 0, a3: csegen_323()};
+    case 0: /* nil */ return {h: 0 /* Failure */, a1: $2, a2: 0, a3: csegen_345()};
     case undefined: /* cons */ {
      switch($3.a2($4.a1.a1)) {
       case 1: return {h: 1 /* Res */, a1: $1, a2: $2, a3: Text_Bounded_removeIrrelevance($4.a1), a4: {a1: $4.a1, a2: $4.a2}};
@@ -4152,7 +4325,7 @@ function Text_Parser_Core_doParse($0, $1, $2, $3, $4) {
   case 13: /* Bounds */ return Text_Parser_Core_case__doParse_5194($0, $1, $3.a1, $4, $2, Text_Parser_Core_doParse($0, $1, $2, $3.a1, $4));
   case 14: /* Position */ {
    switch($4.h) {
-    case 0: /* nil */ return {h: 0 /* Failure */, a1: $2, a2: 0, a3: csegen_323()};
+    case 0: /* nil */ return {h: 0 /* Failure */, a1: $2, a2: 0, a3: csegen_345()};
     case undefined: /* cons */ return {h: 1 /* Res */, a1: $1, a2: $2, a3: Text_Bounded_irrelevantBounds($4.a1.a3), a4: {a1: $4.a1, a2: $4.a2}};
    }
   }
@@ -4264,270 +4437,16 @@ function IfuiServer_IOStream_onErrPrint($0, $1) {
  const $2 = $3;
  const $4 = z => {
   switch(z.h) {
-   case 0: /* Left */ return Prelude_IO_putStrLn(csegen_133(), z.a1);
+   case 0: /* Left */ return Prelude_IO_putStrLn(csegen_168(), z.a1);
    case 1: /* Right */ return $1(z.a1);
   }
  };
  return $2($4);
 }
 
-/* Ifui.JSValue.toJS */
-function Ifui_JSValue_toJS_HasJSValue_String($0) {
- return Ifui_JSValue_str2ptr($0);
-}
-
-/* Ifui.JSValue.toJS */
-function Ifui_JSValue_toJS_HasJSValue_Int($0) {
- return Ifui_JSValue_int2ptr($0);
-}
-
-/* Ifui.JSValue.toJS */
-function Ifui_JSValue_toJS_HasJSValue_Bool($0) {
- let $2;
- switch($0) {
-  case 1: {
-   $2 = 1;
-   break;
-  }
-  case 0: {
-   $2 = 0;
-   break;
-  }
- }
- return Ifui_JSValue_prim__mkBool($2);
-}
-
-/* Ifui.JSValue.toJS */
-function Ifui_JSValue_toJS_HasJSValue_x28Recordx20Nilx29($0) {
- return Ifui_JSValue_prim__newObj(undefined);
-}
-
-/* Ifui.JSValue.toJS */
-function Ifui_JSValue_toJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29($0, $1, $2, $3, $4) {
- const $6 = $4.a2;
- const $8 = Builtin_snd($3);
- const $7 = $8.a1($4.a3);
- const $e = Builtin_fst($3);
- const $d = $e.a1($6);
- return Ifui_JSValue_prim__setItem($7, $0, $d);
-}
-
-/* Ifui.JSValue.toJS */
-function Ifui_JSValue_toJS_HasJSValue_x28Maybex20x24ax29($0, $1) {
- switch($1.h) {
-  case 0: /* nothing */ return Ifui_JSValue_prim__null(undefined);
-  case undefined: /* just */ return Ifui_JSValue_jsv2ptr($0.a1($1.a1));
- }
-}
-
-/* Ifui.JSValue.toJS */
-function Ifui_JSValue_toJS_HasJSValue_x28Listx20x24tx29($0, $1) {
- const $d = x => {
-  const $10 = $0.a1(x);
-  const $f = $10;
-  return Prelude_Types_pure_Applicative_List($f);
- };
- const $a = Prelude_Types_listBind($1, $d);
- return Prelude_Types_foldl_Foldable_List(ptr => val => Ifui_JSValue_prim__arrayAppend(val, ptr), Ifui_JSValue_prim__newArray(undefined), $a);
-}
-
-/* Ifui.JSValue.fromJS */
-function Ifui_JSValue_fromJS_HasJSValue_String($0) {
- const $1 = $0;
- return Ifui_JSValue_ptr2str($1);
-}
-
-/* Ifui.JSValue.fromJS */
-function Ifui_JSValue_fromJS_HasJSValue_Int($0) {
- const $1 = $0;
- return Ifui_JSValue_ptr2int($1);
-}
-
-/* Ifui.JSValue.fromJS */
-function Ifui_JSValue_fromJS_HasJSValue_x28Recordx20Nilx29($0) {
- return {h: 0 /* Nil */};
-}
-
-/* Ifui.JSValue.fromJS */
-function Ifui_JSValue_fromJS_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29($0, $1, $2, $3, $4) {
- const $5 = $4;
- switch($1.h) {
-  case 'Prelude.Types.Maybe': {
-   let $7;
-   switch(Prelude_EqOrd_x3e_Ord_Int(Ifui_JSValue_prim__hasItem($5, $0), Number(_truncBigInt32(0n)))) {
-    case 1: {
-     const $10 = Builtin_fst($3);
-     $7 = $10.a2(Ifui_JSValue_prim__getItem($5, $0));
-     break;
-    }
-    case 0: {
-     $7 = {h: 0};
-     break;
-    }
-   }
-   const $19 = Builtin_snd($3);
-   const $18 = $19.a2($5);
-   return {h: 1 /* :: */, a1: $2, a2: $7, a3: $18};
-  }
-  default: {
-   const $22 = Builtin_fst($3);
-   const $21 = $22.a2(Ifui_JSValue_prim__getItem($5, $0));
-   const $2b = Builtin_snd($3);
-   const $2a = $2b.a2($5);
-   return {h: 1 /* :: */, a1: $2, a2: $21, a3: $2a};
-  }
- }
-}
-
-/* Ifui.JSValue.fromJS */
-function Ifui_JSValue_fromJS_HasJSValue_x28Maybex20x24ax29($0, $1) {
- const $2 = $1;
- switch(Prelude_EqOrd_x3e_Ord_Int(Ifui_JSValue_prim__isNullOrUndefined($2), Number(_truncBigInt32(0n)))) {
-  case 1: return {h: 0};
-  case 0: return {a1: $0.a2($2)};
- }
-}
-
-/* Ifui.JSValue.fromJS */
-function Ifui_JSValue_fromJS_HasJSValue_x28Listx20x24tx29($0, $1) {
- const $2 = $1;
- const $3 = Ifui_JSValue_prim__arrayLength($2);
- switch(Prelude_EqOrd_x3e_Ord_Int($3, Number(_truncBigInt32(0n)))) {
-  case 1: return Prelude_Types_listBind(Prelude_Types_rangeFromTo_Range_x24a(csegen_375(), 0, _sub32s(Ifui_JSValue_prim__arrayLength($2), 1)), i => Prelude_Types_pure_Applicative_List($0.a2(Ifui_JSValue_prim__arrayGet($2, i))));
-  case 0: return {h: 0};
- }
-}
-
-/* Ifui.JSValue.checkPtr */
-function Ifui_JSValue_checkPtr_HasJSValue_String($0) {
- return Prelude_EqOrd_x3dx3d_Eq_String(Ifui_JSValue_prim__typeof($0), 'string');
-}
-
-/* Ifui.JSValue.checkPtr */
-function Ifui_JSValue_checkPtr_HasJSValue_Int($0) {
- switch(Prelude_EqOrd_x3dx3d_Eq_String(Ifui_JSValue_prim__typeof($0), 'number')) {
-  case 1: return 1;
-  case 0: return Prelude_EqOrd_x3dx3d_Eq_String(Ifui_JSValue_prim__typeof($0), 'bigint');
- }
-}
-
-/* Ifui.JSValue.checkPtr */
-function Ifui_JSValue_checkPtr_HasJSValue_x28Recordx20Nilx29($0) {
- return Prelude_EqOrd_x3dx3d_Eq_String(Ifui_JSValue_prim__typeof($0), 'object');
-}
-
-/* Ifui.JSValue.checkPtr */
-function Ifui_JSValue_checkPtr_HasJSValue_x28Recordx20x28x28x3ax3ax20x28x7cx28x28Builtinx2ePairx20x24sx29x20x24tx29x2cx28x28Builtinx2eMkPairx20x24sx29x20x24tx29x7cx29x29x20x24tsx29x29($0, $1, $2, $3, $4) {
- switch($1.h) {
-  case 'Prelude.Types.Maybe': {
-   const $7 = Builtin_snd($3);
-   const $6 = $7.a3($4);
-   switch($6) {
-    case 1: {
-     switch(Prelude_EqOrd_x3dx3d_Eq_Int(Ifui_JSValue_prim__hasItem($4, $0), Number(_truncBigInt32(0n)))) {
-      case 1: return 1;
-      case 0: {
-       const $14 = Builtin_fst($3);
-       return $14.a3(Ifui_JSValue_prim__getItem($4, $0));
-      }
-     }
-    }
-    case 0: return 0;
-   }
-  }
-  default: {
-   const $1d = Builtin_snd($3);
-   const $1c = $1d.a3($4);
-   switch($1c) {
-    case 1: {
-     switch(Prelude_EqOrd_x3e_Ord_Int(Ifui_JSValue_prim__hasItem($4, $0), Number(_truncBigInt32(0n)))) {
-      case 1: {
-       const $2a = Builtin_fst($3);
-       return $2a.a3(Ifui_JSValue_prim__getItem($4, $0));
-      }
-      case 0: return 0;
-     }
-    }
-    case 0: return 0;
-   }
-  }
- }
-}
-
-/* Ifui.JSValue.checkPtr */
-function Ifui_JSValue_checkPtr_HasJSValue_x28Maybex20x24ax29($0, $1) {
- switch(Prelude_EqOrd_x3e_Ord_Int(Ifui_JSValue_prim__isNullOrUndefined($1), Number(_truncBigInt32(0n)))) {
-  case 1: return 1;
-  case 0: return $0.a3($1);
- }
-}
-
-/* Ifui.JSValue.checkPtr */
-function Ifui_JSValue_checkPtr_HasJSValue_x28Listx20x24tx29($0, $1) {
- const $2 = Ifui_JSValue_prim__arrayLength($1);
- switch(Prelude_EqOrd_x3e_Ord_Int(Ifui_JSValue_prim__isArray($1), Number(_truncBigInt32(0n)))) {
-  case 1: {
-   switch(Prelude_EqOrd_x3dx3d_Eq_Int($2, Number(_truncBigInt32(0n)))) {
-    case 1: return 1;
-    case 0: return Prelude_Interfaces_all(csegen_118(), i => $0.a3(Ifui_JSValue_prim__arrayGet($1, i)), Prelude_Types_rangeFromTo_Range_x24a(csegen_375(), 0, _sub32s($2, 1)));
-   }
-  }
-  case 0: return 0;
- }
-}
-
-/* Ifui.JSValue.str2ptr : String -> AnyPtr */
-function Ifui_JSValue_str2ptr($0) {
- return $0;
-}
-
-/* Ifui.JSValue.ptrToString : AnyPtr -> String */
-function Ifui_JSValue_ptrToString($0) {
- return Ifui_JSValue_prim__ptrToString($0);
-}
-
-/* Ifui.JSValue.ptr2str : AnyPtr -> String */
-function Ifui_JSValue_ptr2str($0) {
- return $0;
-}
-
-/* Ifui.JSValue.ptr2int : AnyPtr -> Int */
-function Ifui_JSValue_ptr2int($0) {
- return $0;
-}
-
-/* Ifui.JSValue.mkJsObj : List (String, AnyPtr) -> AnyPtr */
-function Ifui_JSValue_mkJsObj($0) {
- return Prelude_Types_foldl_Foldable_List(ptr => $3 => Ifui_JSValue_prim__setItem(ptr, $3.a1, $3.a2), Ifui_JSValue_prim__newObj(undefined), $0);
-}
-
-/* Ifui.JSValue.jsv2ptr : JSValue a -> AnyPtr */
-function Ifui_JSValue_jsv2ptr($0) {
- const $1 = $0;
- return $1;
-}
-
-/* Ifui.JSValue.int2ptr : Int -> AnyPtr */
-function Ifui_JSValue_int2ptr($0) {
- return $0;
-}
-
-/* Ifui.JSValue.fromPtr : HasJSValue a => AnyPtr -> Maybe a */
-function Ifui_JSValue_fromPtr($0, $1) {
- switch($0.a3($1)) {
-  case 1: return {a1: $0.a2($1)};
-  case 0: return {h: 0};
- }
-}
-
 /* IfuiServer.Promise.pure */
 function IfuiServer_Promise_pure_Applicative_Promise($0, $1) {
- return Prelude_Interfaces_x3ex3e(csegen_100(), $1($0), () => $9 => $a => (undefined));
-}
-
-/* IfuiServer.Promise.liftIO */
-function IfuiServer_Promise_liftIO_HasIO_Promise($0, $1) {
- return PrimIO_io_bind($0, r => Prelude_Interfaces_x3ex3e(csegen_100(), $1(r), () => $c => $d => (undefined)));
+ return Prelude_Interfaces_x3ex3e(csegen_90(), $1($0), () => $9 => $a => (undefined));
 }
 
 /* IfuiServer.Promise.>>= */
@@ -4549,7 +4468,7 @@ function IfuiServer_Promise_x3ex3ex3d_Monad_Promise($0, $1, $2) {
   const $1e = h1 => {
    const $23 = h;
    const $22 = $24 => ($23.value=h1);
-   return Prelude_Interfaces_x3ex3e(csegen_100(), $22, () => $2a => {
+   return Prelude_Interfaces_x3ex3e(csegen_90(), $22, () => $2a => {
     const $2d = h;
     const $2c = $2e => ($2d.value);
     const $32 = h_ => {
@@ -4561,7 +4480,7 @@ function IfuiServer_Promise_x3ex3ex3d_Monad_Promise($0, $1, $2) {
   };
   return PrimIO_io_bind($c, $1e);
  };
- return PrimIO_io_bind(Data_IORef_newIORef(csegen_133(), $9 => (undefined)), $a);
+ return PrimIO_io_bind(Data_IORef_newIORef(csegen_168(), $9 => (undefined)), $a);
 }
 
 /* IfuiServer.Promise.onErrPrint : Promise (Either String a) -> Promise a */
@@ -4570,7 +4489,7 @@ function IfuiServer_Promise_onErrPrint($0, $1) {
  const $2 = $3;
  const $4 = z => {
   switch(z.h) {
-   case 0: /* Left */ return Prelude_IO_putStrLn(csegen_133(), z.a1);
+   case 0: /* Left */ return Prelude_IO_putStrLn(csegen_168(), z.a1);
    case 1: /* Right */ return $1(z.a1);
   }
  };
@@ -4591,20 +4510,19 @@ function IfuiServer_Server_case__casex20blockx20inx20startWsServerWithAuth_3620(
       const $1d = $6;
       const $1c = $1e => ($1d.value={a1: w});
       const $24 = () => {
-       const $2c = Builtin_snd($0);
-       const $2b = $2c.a3(w);
-       const $29 = Prelude_Show_show_Show_String($2b);
-       return IfuiServer_WebSockets_wsSend(csegen_133(), $5, $29);
+       const $2a = Builtin_snd($0);
+       const $29 = $2a.a3(w);
+       return IfuiServer_WebSockets_wsSend(csegen_168(), $5, $29);
       };
-      return Prelude_Interfaces_x3ex3e(csegen_100(), $1c, $24);
+      return Prelude_Interfaces_x3ex3e(csegen_90(), $1c, $24);
      };
      const $13 = $14($18);
-     return PrimIO_io_bind($13, _ => $32 => (undefined));
+     return PrimIO_io_bind($13, _ => $30 => (undefined));
     }
-    case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid login info ', a2: {a1: $8, a2: {h: 0}}}));
+    case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid login info ', a2: {a1: $8, a2: {h: 0}}}));
    }
   }
-  case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid login info ', a2: {a1: $8, a2: {h: 0}}}));
+  case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid login info ', a2: {a1: $8, a2: {h: 0}}}));
  }
 }
 
@@ -4628,9 +4546,9 @@ function IfuiServer_Server_case__casex20blockx20inx20onMessageFn_3034($0, $1, $2
          const $28 = {a1: {h: 3 /* JString */, a1: $5}, a2: $2b};
          const $27 = {h: 4 /* JArray */, a1: $28};
          const $25 = Language_JSON_Data_show_Show_JSON($27);
-         return IfuiServer_WebSockets_wsSend(csegen_133(), $1, $25);
+         return IfuiServer_WebSockets_wsSend(csegen_168(), $1, $25);
         };
-        return Prelude_Interfaces_x3ex3e(csegen_100(), IfuiServer_Server_removeHandle($5, $3), $20);
+        return Prelude_Interfaces_x3ex3e(csegen_90(), IfuiServer_Server_removeHandle($5, $3), $20);
        };
        const $13 = $14($18);
        const $33 = promiseh => {
@@ -4650,7 +4568,7 @@ function IfuiServer_Server_case__casex20blockx20inx20onMessageFn_3034($0, $1, $2
        };
        return PrimIO_io_bind($13, $33);
       }
-      case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid Input to service ', a2: {a1: $4, a2: {a1: ' ', a2: {a1: Language_JSON_Data_show_Show_JSON($6), a2: {h: 0}}}}}));
+      case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid Input to service ', a2: {a1: $4, a2: {a1: ' ', a2: {a1: Language_JSON_Data_show_Show_JSON($6), a2: {h: 0}}}}}));
      }
     }
     case 1: {
@@ -4667,7 +4585,7 @@ function IfuiServer_Server_case__casex20blockx20inx20onMessageFn_3034($0, $1, $2
         const $70 = {a1: {h: 3 /* JString */, a1: $5}, a2: $73};
         const $6f = {h: 4 /* JArray */, a1: $70};
         const $6d = Language_JSON_Data_show_Show_JSON($6f);
-        return IfuiServer_WebSockets_wsSend(csegen_133(), $1, $6d);
+        return IfuiServer_WebSockets_wsSend(csegen_168(), $1, $6d);
        };
        const $63 = $64($68);
        const $7b = streamh => {
@@ -4687,12 +4605,12 @@ function IfuiServer_Server_case__casex20blockx20inx20onMessageFn_3034($0, $1, $2
        };
        return PrimIO_io_bind($63, $7b);
       }
-      case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid Input to service ', a2: {a1: $4, a2: {a1: ' ', a2: {a1: Language_JSON_Data_show_Show_JSON($6), a2: {h: 0}}}}}));
+      case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid Input to service ', a2: {a1: $4, a2: {a1: ' ', a2: {a1: Language_JSON_Data_show_Show_JSON($6), a2: {h: 0}}}}}));
      }
     }
    }
   }
-  case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid Service ', a2: {a1: $4, a2: {h: 0}}}));
+  case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid Service ', a2: {a1: $4, a2: {h: 0}}}));
  }
 }
 
@@ -4717,10 +4635,10 @@ function IfuiServer_Server_case__onMessageFn_2916($0, $1, $2, $3, $4) {
                  const $f = $3;
                  const $e = $10 => ($f.value);
                  const $14 = $15 => {
-                  const $16 = Data_List_lookup(csegen_131(), $4.a1.a1.a2.a1.a1, $15);
+                  const $16 = Data_List_lookup(csegen_166(), $4.a1.a1.a2.a1.a1, $15);
                   switch($16.h) {
                    case 0: /* nothing */ return $1c => (undefined);
-                   case undefined: /* just */ return Prelude_Interfaces_x3ex3e(csegen_100(), IfuiServer_Server_removeHandle($4.a1.a1.a2.a1.a1, $3), () => $16.a1);
+                   case undefined: /* just */ return Prelude_Interfaces_x3ex3e(csegen_90(), IfuiServer_Server_removeHandle($4.a1.a1.a2.a1.a1, $3), () => $16.a1);
                   }
                  };
                  return PrimIO_io_bind($e, $14);
@@ -4734,16 +4652,16 @@ function IfuiServer_Server_case__onMessageFn_2916($0, $1, $2, $3, $4) {
                       case undefined: /* cons */ {
                        switch($4.a1.a1.a2.a2.a2.h) {
                         case 0: /* nil */ return IfuiServer_Server_case__casex20blockx20inx20onMessageFn_3034($0, $1, $2, $3, $4.a1.a1.a1.a1, $4.a1.a1.a2.a1.a1, $4.a1.a1.a2.a2.a1, IfuiServer_Server_getServiceU($4.a1.a1.a1.a1, $2));
-                        default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                        default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                        }
                       }
-                      default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                      default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                      }
                     }
-                    default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                    default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                    }
                   }
-                  default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                  default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                  }
                 }
                }
@@ -4757,16 +4675,16 @@ function IfuiServer_Server_case__onMessageFn_2916($0, $1, $2, $3, $4) {
                     case undefined: /* cons */ {
                      switch($4.a1.a1.a2.a2.a2.h) {
                       case 0: /* nil */ return IfuiServer_Server_case__casex20blockx20inx20onMessageFn_3034($0, $1, $2, $3, $4.a1.a1.a1.a1, $4.a1.a1.a2.a1.a1, $4.a1.a1.a2.a2.a1, IfuiServer_Server_getServiceU($4.a1.a1.a1.a1, $2));
-                      default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                      default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                      }
                     }
-                    default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                    default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                    }
                   }
-                  default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                  default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                  }
                 }
-                default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                }
               }
              }
@@ -4780,16 +4698,16 @@ function IfuiServer_Server_case__onMessageFn_2916($0, $1, $2, $3, $4) {
                   case undefined: /* cons */ {
                    switch($4.a1.a1.a2.a2.a2.h) {
                     case 0: /* nil */ return IfuiServer_Server_case__casex20blockx20inx20onMessageFn_3034($0, $1, $2, $3, $4.a1.a1.a1.a1, $4.a1.a1.a2.a1.a1, $4.a1.a1.a2.a2.a1, IfuiServer_Server_getServiceU($4.a1.a1.a1.a1, $2));
-                    default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                    default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                    }
                   }
-                  default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                  default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                  }
                 }
-                default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                }
               }
-              default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+              default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
              }
             }
            }
@@ -4803,31 +4721,31 @@ function IfuiServer_Server_case__onMessageFn_2916($0, $1, $2, $3, $4) {
                 case undefined: /* cons */ {
                  switch($4.a1.a1.a2.a2.a2.h) {
                   case 0: /* nil */ return IfuiServer_Server_case__casex20blockx20inx20onMessageFn_3034($0, $1, $2, $3, $4.a1.a1.a1.a1, $4.a1.a1.a2.a1.a1, $4.a1.a1.a2.a2.a1, IfuiServer_Server_getServiceU($4.a1.a1.a1.a1, $2));
-                  default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                  default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                  }
                 }
-                default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+                default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
                }
               }
-              default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+              default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
              }
             }
-            default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+            default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
            }
           }
          }
         }
-        default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+        default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
        }
       }
-      default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+      default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
      }
     }
-    default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+    default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
    }
   }
-  case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Error parsing request ', a2: {a1: $0, a2: {h: 0}}}));
-  default: return Prelude_IO_putStrLn(csegen_133(), Prelude_Interfaces_concat(csegen_103(), csegen_118(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_378(), $4), a2: {h: 0}}}));
+  case 0: /* nothing */ return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Error parsing request ', a2: {a1: $0, a2: {h: 0}}}));
+  default: return Prelude_IO_putStrLn(csegen_168(), Prelude_Interfaces_concat(csegen_92(), csegen_107(), {a1: 'Invalid request ', a2: {a1: Prelude_Show_show_Show_x28Maybex20x24ax29(csegen_389(), $4), a2: {h: 0}}}));
  }
 }
 
@@ -4854,18 +4772,18 @@ function IfuiServer_Server_startWsServerWithAuth($0, $1, $2) {
      };
      return IfuiServer_WebSockets_setOnMessageStr(wsc, $1b);
     };
-    return PrimIO_io_bind(Data_IORef_newIORef(csegen_133(), {h: 0}), $18);
+    return PrimIO_io_bind(Data_IORef_newIORef(csegen_168(), {h: 0}), $18);
    };
-   return PrimIO_io_bind(csegen_134(), $11);
+   return PrimIO_io_bind(csegen_169(), $11);
   };
   return IfuiServer_WebSockets_setOnConnection(wss, $d);
  };
- return PrimIO_io_bind(IfuiServer_WebSockets_startWebSocketsServer(csegen_133(), $1), $a);
+ return PrimIO_io_bind(IfuiServer_WebSockets_startWebSocketsServer(csegen_168(), $1), $a);
 }
 
 /* IfuiServer.Server.serveStatic : Int -> String -> IO () */
 function IfuiServer_Server_serveStatic($0, $1) {
- return PrimIO_io_bind(IfuiServer_Http_createStaticServer(csegen_133(), $1), staticServer => PrimIO_io_bind(IfuiServer_Http_createHttpServer(csegen_133(), req => res => IfuiServer_Http_serve(csegen_133(), staticServer, req, res)), s => IfuiServer_Http_listen(csegen_133(), s, $0)));
+ return PrimIO_io_bind(IfuiServer_Http_createStaticServer(csegen_168(), $1), staticServer => PrimIO_io_bind(IfuiServer_Http_createHttpServer(csegen_168(), req => res => IfuiServer_Http_serve(csegen_168(), staticServer, req, res)), s => IfuiServer_Http_listen(csegen_168(), s, $0)));
 }
 
 /* IfuiServer.Server.removeHandle : String -> IORef (List (String, a)) -> IO () */
