@@ -151,6 +151,10 @@ JsonSerializableTreeBranch (UKeyList String) where
       let z_ = map cont z
       fromAllJust z_
     
+export
+JsonSerializable b => JsonSerializableTreeBranch (const b) where
+  toJsonBranch x cont = toJson x 
+  fromJsonBranch x cont = fromJson x
 
 public export
 interface JsonSerializableTreeHeads (0 ts : UKeyList String (Type -> Type)) where
