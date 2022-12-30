@@ -1,7 +1,7 @@
 module Ifui.Json
 
 import public Language.JSON
-import Ifui.ExtensibleRecords
+import public Ifui.ExtensibleRecords
 import Data.List
 
 public export
@@ -75,19 +75,16 @@ export
 JsonObjectSerializable (Record []) where
   toListJson  _ = []
 
-  fromListJson [] = Just []
-  fromListJson _ = Nothing
+  fromListJson _ = Just []
 
 export
 {s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (JsonSerializable t, JsonObjectSerializable (Record ts)) => JsonObjectSerializable (Record ((s,t) :: ts)) where
   toListJson ((MkEntry s x) :: y) =
     (s, toJson x) :: toListJson y
 
-  fromListJson [] = 
-    Nothing 
-  fromListJson (xs) = 
+  fromListJson xs = 
     do
-      ws <-fromListJson {a = Record ts} xs 
+      ws <- fromListJson {a = Record ts} xs 
       j <- lookup s xs 
       w <- fromJson {a=t} j
       pure $ MkEntry s w :: ws
@@ -199,3 +196,115 @@ JsonSerializableTreeHeads ts => JsonSerializable (Tree ts) where
       (k ** (p ** x)) <- fromJsonTreeHeads {ts=ts} x fromJson
       pure $ N k x {p=p}
 
+
+
+
+%foreign "javascript:lambda: x => JSON.stringify(x)"
+export
+prim__json_stringify : AnyPtr -> String
+
+%foreign "javascript:lambda: () => null"
+prim__null : () -> AnyPtr
+
+%foreign "javascript:lambda: x => x+0"
+prim__readBool : AnyPtr -> Int
+
+%foreign "javascript:lambda: x => x>0"
+prim__mkBool : Int  -> AnyPtr
+
+double2ptr : Double -> AnyPtr 
+double2ptr = believe_me 
+
+ptr2double : AnyPtr -> Double
+ptr2double = believe_me
+
+ptr2str : AnyPtr -> String
+ptr2str = believe_me
+
+str2ptr : String -> AnyPtr
+str2ptr = believe_me
+
+ptr2int : AnyPtr -> Int
+ptr2int = believe_me 
+
+%foreign "javascript:lambda: x => typeof x"
+prim__typeof : AnyPtr -> String
+
+%foreign "javascript:lambda: () => ({})"
+prim__newObj : () -> AnyPtr
+%foreign "javascript:lambda: (x, k, v) => {const res= {...x}; res[k]=v; return res}"
+prim__setItem : AnyPtr -> String -> AnyPtr -> AnyPtr
+%foreign "javascript:lambda: (x, k) => x[k]"
+prim__getItem : AnyPtr -> String -> AnyPtr
+%foreign "javascript:lambda: (x, k) => x.hasOwnProperty(k) + 0"
+prim__hasItem : AnyPtr -> String -> Int
+%foreign "javascript:lambda: (x) => Object.keys(x)"
+prim__objectKeys : AnyPtr -> AnyPtr 
+
+mkJsObj : List (String, AnyPtr) -> AnyPtr
+mkJsObj xs = foldl (\ptr, (key, val) => prim__setItem ptr key val) (prim__newObj ()) xs
+
+%foreign "javascript:lambda: () => Object.freeze([])"
+prim__newArray : () -> AnyPtr
+%foreign "javascript:lambda: (val, ori) => Object.freeze(ori.concat([Object.freeze(val)]))"
+prim__arrayAppend : AnyPtr -> AnyPtr -> AnyPtr
+%foreign "javascript:lambda: x => x.length"
+prim__arrayLength : AnyPtr -> Int
+%foreign "javascript:lambda: (x, pos) => x[pos]"
+prim__arrayGet : AnyPtr -> Int -> AnyPtr
+%foreign "javascript:lambda: x => Array.isArray(x)+0 "
+prim__isArray : AnyPtr -> Int
+
+mkJsArray : List AnyPtr -> AnyPtr
+mkJsArray xs = foldl (\ptr, val => prim__arrayAppend val ptr) (prim__newArray ()) xs
+
+export
+json2ptr : JSON -> AnyPtr
+json2ptr JNull = 
+  prim__null ()
+json2ptr (JBoolean x) = 
+  prim__mkBool $ if x then 1 else 0
+json2ptr (JNumber dbl) = 
+  double2ptr dbl
+json2ptr (JString str) = 
+  str2ptr str
+json2ptr (JArray jsons) = 
+  mkJsArray $ map json2ptr jsons
+json2ptr (JObject xs) = 
+  mkJsObj $ map (\(k,v) => (k, json2ptr v)) xs
+
+%foreign "javascript:lambda: x => (x === null || x === undefined)+0"
+prim__isNullOrUndefined : AnyPtr -> Int
+
+readList : AnyPtr -> List AnyPtr
+readList x =
+  let l = prim__arrayLength x
+  in if l == 0 then []
+               else [prim__arrayGet x i | i <-[0..(l - 1)]]
+
+export
+ptr2json : AnyPtr -> Maybe JSON
+ptr2json x = 
+  if prim__isNullOrUndefined x > 0 then Just $ JNull
+  else if prim__isArray x > 0 then JArray <$> (sequence $ ptr2json <$> readList x)
+  else
+    case prim__typeof x of
+         "string" =>
+            Just $ JString $ ptr2str x
+         "number" =>
+            Just $ JNumber $ ptr2double x
+         "boolean" =>
+            Just $ JBoolean $ prim__readBool x > 0
+         "object" =>
+            let keys = ptr2str <$> (readList $ prim__objectKeys x)
+            in JObject <$> sequence [(k,) <$>  (ptr2json $ prim__getItem x k) | k <- keys]
+         o => 
+            Nothing
+
+export
+toPtr : JsonSerializable a => a -> AnyPtr 
+toPtr = json2ptr . toJson
+
+export
+fromPtr : JsonSerializable a => AnyPtr -> Maybe a
+fromPtr x = ptr2json x >>= fromJson 

@@ -205,11 +205,11 @@ serverConnect url server onOpen =
     setOnMessage ws (onMsgFn handles)
     setOnOpen ws $ onOpen $ MkServerConnection url ws server counter handles 
 
-ptr2json : AnyPtr -> JSON
-ptr2json = believe_me
+ptr2json_ : AnyPtr -> JSON
+ptr2json_ = believe_me
 
-json2ptr : JSON -> AnyPtr
-json2ptr = believe_me
+json2ptr_ : JSON -> AnyPtr
+json2ptr_ = believe_me
 
 export
 serverConnectWithAuth : (JsonSerializable loginTy, JsonSerializable roleTy) => String -> loginTy -> 
@@ -260,7 +260,7 @@ callRPC s (MkServerConnection url socket srv counter handles) y =
                                  do
                                     let y_ = toJson y
                                     let proc = \ptr => do
-                                      let j = ptr2json ptr
+                                      let j = ptr2json_ ptr
                                       fromMaybe (putStrLn $ "invalid json in service \{s}")  (onEvt <$> fromJson j)
                                     setNodePromise n ("rpc/" ++ url ++ "/" ++ s ++ "?" ++ show y_) proc  $ do
                                       h <- readIORef handles
@@ -269,7 +269,7 @@ callRPC s (MkServerConnection url socket srv counter handles) y =
                                       let i_ = show i
                                       send socket (show $ JArray [JString s, JString i_, y_])
                                       procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
-                                      writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr j) >> removeHandle i_ handles >> writeIORef isFinished True)  :: h) 
+                                      writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j) >> removeHandle i_ handles >> writeIORef isFinished True)  :: h) 
                                       writeIORef counter (i+1)
                                       let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
                                       pure $ MkPromiseNodeRef procResult cancel isFinished
@@ -282,7 +282,7 @@ callStream s (MkServerConnection url socket srv counter handles) y =
                                  do
                                     let y_ = toJson y
                                     let proc = \ptr => do
-                                      let j = ptr2json ptr
+                                      let j = ptr2json_ ptr
                                       fromMaybe (putStrLn $ "invalid json in service \{s}")  (onEvt <$> fromJson j)
                                     setNodePromise n ("streamService/" ++ url ++ "/" ++ s ++ "?" ++ show y_) proc  $ do
                                       h <- readIORef handles
@@ -291,7 +291,7 @@ callStream s (MkServerConnection url socket srv counter handles) y =
                                       let i_ = show i
                                       send socket (show $ JArray [JString s, JString i_, y_])
                                       procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
-                                      writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr j))  :: h) 
+                                      writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j))  :: h) 
                                       writeIORef counter (i+1)
                                       let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
                                       pure $ MkPromiseNodeRef procResult cancel isFinished
