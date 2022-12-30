@@ -312,7 +312,7 @@ prim__each : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 %foreign "node:lambda: (cursor, callback)  => cursor.close((err) => callback(err ? err + '' : '')())"
 prim__close : AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
 
-%foreign "javascript:lambda: (k,x) => {if(x.hasOwnProperty(k)){return x} else {const res = {...x}; x[k]=null; return res}} "
+%foreign "javascript:lambda: (k,x) => {if(x.hasOwnProperty(k)){return x} else {const res = {...x}; res[k]=null; return res}} "
 prim__add_null_key : String -> AnyPtr -> AnyPtr
 
 
