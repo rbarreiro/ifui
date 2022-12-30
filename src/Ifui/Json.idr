@@ -79,7 +79,7 @@ JsonObjectSerializable (Record []) where
   fromListJson _ = Nothing
 
 export
-{t : Type} -> {s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (JsonSerializable t, JsonObjectSerializable (Record ts)) => JsonObjectSerializable (Record ((s,t) :: ts)) where
+{s : String} -> {p : UKeyListCanPrepend (s, Maybe t) ts} -> (JsonSerializable (Maybe t), JsonObjectSerializable (Record ts)) => JsonObjectSerializable (Record ((s, Maybe t) :: ts)) where
   toListJson ((MkEntry s x) :: y) =
     (s, toJson x) :: toListJson y
 
@@ -88,20 +88,26 @@ export
   fromListJson (xs) = 
     do
       ws <-fromListJson {a = Record ts} xs 
-      case t of 
-           Maybe t_ => 
-               case lookup s xs of
-                 Nothing => pure $ MkEntry s Nothing  :: ws
-                 Just j =>
-                   do
-                     j <- lookup s xs 
-                     w <- fromJson {a=Maybe t_} j
-                     pure $ MkEntry s w  :: ws
-           o =>
-               do
-                 j <- lookup s xs 
-                 w <- fromJson {a=t} j
-                 pure $ MkEntry s w  :: ws
+      case lookup s xs of
+        Nothing => pure $ MkEntry s Nothing  :: ws
+        Just j =>
+          do
+           w <- fromJson {a=Maybe t} j
+           pure $ MkEntry s w :: ws
+
+export
+{s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (JsonSerializable t, JsonObjectSerializable (Record ts)) => JsonObjectSerializable (Record ((s,t) :: ts)) where
+  toListJson ((MkEntry s x) :: y) =
+    (s, toJson x) :: toListJson y
+
+  fromListJson [] = 
+    Nothing 
+  fromListJson (xs) = 
+    do
+      ws <-fromListJson {a = Record ts} xs 
+      j <- lookup s xs 
+      w <- fromJson {a=t} j
+      pure $ MkEntry s w :: ws
 
 fromListJsonUKeyListAux : (JsonSerializable b) => List (String, JSON) -> Maybe (UKeyList String b)
 fromListJsonUKeyListAux [] = 
