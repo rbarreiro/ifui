@@ -5,10 +5,112 @@ import Data.List
 import Data.Maybe
 import public Data.List.Elem
 import public IfuiServer.Promise
-import public Ifui.JSValue
 import public IfuiServer.IOStream
 import public Ifui.Services
+import public Ifui.Json
 import Data.IORef
+
+%foreign "javascript:lambda: x => x+''"
+prim__ptrToString : AnyPtr -> String
+export
+ptrToString : AnyPtr -> String
+ptrToString = prim__ptrToString
+
+%foreign "javascript:lambda: () => null"
+prim__null : () -> AnyPtr
+
+%foreign "javascript:lambda: x => x+0"
+prim__readBool : AnyPtr -> Int
+
+%foreign "javascript:lambda: x => x>0"
+prim__mkBool : Int  -> AnyPtr
+
+double2ptr : Double -> AnyPtr 
+double2ptr = believe_me 
+
+ptr2double : AnyPtr -> Double
+ptr2double = believe_me
+
+ptr2str : AnyPtr -> String
+ptr2str = believe_me
+
+str2ptr : String -> AnyPtr
+str2ptr = believe_me
+
+ptr2int : AnyPtr -> Int
+ptr2int = believe_me 
+
+%foreign "javascript:lambda: x => typeof x"
+prim__typeof : AnyPtr -> String
+
+%foreign "javascript:lambda: () => {}"
+prim__newObj : () -> AnyPtr
+%foreign "javascript:lambda: (x, k, v) => {const res= {...x}; res[k]=v; return res}"
+prim__setItem : AnyPtr -> String -> AnyPtr -> AnyPtr
+%foreign "javascript:lambda: (x, k) => x[k]"
+prim__getItem : AnyPtr -> String -> AnyPtr
+%foreign "javascript:lambda: (x, k) => x.hasOwnProperty(k) + 0"
+prim__hasItem : AnyPtr -> String -> Int
+%foreign "javascript:lambda: (x) => Object.keys(x)"
+prim__objectKeys : AnyPtr -> AnyPtr 
+
+mkJsObj : List (String, AnyPtr) -> AnyPtr
+mkJsObj xs = foldl (\ptr, (key, val) => prim__setItem ptr key val) (prim__newObj ()) xs
+
+%foreign "javascript:lambda: () => Object.freeze([])"
+prim__newArray : () -> AnyPtr
+%foreign "javascript:lambda: (val, ori) => Object.freeze(ori.concat([Object.freeze(val)]))"
+prim__arrayAppend : AnyPtr -> AnyPtr -> AnyPtr
+%foreign "javascript:lambda: x => x.length"
+prim__arrayLength : AnyPtr -> Int
+%foreign "javascript:lambda: (x, pos) => x[pos]"
+prim__arrayGet : AnyPtr -> Int -> AnyPtr
+%foreign "javascript:lambda: x => Array.isArray(x)+0 "
+prim__isArray : AnyPtr -> Int
+
+mkJsArray : List AnyPtr -> AnyPtr
+mkJsArray xs = foldl (\ptr, val => prim__arrayAppend val ptr) (prim__newArray ()) xs
+
+json2ptr : JSON -> AnyPtr
+json2ptr JNull = 
+  prim__null ()
+json2ptr (JBoolean x) = 
+  prim__mkBool $ if x then 1 else 0
+json2ptr (JNumber dbl) = 
+  double2ptr dbl
+json2ptr (JString str) = 
+  str2ptr str
+json2ptr (JArray jsons) = 
+  mkJsArray $ map json2ptr jsons
+json2ptr (JObject xs) = 
+  mkJsObj $ map (\(k,v) => (k, json2ptr v)) xs
+
+%foreign "javascript:lambda: x => (x === null || x === undefined)+0"
+prim__isNullOrUndefined : AnyPtr -> Int
+
+ptr2json : AnyPtr -> Maybe JSON
+ptr2json x = 
+  if prim__isNullOrUndefined x > 0 then Just $ JNull
+  else if prim__isArray x > 0 then JArray <$> sequence [(ptr2json $ prim__arrayGet x i) | i <-[0..(prim__arrayLength x - 1)]]
+  else
+    case prim__typeof x of
+         "string" =>
+            Just $ JString $ ptr2str x
+         "number" =>
+            Just $ JNumber $ ptr2double x
+         "boolean" =>
+            Just $ JBoolean $ prim__readBool x > 0
+         "object" =>
+            let keys = prim__objectKeys x
+            in JObject <$> sequence [(let k = ptr2str $  prim__arrayGet keys i in (k,) <$> (ptr2json $ prim__getItem x k)) | i <-[0..(prim__arrayLength keys - 1)]]
+         o => 
+            Nothing
+
+toPtr : JsonSerializable a => a -> AnyPtr 
+toPtr = json2ptr . toJson
+
+fromPtr : JsonSerializable a => AnyPtr -> Maybe a
+fromPtr x = ptr2json x >>= fromJson 
 
 public export
 data HasVar : String -> Type -> List (String, Type) -> Type where
@@ -35,7 +137,7 @@ data Expr : UKeyList (String, String) FieldList -> List (String, Type) -> Type -
     GetChanges : (e : Expr db ctxt (Cursor t)) -> {default False includeInitial : Bool} -> Expr db ctxt (Changes t)
     Insert' : Expr db ctxt (Table ts) -> Expr db ctxt (List (Record ts)) -> Expr db ctxt (Record [])
     Insert : {auto p : UKeyListCanPrepend ("id", String) ts} -> Expr db ctxt (Table ((::) ("id", String) ts)) -> Expr db ctxt (List (Record ts)) -> Expr db ctxt (Record [])
-    Lit : HasJSValue a => a -> Expr db ctxt a
+    Lit : JsonSerializable a => a -> Expr db ctxt a
     StrEq : Expr db ctxt (String -> String -> Bool)
     GetField : (key : String) -> HasValue key t fields  => Expr db ctxt (Record fields -> t)
     MapCursor : Expr db ctxt ((a -> b) -> Cursor a -> Cursor b)
@@ -114,7 +216,7 @@ runPtr query conn =
                                                                            else w $ Left err
      pure $ MkPromiseHandler $ pure ()
  
-readResultPtr : HasJSValue a => Lazy String -> AnyPtr -> Either String a
+readResultPtr : JsonSerializable a => Lazy String -> AnyPtr -> Either String a
 readResultPtr contextForError ptr = 
   case fromPtr ptr of
     Nothing => Left "Error in \{contextForError} trying to read value \{ptrToString ptr}"
@@ -251,13 +353,13 @@ compileExpr r vars (GetTable d t) =
 compileExpr r vars (ReadTable x) = 
   compileExpr r vars x
 compileExpr r vars (GetChanges x {includeInitial = includeInitial}) = 
-  prim__changes (compileExpr r vars x) (mkJsObj [("includeInitial", jsv2ptr $ toJS includeInitial )])
+  prim__changes (compileExpr r vars x) (json2ptr $ JObject [("includeInitial", JBoolean includeInitial)])
 compileExpr r vars (Insert t xs) = 
   prim__insert (compileExpr r vars t) (compileExpr r vars xs)
 compileExpr r vars (Insert' t xs) = 
   prim__insert (compileExpr r vars t) (compileExpr r vars xs)
 compileExpr r vars (Lit x) = 
-  prim__expr r $ jsv2ptr $ toJS x
+  prim__expr r $ toPtr x
 compileExpr r vars StrEq = 
   prim__req r 
 compileExpr r vars (GetField key) = 
@@ -277,7 +379,7 @@ debugShowExpr x =
   in prim__toString e
 
 export
-run : HasJSValue a => RethinkServer ts -> Expr ts [] a -> Promise (Either String a)
+run : JsonSerializable a => RethinkServer ts -> Expr ts [] a -> Promise (Either String a)
 run (MkRethinkServer s) e = 
   do
     let r = prim__r ()
@@ -288,11 +390,11 @@ run (MkRethinkServer s) e =
          Right ptr => pure $ readResultPtr "run \{debugShowExpr e}"  ptr
 
 export
-run' : HasJSValue a => RethinkServer ts -> Expr ts [] a -> Promise a
+run' : JsonSerializable a => RethinkServer ts -> Expr ts [] a -> Promise a
 run' x y = onErrPrint $ run x y
 
 export
-toArray : HasJSValue a => RethinkServer ts -> Expr ts [] (Cursor a) -> Promise (Either String (List a))
+toArray : JsonSerializable a => RethinkServer ts -> Expr ts [] (Cursor a) -> Promise (Either String (List a))
 toArray (MkRethinkServer s) e = 
   do
     let r = prim__r ()
@@ -302,7 +404,7 @@ toArray (MkRethinkServer s) e =
     pure $ readResultPtr "toArray \{debugShowExpr e}" res
 
 export
-toArray' : HasJSValue a => RethinkServer ts -> Expr ts [] (Cursor a) -> Promise (List a)
+toArray' : JsonSerializable a => RethinkServer ts -> Expr ts [] (Cursor a) -> Promise (List a)
 toArray' s e = onErrPrint $ toArray s e
 
 %foreign "node:lambda: (cursor, callback)  => cursor.each((err, res) => callback(err ? err + '' : '')(res)())"
@@ -312,7 +414,7 @@ prim__each : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 prim__close : AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
 
 export
-getChanges : HasJSValue (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Either String (Change a))
+getChanges : JsonSerializable (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Either String (Change a))
 getChanges (MkRethinkServer conn) e =
    MkIOStream $ \w => do
     let r = prim__r ()
@@ -334,5 +436,5 @@ getChanges (MkRethinkServer conn) e =
            Just c => primIO $ prim__close c (\x => toPrim $ pure ())           
 
 export
-getChanges' : HasJSValue (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Change a)
+getChanges' : JsonSerializable (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Change a)
 getChanges' s e = onErrPrint $ getChanges s e

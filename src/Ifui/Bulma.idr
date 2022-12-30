@@ -36,6 +36,23 @@ export
 div : {default [] styleOptions : List BulmaStyleOption} -> List (Widget a) -> Widget a
 div xs = node "div" (optionsToAttributes styleOptions) xs
 
+
+
+navbar : Widget a -> List (Widget a) -> List (Widget a) -> Widget a
+navbar navbarBrand navbarStart navbarEnd = 
+  node "nav" [class__ "navbar"] [
+    node "div" [class__ "navbar-brand"] [
+      nitem navbarBrand
+    ],
+    node "div" [class__ "navbar-menu"] [
+      node "div" [class__ "navbar-start"] (nitem <$> navbarStart),
+      node "div" [class__ "navbar-end"] (nitem <$> navbarEnd)
+    ]
+  ]
+  where
+    nitem : Widget a -> Widget a
+    nitem x = node "div" [class__ "navbar-item"] [x]
+
 export
 column : Widget a -> Column a
 column w = 

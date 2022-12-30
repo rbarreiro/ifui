@@ -23,8 +23,8 @@ export
 Semigroup (Widget a) where
   (<+>) (WidgetPure x) _ = WidgetPure x
   (<+>) _ (WidgetPure x) = WidgetPure x
-  (<+>) (WidgetGroup xs) (WidgetGroup ys) = WidgetGroup (xs <+> ys)
-  (<+>) (WidgetGroup xs) (MarkupWidget y) = WidgetGroup (xs <+> [MarkupWidget y])
+  (<+>) (WidgetGroup xs) (WidgetGroup ys) = WidgetGroup (xs ++ ys)
+  (<+>) (WidgetGroup xs) (MarkupWidget y) = WidgetGroup (xs ++ [MarkupWidget y])
   (<+>) (MarkupWidget x) (WidgetGroup ys) = WidgetGroup ((MarkupWidget x) :: ys)
   (<+>) (MarkupWidget xs) (MarkupWidget ys) = WidgetGroup  [MarkupWidget xs, MarkupWidget ys]
 

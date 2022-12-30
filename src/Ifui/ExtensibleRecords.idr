@@ -1,6 +1,7 @@
 module Ifui.ExtensibleRecords
 
 import public Data.So
+import public Decidable.Equality
 
 %hint
 public export
@@ -24,10 +25,31 @@ namespace UKeyList
       UKeyListCanPrependNil : UKeyListCanPrepend x Nil
       UKeyListCanPrependCons : Not (k = tk) -> UKeyListCanPrepend (k, v) l -> UKeyListCanPrepend (k,v) ((::) (tk, tv) l {p})
 
-    public export
-    data Elem : k -> v -> UKeyList k v -> Type where
-      Here : {auto p : UKeyListCanPrepend (k,v)  xs} -> Elem k v ((::) (k, v) xs {p = p})
-      There : {auto p : UKeyListCanPrepend y  xs} -> Elem k v xs -> Elem k v ((::) y xs {p = p})
+  public export
+  data Elem : k -> v -> UKeyList k v -> Type where
+    Here : {auto p : UKeyListCanPrepend (k,v)  xs} -> Elem k v ((::) (k, v) xs {p = p})
+    There : {auto p : UKeyListCanPrepend y  xs} -> Elem k v xs -> Elem k v ((::) y xs {p = p})
+
+  public export
+  data KElem : k -> UKeyList k v -> Type where
+    KHere : {auto p : UKeyListCanPrepend (k, v)  xs} -> KElem k ((::) (k, v) xs {p = p})
+    KThere : {auto p : UKeyListCanPrepend y  xs} -> KElem k xs -> KElem k ((::) y xs {p = p})
+
+  public export
+  klookup : (ts : UKeyList a b)  -> (KElem k ts) -> b
+  klookup ((k, v) :: xs) KHere = v
+  klookup (y :: xs) (KThere x) = klookup xs x
+
+  export
+  calcCanPrepend : DecEq keys  => (x : (keys, b)) -> (l : UKeyList keys b) -> Maybe (UKeyListCanPrepend x l)
+  calcCanPrepend x [] = 
+    Just UKeyListCanPrependNil
+  calcCanPrepend (k,v) ((tk, tv) :: l) = 
+    do
+      pl <- calcCanPrepend (k,v) l
+      case decEq k tk of
+           (Yes prf) => Nothing
+           (No contra) => Just $ UKeyListCanPrependCons contra pl
 
   mutual
     public export
@@ -42,11 +64,43 @@ namespace UKeyList
     mapValuesCanPrepend (UKeyListCanPrependCons g z) =
       let aux = mapValuesCanPrepend z
       in UKeyListCanPrependCons g aux
-      
-    public export
-    length : UKeyList a b -> Nat
-    length [] = Z
-    length (x :: l) = S $ length l
+
+  export
+  Functor (UKeyList k) where
+    map = mapValues
+
+  export
+  Foldable (UKeyList k) where
+    foldr f i [] = i
+    foldr f i (x :: l) = f (snd x) (foldr f i l)
+
+  mutual
+    export
+    fromAllJust : DecEq keys => UKeyList keys (Maybe b) -> Maybe (UKeyList keys b)
+    fromAllJust [] = Just []
+    fromAllJust ((::) {p=prf} (x, Nothing) l) = Nothing
+    fromAllJust ((::) {p=prf} (x, (Just y)) l) = case fromAllJust l of
+                                                      Nothing => Nothing 
+                                                      (Just z) => case calcCanPrepend (x, y) z of
+                                                                       Nothing => Nothing
+                                                                       (Just w) => Just $ (::) (x, y) z {p=w}
+
+  public export
+  length : UKeyList a b -> Nat
+  length [] = Z
+  length (x :: l) = S $ length l
+
+--  export
+--  calcUKeyListElem : (s : String) -> (l : UKeyList String b) -> Maybe ((x : b ** Elem s x l))
+--  calcUKeyListElem s [] = 
+--    Nothing
+--  calcUKeyListElem s ((x, y) :: l) =
+--    case decEq s x of
+--         (Yes prf) => 
+--            Just $ (y ** rewrite prf in Here)
+--         (No contra) => 
+--            (\(z**w) => (z ** There w)) <$> calcUKeyListElem s l
+
 
 
 public export
@@ -114,24 +168,11 @@ export
   show (x :: []) = "[" ++ show x ++ "]"
   show (x :: (y :: r)) = "[" ++ show x  ++ ","  ++ (let z = show (y :: r) in substr 1 (length z) z)
 
-public export
-data Alt : UKeyList String Type -> Type where
-  MkAlt : Entry s t -> Elem s t ts  -> Alt ts
-
-public export
-weakenAlt : {auto p : UKeyListCanPrepend (s, t) ts} -> Alt ts -> Alt ((s,t):: ts)
-weakenAlt (MkAlt x y) = MkAlt x (There y)
-
-export
-Show (Alt []) where
-  show (MkAlt _ Here) impossible
-  show (MkAlt _ (There later)) impossible
- 
-export
-{s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (Show (Entry s t), Show (Alt ts)) => Show (Alt ((s, t) :: ts)) where
-  show (MkAlt x Here) = "(" ++ show x ++ ")"
-  show (MkAlt x (There later)) = show (MkAlt x later)
 
 public export
 data Variant : FieldList -> Type where
-  MkVariant : (s : String) -> t -> Elem s t ts -> Variant ts
+  MkVariant : (s : String) -> t -> {auto p : Elem s t ts} -> Variant ts
+
+public export
+data Tree : UKeyList String (Type -> Type) -> Type where
+  N : (s : String) -> {auto p : KElem s ts} -> ((klookup ts p) (Tree ts))  -> Tree ts
