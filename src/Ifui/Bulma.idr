@@ -90,14 +90,14 @@ numberInputBulma {label = (Just x)} value =
   ]
 
 export
-selectBulma : Vect (S n) String -> Fin (S n) -> Widget (Fin (S n))
+selectBulma : Vect n String -> Maybe (Fin n) -> Widget (Fin n)
 selectBulma xs z = 
-  node "div" [class__ "select", value_ $ index z xs, WidgetEventListener "change" change]
+  node "div" [class__ "select", value_ $ fromMaybe "" $ (\w => index w xs) <$> z, WidgetEventListener "change" change]
     [ node "select" []
         (toList $ (\x => node "option" [WidgetSimpleAttribute (StringAttr "value" x )] [text x] ) <$> xs)
     ]
   where
-    change : DomEvent -> IO (Fin (S n))
+    change : DomEvent -> IO (Fin n)
     change e =
       do 
         v <- targetValue e

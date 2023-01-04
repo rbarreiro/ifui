@@ -1,6 +1,7 @@
 module Main
 
 import Ifui
+import Ifui.Html
 
 counter : Int -> Widget a
 counter count =

@@ -10,7 +10,7 @@ newTodoPrompt : Widget (Maybe (String))
 newTodoPrompt = getFormBulma
 
 todosInsert : (HasValue "createTodo" (RPC String ()) ts)  =>  
-              ServerConnection ts -> Widget ()
+              ServerConnection ts -> Widget a
 todosInsert srv =
   do
     Just desc <- newTodoPrompt | Nothing => todosInsert srv
@@ -19,10 +19,10 @@ todosInsert srv =
 
 
 todosView : (HasValue "todoList" (StreamService () (Change String)) ts)  =>  
-              ServerConnection ts -> Maybe (List String) -> Widget ()
+              ServerConnection ts -> Maybe (List String) -> Widget a
 todosView srv todos =
   do
-   r <- div [] [callStreamChangesAccumList "todoList" srv (), text $ show todos]
+   r <- div [callStreamChangesAccumList "todoList" srv (), text $ show todos]
    todosView srv $ Just r  
 
 
@@ -34,7 +34,7 @@ mainWidget =
     loginRes <- serverConnectWithAuth "ws://\{!getLocationHostname}:6402" login RoleServer 
     case loginRes of
          (False ** _) => text "Failed Login"
-         (True ** srv) => div [] [todosInsert srv, todosView srv Nothing]
+         (True ** srv) => div [todosInsert srv, todosView srv Nothing]
 
 main : IO ()
 main =

@@ -13,6 +13,39 @@ public export
 strPairNotEq : {a : (String, String)} -> {b : (String, String)} -> {auto pNeq : So (a /= b)} -> Not (a = b)
 strPairNotEq Refl {pNeq} = believe_me pNeq
 
+namespace UList
+  mutual
+    public export
+    data UList : Type -> Type where
+      Nil : UList a
+      (::) : (x : a) -> (l : UList a) -> {auto p : UListCanPrepend x l} -> UList a
+
+    public export
+    data UListCanPrepend : (x : a) -> (l : UList a) -> Type where
+      UListCanPrependNil : UListCanPrepend x Nil
+      UListCanPrependCons : Not (k = tk) -> UListCanPrepend  v l -> UListCanPrepend k ((::) tk l {p})
+
+  public export
+  data Elem : k -> UList k -> Type where
+    Here : {auto p : UListCanPrepend k xs} -> Elem k ((::) k xs {p = p})
+    There : {auto p : UListCanPrepend y xs} -> Elem k xs -> Elem k ((::) y xs {p = p})
+
+  export
+  calcUListElem : DecEq a => (s : a) -> (l : UList a) -> Maybe (Elem s l)
+  calcUListElem s [] = 
+    Nothing
+  calcUListElem s (x :: l) =
+    case decEq s x of
+         (Yes prf) => 
+            Just $ (rewrite prf in Here)
+         (No contra) => 
+            There <$> calcUListElem s l
+
+  export
+  Foldable UList where
+    foldr f i [] = i
+    foldr f i (x :: l) = f x (foldr f i l)
+
 namespace UKeyList
   mutual
     public export
@@ -167,6 +200,22 @@ export
 {s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (Show (Entry s t), Show (Record ts)) => Show (Record ((s, t) :: ts)) where
   show (x :: []) = "[" ++ show x ++ "]"
   show (x :: (y :: r)) = "[" ++ show x  ++ ","  ++ (let z = show (y :: r) in substr 1 (length z) z)
+
+namespace StringEnum
+  public export
+  data StringEnum : UList String -> Type where
+    SE : (s : String) -> {auto p : Elem s xs} -> StringEnum xs
+  
+  public export
+  toStringEnum : {l : UList String}  -> String -> Maybe (StringEnum l)
+  toStringEnum str = 
+    do
+      prf <- calcUListElem str l
+      pure $ SE str
+
+  public export
+  Cast (StringEnum l) String where
+    cast (SE s) = s
 
 
 namespace Variant

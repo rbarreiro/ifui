@@ -12,6 +12,16 @@ interface JsonSerializable a where
 
   stringify x = show $ toJson x
 
+public export 
+interface JsonSerializable1 (0 f : Type -> Type) where
+  toJson1 : (f a) -> (a -> JSON) -> JSON
+  fromJson1 : JSON -> (JSON -> Maybe a) -> Maybe (f a)
+
+export
+(JsonSerializable a, JsonSerializable1 f) => JsonSerializable (f a) where
+  toJson x = toJson1 x (toJson {a = a})
+  fromJson x = fromJson1 x (fromJson {a=a})
+  stringify x = show $ toJson x
 
 export
 JsonSerializable JSON where
@@ -31,6 +41,15 @@ JsonSerializable String where
   fromJson _ = Nothing
 
 export
+JsonSerializable (Maybe String) where
+  toJson (Just x) = JString x
+  toJson Nothing = JNull
+
+  fromJson (JString x) = Just (Just x)
+  fromJson JNull = Just Nothing
+  fromJson _ = Nothing
+
+export
 JsonSerializable Int where
   toJson x = JNumber $ cast x
 
@@ -45,19 +64,11 @@ JsonSerializable Bool where
   fromJson _ = Nothing
 
 export
-JsonSerializable a => JsonSerializable (Maybe a) where
-  toJson Nothing = JNull
-  toJson (Just x) = toJson x
+JsonSerializable1 List where
+  toJson1 x g = JArray (map g x)
 
-  fromJson JNull = Just Nothing
-  fromJson o = Just <$> fromJson {a=a} o
-
-export
-JsonSerializable a => JsonSerializable (List a) where
-  toJson x = JArray (map toJson x)
-
-  fromJson (JArray x) = sequence $ map fromJson x
-  fromJson _ = Nothing
+  fromJson1 (JArray x) g = sequence $ map g x
+  fromJson1 _ _ = Nothing
 
 export
 interface JsonObjectSerializable a where
@@ -89,21 +100,7 @@ export
       w <- fromJson {a=t} j
       pure $ MkEntry s w :: ws
 
-fromListJsonUKeyListAux : (JsonSerializable b) => List (String, JSON) -> Maybe (UKeyList String b)
-fromListJsonUKeyListAux [] = 
-  Just []
-fromListJsonUKeyListAux ((x, y) :: xs) =
-  do
-    xs_ <- fromListJsonUKeyListAux {b=b} xs
-    y_ <- fromJson {a=b} y
-    prf <- calcCanPrepend (x, y_) xs_
-    pure ((::) (x, y_) xs_  {p=prf})
 
-(JsonSerializable b) => JsonObjectSerializable (UKeyList String b) where
-  toListJson [] = []
-  toListJson ((x, y) :: l) = (x, toJson y) :: toListJson l
-
-  fromListJson = fromListJsonUKeyListAux
 
 export
 {s : String} -> JsonSerializable t => JsonSerializable (Variant [(s, t)]) where
@@ -136,25 +133,34 @@ export
   fromJson _ = 
     Nothing
 
-public export 
-interface JsonSerializableTreeBranch (0 f : Type -> Type) where
-  toJsonBranch : (f (Tree ts)) -> (Tree ts -> JSON) -> JSON
-  fromJsonBranch : JSON -> (JSON -> Maybe (Tree ts)) -> Maybe (f (Tree ts))
+fromListJsonUKeyList :  (JSON -> Maybe b) -> List (String, JSON) -> Maybe (UKeyList String b)
+fromListJsonUKeyList _ [] = 
+  Just []
+fromListJsonUKeyList fromJsonB  ((x, y) :: xs) =
+  do
+    xs_ <- fromListJsonUKeyList fromJsonB xs
+    y_ <- fromJsonB y
+    prf <- calcCanPrepend (x, y_) xs_
+    pure ((::) (x, y_) xs_  {p=prf})
+
+toListJsonUKeyList : (b -> JSON) -> UKeyList String b -> List (String, JSON)
+toListJsonUKeyList f [] = []
+toListJsonUKeyList f ((k, v) :: l) = (k, f v)  :: toListJsonUKeyList f l
+
 
 export
-JsonSerializableTreeBranch (UKeyList String) where
-  toJsonBranch x cont = 
-    toJson $ map cont x
-  fromJsonBranch x cont = 
-    do
-      z <- fromJson {a=UKeyList String JSON} x
-      let z_ = map cont z
-      fromAllJust z_
+JsonSerializable1 (UKeyList String) where
+  toJson1 x cont = 
+    JObject $ toListJsonUKeyList cont x
+  fromJson1 (JObject x) cont = 
+    fromListJsonUKeyList cont x
+  fromJson1 _ cont = 
+    Nothing
     
 export
-JsonSerializable b => JsonSerializableTreeBranch (const b) where
-  toJsonBranch x cont = toJson x 
-  fromJsonBranch x cont = fromJson x
+JsonSerializable b => JsonSerializable1 (const b) where
+  toJson1 x cont = toJson x 
+  fromJson1 x cont = fromJson x
 
 public export
 interface JsonSerializableTreeHeads (0 ts : UKeyList String (Type -> Type)) where
@@ -162,28 +168,28 @@ interface JsonSerializableTreeHeads (0 ts : UKeyList String (Type -> Type)) wher
   fromJsonTreeHeads : JSON -> (JSON -> Maybe (Tree rs)) -> Maybe (k : String ** (p : KElem k ts ** (klookup ts p) (Tree rs)))
 
 export
-{s : String} -> JsonSerializableTreeBranch f => JsonSerializableTreeHeads [(s, f)] where
+{s : String} -> JsonSerializable1 f => JsonSerializableTreeHeads [(s, f)] where
   toJsonTreeHeads s KHere x cont = 
-    JObject [("k", JString s), ("v", toJsonBranch x cont)]
+    JObject [("k", JString s), ("v", toJson1 x cont)]
   toJsonTreeHeads s (KThere y) x cont impossible
     
   fromJsonTreeHeads (JObject [("k", JString k), ("v", v)]) cont = 
     if s == k then do
-                     w <- fromJsonBranch {f=f} v cont
+                     w <- fromJson1 {f=f} v cont
                      pure $ (s ** (KHere ** w))
               else Nothing
   fromJsonTreeHeads _ _ = 
     Nothing
  
-{s : String} -> {pp : UKeyListCanPrepend (s, f) ts} -> (JsonSerializableTreeBranch f, JsonSerializableTreeHeads ts) => JsonSerializableTreeHeads ((s, f) :: ts) where
+{s : String} -> {pp : UKeyListCanPrepend (s, f) ts} -> (JsonSerializable1 f, JsonSerializableTreeHeads ts) => JsonSerializableTreeHeads ((s, f) :: ts) where
   toJsonTreeHeads s KHere x cont = 
-    JObject [("k", JString s), ("v", toJsonBranch x cont)]
+    JObject [("k", JString s), ("v", toJson1 x cont)]
   toJsonTreeHeads s (KThere y) x cont = 
     toJsonTreeHeads {ts=ts} s y x cont
 
   fromJsonTreeHeads z@(JObject [("k", JString k), ("v", v)]) cont =
     if s == k then do
-                     w <- fromJsonBranch {f=f} v cont
+                     w <- fromJson1 {f=f} v cont
                      pure $ (s ** (KHere ** w))
               else case fromJsonTreeHeads {ts=ts} z cont of
                         Nothing => Nothing

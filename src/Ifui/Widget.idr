@@ -334,7 +334,7 @@ accListWithId x xs =
           ((Just y), (Just z)) => replaceOn y z xs
   
 export
-callStreamChangesAccumList : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (StreamService a (Change b)) ts, Eq b) => 
+callStreamChangesAccumList : (s : String) -> (JsonSerializable a, JsonSerializable (Change b), HasValue s (StreamService a (Change b)) ts, Eq b) => 
                ServerConnection ts -> a -> Widget (List b)
 callStreamChangesAccumList s conn x = 
   callStreamAccum s conn x [] accListWithId
