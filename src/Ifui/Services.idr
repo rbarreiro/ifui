@@ -8,6 +8,7 @@ public export
 data ServiceKind : Type where 
   RPC : (0 a : Type) -> (0 b : Type) -> ServiceKind
   StreamService : (0 a : Type) -> (0 b : Type) -> ServiceKind
+  CRUDCollection : (0 id : Type) -> (0 create : Type) -> (0 view : Type) -> ServiceKind
 
 namespace SubFields
   public export

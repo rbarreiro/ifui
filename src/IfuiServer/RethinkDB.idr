@@ -9,6 +9,7 @@ import public IfuiServer.IOStream
 import public Ifui.Services
 import public Ifui.Json
 import Data.IORef
+import IfuiServer.Server
 
 
 public export
@@ -34,8 +35,9 @@ data Expr : UKeyList (String, String) FieldList -> List (String, Type) -> Type -
     GetTable : (d : String) -> (t : String) -> HasValue (d, t) ts db  => Expr db ctxt (Table ts)
     ReadTable : Expr db ctxt (Table ts) -> Expr db ctxt (Cursor (Record ts))
     GetChanges : (e : Expr db ctxt (Cursor t)) -> {default False includeInitial : Bool} -> Expr db ctxt (Changes t)
-    Insert' : Expr db ctxt (Table ts) -> Expr db ctxt (List (Record ts)) -> Expr db ctxt (Record [])
-    Insert : {auto p : UKeyListCanPrepend ("id", String) ts} -> Expr db ctxt (Table ((::) ("id", String) ts)) -> Expr db ctxt (List (Record ts)) -> Expr db ctxt (Record [])
+    Insert' : Expr db ctxt (Table ts) -> Expr db ctxt (List (Record ts)) -> Expr db ctxt (Record [("first_error", Maybe String)])
+    Insert : {auto p : UKeyListCanPrepend ("id", String) ts} -> Expr db ctxt (Table ((::) ("id", String) ts)) -> 
+                Expr db ctxt (List (Record ts)) -> Expr db ctxt (Record [("first_error", Maybe String)])
     Lit : JsonSerializable a => a -> Expr db ctxt a
     StrEq : Expr db ctxt (String -> String -> Bool)
     GetField : (key : String) -> HasValue key t fields  => Expr db ctxt (Record fields -> t)
@@ -230,7 +232,7 @@ prim__rget : String -> AnyPtr
 %foreign "node:lambda: (r, x) => r.expr(x)"
 prim__expr : AnyPtr -> AnyPtr -> AnyPtr
 
-%foreign "node:lambda: (t, xs) => t.insert(xs)"
+%foreign "node:lambda: (t, xs) => t.insert(xs).do(x => x.merge(r.expr({'first_error': x('first_error').default(null)})))"
 prim__insert : AnyPtr -> AnyPtr -> AnyPtr
 
 %foreign "node:lambda: (t, options) => t.changes(options)"
@@ -341,3 +343,23 @@ getChanges (MkRethinkServer conn) e =
 export
 getChanges' : JsonSerializable (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Change a)
 getChanges' s e = onErrPrint $ getChanges s e
+
+updateListWithChange : {auto p : UKeyListCanPrepend ("id", String) fl} -> Change (Record (("id", String) :: fl)) -> List (Record (("id", String) :: fl)) -> List (Record (("id", String) :: fl))
+
+export
+createTableServices : {auto p : UKeyListCanPrepend ("id", String) fl} -> (db : String) -> (tbl : String) -> 
+                         (HasValue (db, tbl) (("id", String) :: fl) ts, JsonSerializable (Record fl), JsonSerializable  (Record (("id", String) :: fl))) => 
+                              (JsonSerializable (Change (Record (("id", String) :: fl)))) =>    
+                                   (s : String) -> RethinkServer ts -> Service s (CRUDCollection String (Record fl) (List (Record (("id", String) :: fl))))
+createTableServices db tbl s x = 
+  let 
+      table = GetTable db tbl
+      changesStream : IOStream (Change (Record (("id", String) :: fl)))
+      changesStream = getChanges' x $ GetChanges {includeInitial = True} $  ReadTable table
+
+      updatedViewStream : IOStream (List (Record (("id", String) :: fl)))
+      updatedViewStream = accum [] (updateListWithChange <$> changesStream)
+      insertPromise : Record fl -> Promise (Maybe String)
+      insertPromise w = run' x $ GetField "first_error" <| Insert table (Lit [w])
+  in MkCRUDCollectionService s (MkCRUDOperations updatedViewStream insertPromise)
+

@@ -24,3 +24,13 @@ onErrPrint x =
                        (Left y) => putStrLn y
                        (Right y) => w y
 
+export
+accum : a -> IOStream (a -> a) -> IOStream a
+accum init x = 
+  MkIOStream $ \w => do
+    st <- newIORef init
+    x.run $ \z => do
+      modifyIORef st z
+      r <- readIORef st
+      w r
+

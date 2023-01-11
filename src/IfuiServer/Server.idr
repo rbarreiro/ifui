@@ -13,9 +13,17 @@ import Data.IORef
 import Data.List
 
 public export
+record CRUDOperations (0 id : Type) (0 create : Type) (0 view : Type) where
+  constructor MkCRUDOperations
+  viewStream : IOStream view
+  insert : create -> Promise (Maybe String)
+
+public export
 data Service : String -> ServiceKind -> Type where
   MkRPC : (JsonSerializable a, JsonSerializable b) => (s : String) -> (a -> Promise b)  -> Service s (RPC a b)
-  MkStreamService : (JsonSerializable a, JsonSerializable b) => (s : String) -> (a -> IOStream b)  -> Service s (StreamService a b)
+  MkStreamService : (JsonSerializable a, JsonSerializable b) => (s : String) -> (a -> IOStream b) -> Service s (StreamService a b)
+  MkCRUDCollectionService : (JsonSerializable id, JsonSerializable create, JsonSerializable view) => 
+                              (s : String) -> CRUDOperations id create view  -> Service s (CRUDCollection id create view)
 
 public export
 data Server : UKeyList String ServiceKind -> Type where
@@ -34,6 +42,9 @@ getServiceU n ((MkRPC {a} {b} s f) :: y) =
             else getServiceU n y
 getServiceU n ((MkStreamService {a} {b} s f) :: y) = 
   if n == s then Just (StreamService a b ** MkStreamService n f)
+            else getServiceU n y
+getServiceU n ((MkCRUDCollectionService {id} {create} {view} s ops) :: y) =
+  if n == s then Just (CRUDCollection id create view ** MkCRUDCollectionService n ops)
             else getServiceU n y
 
 removeHandle : String -> IORef (List (String, a)) -> IO ()
@@ -73,6 +84,24 @@ onMessageFn cancelHandles server wsc msg =
                         writeIORef cancelHandles ((i, streamh.cancel) :: h)
                      Nothing =>
                       putStrLn "Invalid Input to service \{srv} \{show x}"
+             Just ((CRUDCollection id create view) ** (MkCRUDCollectionService srv ops)) => 
+               case x of
+                    (JString "stream_updated_collection") => 
+                       do
+                         streamh <- ops.viewStream.run (\z => wsSend wsc (show (JArray [JString i, toJson z])))
+                         h <- readIORef cancelHandles 
+                         writeIORef cancelHandles ((i, streamh.cancel) :: h)
+                    (JArray [JString "insert", z]) => 
+                      case the (Maybe create) (fromJson z) of
+                           Just y =>
+                             do
+                                promiseh <- (ops.insert y).run (\w => do removeHandle i cancelHandles; wsSend wsc (show (JArray [JString i, toJson w])))
+                                h <- readIORef cancelHandles 
+                                writeIORef cancelHandles ((i, promiseh.cancel) :: h)
+                           Nothing =>
+                             putStrLn "Invalid create format for collection \{srv}"
+                    o => 
+                       putStrLn "Invalid collection operation \{show o}"
              Nothing =>
               putStrLn "Invalid Service \{srv}"
        Nothing => 

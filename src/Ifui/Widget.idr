@@ -251,80 +251,97 @@ removeHandle str x =
    h <- readIORef x
    writeIORef x (deleteBy (\x, (y,_) => x == y)  str h)
 
+streamSetup : ServerConnection ts -> String -> JSON -> (JSON -> Maybe a)  -> Widget a
+streamSetup (MkServerConnection url socket srv counter handles) s input outputReader = 
+   MarkupWidget $ \n, onEvt => 
+     do
+        let proc = \ptr => do
+          let j = ptr2json_ ptr
+          fromMaybe (putStrLn $ "invalid json in service \{s}")  (onEvt <$> outputReader j)
+        setNodePromise n ("streamService/" ++ url ++ "/" ++ s ++ "?" ++ show input) proc  $ do
+          h <- readIORef handles
+          i <- readIORef counter
+          isFinished <- newIORef False
+          let i_ = show i
+          send socket (show $ JArray [JString s, JString i_, input])
+          procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
+          writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j))  :: h) 
+          writeIORef counter (i+1)
+          let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
+          pure $ MkPromiseNodeRef procResult cancel isFinished
 
-export
-callRPC : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (RPC a b) ts) => 
-            ServerConnection ts -> a -> Widget b
-callRPC s (MkServerConnection url socket srv counter handles) y = 
+rpcSetup : ServerConnection ts -> String -> JSON -> (JSON -> Maybe a)  -> Widget a
+rpcSetup (MkServerConnection url socket srv counter handles) s input outputReader = 
    MarkupWidget $ \n, onEvt => 
                                  do
-                                    let y_ = toJson y
                                     let proc = \ptr => do
                                       let j = ptr2json_ ptr
-                                      fromMaybe (putStrLn $ "invalid json in service \{s}")  (onEvt <$> fromJson j)
-                                    setNodePromise n ("rpc/" ++ url ++ "/" ++ s ++ "?" ++ show y_) proc  $ do
+                                      fromMaybe (putStrLn $ "invalid json in service \{s}")  (onEvt <$> outputReader j)
+                                    setNodePromise n ("rpc/" ++ url ++ "/" ++ s ++ "?" ++ show input) proc  $ do
                                       h <- readIORef handles
                                       i <- readIORef counter
                                       isFinished <- newIORef False
                                       let i_ = show i
-                                      send socket (show $ JArray [JString s, JString i_, y_])
+                                      send socket (show $ JArray [JString s, JString i_, input])
                                       procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
                                       writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j) >> removeHandle i_ handles >> writeIORef isFinished True)  :: h) 
                                       writeIORef counter (i+1)
                                       let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
                                       pure $ MkPromiseNodeRef procResult cancel isFinished
 
+streamAccumSetup : ServerConnection ts -> String -> JSON -> (JSON -> Maybe a) -> c -> (a -> c -> c)  -> Widget c
+streamAccumSetup (MkServerConnection url socket srv counter handles) s input outputReader r0 acc = 
+   MarkupWidget $ \n, onEvt => 
+       do
+          let proc = \ptr => onEvt (believe_me ptr)
+          setNodePromise n ("streamServiceAccum/" ++ url ++ "/" ++ s ++ "?" ++ show input) proc  $ do
+            h <- readIORef handles
+            i <- readIORef counter
+            isFinished <- newIORef False
+            let i_ = show i
+            send socket (show $ JArray [JString s, JString i_, input])
+            procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
+            a <- newIORef r0
+            let handle = the (JSON -> IO ()) $ \j =>  do
+              let Just x = outputReader j | Nothing => putStrLn "invalid json in service \{s}"
+              modifyIORef a (acc x)
+              r <- readIORef a
+              p <- readIORef procResult
+              p $ believe_me r
+            writeIORef handles ((i_, handle)  :: h) 
+            writeIORef counter (i+1)
+            let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
+            pure $ MkPromiseNodeRef procResult cancel isFinished
+
+streamUpdatedCollection : (s : String) -> (HasValue s (CRUDCollection id create view) ts, JsonSerializable view) => ServerConnection ts -> Widget view
+streamUpdatedCollection s sc = 
+  streamSetup sc s (JString "stream_updated_collection") fromJson 
+
+insertToCollection : (s : String) -> (HasValue s (CRUDCollection id create view) ts, JsonSerializable create) => ServerConnection ts -> create -> Widget (Maybe String)
+insertToCollection s sc x = 
+  rpcSetup sc s (JArray [JString "intert", toJson x]) fromJson
+
+export
+callRPC : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (RPC a b) ts) => 
+            ServerConnection ts -> a -> Widget b
+callRPC s sc y = 
+  rpcSetup sc s (toJson y) fromJson
+
+
 export
 callStream : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (StreamService a b) ts) => 
                ServerConnection ts -> a -> Widget b
-callStream s (MkServerConnection url socket srv counter handles) y = 
-   MarkupWidget $ \n, onEvt => 
-                                 do
-                                    let y_ = toJson y
-                                    let proc = \ptr => do
-                                      let j = ptr2json_ ptr
-                                      fromMaybe (putStrLn $ "invalid json in service \{s}")  (onEvt <$> fromJson j)
-                                    setNodePromise n ("streamService/" ++ url ++ "/" ++ s ++ "?" ++ show y_) proc  $ do
-                                      h <- readIORef handles
-                                      i <- readIORef counter
-                                      isFinished <- newIORef False
-                                      let i_ = show i
-                                      send socket (show $ JArray [JString s, JString i_, y_])
-                                      procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
-                                      writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j))  :: h) 
-                                      writeIORef counter (i+1)
-                                      let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
-                                      pure $ MkPromiseNodeRef procResult cancel isFinished
-        
+callStream s sc y = 
+  streamSetup sc s (toJson y) fromJson
+ 
 export
 callStreamAccum : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (StreamService a b) ts) => 
                ServerConnection ts -> a -> c -> (b -> c -> c) -> Widget c
-callStreamAccum s (MkServerConnection url socket srv counter handles) y r0 acc = 
-   MarkupWidget $ \n, onEvt => 
-                                 do
-                                    let y_ = toJson y
-                                    let proc = \ptr => onEvt (believe_me ptr)
-                                    setNodePromise n ("streamService/" ++ url ++ "/" ++ s ++ "?" ++ show y_) proc  $ do
-                                      h <- readIORef handles
-                                      i <- readIORef counter
-                                      isFinished <- newIORef False
-                                      let i_ = show i
-                                      send socket (show $ JArray [JString s, JString i_, y_])
-                                      procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
-                                      a <- newIORef r0
-                                      let handle = the (JSON -> IO ()) $ \j =>  do
-                                        let Just x = fromJson {a=b} j | Nothing => putStrLn "invalid json in service \{s}"
-                                        modifyIORef a (acc x)
-                                        r <- readIORef a
-                                        p <- readIORef procResult
-                                        p $ believe_me r
-                                      writeIORef handles ((i_, handle)  :: h) 
-                                      writeIORef counter (i+1)
-                                      let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
-                                      pure $ MkPromiseNodeRef procResult cancel isFinished
+callStreamAccum s sc y r0 acc = 
+  streamAccumSetup sc s (toJson y) fromJson r0 acc
 
-accListWithId : (Eq t) => Change t -> List t -> List t
-accListWithId x xs = 
+accList : (Eq t) => Change t -> List t -> List t
+accList x xs = 
   let old_val = the (Maybe t) (get "old_val" x)
       new_val = the (Maybe t) (get "new_val" x)
   in case (old_val, new_val) of
@@ -337,7 +354,7 @@ export
 callStreamChangesAccumList : (s : String) -> (JsonSerializable a, JsonSerializable (Change b), HasValue s (StreamService a (Change b)) ts, Eq b) => 
                ServerConnection ts -> a -> Widget (List b)
 callStreamChangesAccumList s conn x = 
-  callStreamAccum s conn x [] accListWithId
+  callStreamAccum s conn x [] accList
 
 export
 runWidget : Widget () -> IO ()

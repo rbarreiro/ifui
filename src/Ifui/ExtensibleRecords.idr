@@ -164,7 +164,7 @@ export
   show (MkEntry s x) = s ++ "^= " ++ show x
 
 public export
-interface HasValue (0 k : a) (0 t : b) (0 ts : UKeyList a b) where
+interface HasValue (0 k : a) (0 t : b) (0 ts : UKeyList a b) | a, ts where
   hasValue : Elem k t ts
 
 

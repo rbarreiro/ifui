@@ -3,6 +3,7 @@ module Ifui.Bulma
 import Data.Vect
 import Ifui.Widget
 import Ifui.Patterns
+import Data.List
 
 class__ : String -> WidgetAttribute b
 class__ x = WidgetSimpleAttribute $ CSSClassAttr x
@@ -33,11 +34,20 @@ optionsToAttributes : List BulmaStyleOption -> List (WidgetAttribute a)
 optionsToAttributes xs = (\(MkBulmaStyleOption z) => class__ z)  <$> xs
 
 export
-div : {default [] styleOptions : List BulmaStyleOption} -> List (Widget a) -> Widget a
-div xs = node "div" (optionsToAttributes styleOptions) xs
+div : {default Nothing  onclick : Maybe a}  -> {default [] styleOptions : List BulmaStyleOption} -> List (Widget a) -> Widget a
+div xs = node "div" ((optionsToAttributes styleOptions) ++ (catMaybes [onClick_ <$> onclick])) xs
 
+export
+data BulmaButtonStyleOption = MkBulmaButtonStyleOption String
 
+buttonOptionsToAttributes : List BulmaButtonStyleOption -> List (WidgetAttribute a)
+buttonOptionsToAttributes xs = (\(MkBulmaButtonStyleOption z) => class__ z)  <$> xs
 
+export
+button : {default [] styleOptions : List BulmaButtonStyleOption} -> String -> a -> Widget a
+button label x = node "button" (([class__ "button", onClick_ x] ++ buttonOptionsToAttributes styleOptions)) [text label]
+
+export
 navbar : Widget a -> List (Widget a) -> List (Widget a) -> Widget a
 navbar navbarBrand navbarStart navbarEnd = 
   node "nav" [class__ "navbar"] [
