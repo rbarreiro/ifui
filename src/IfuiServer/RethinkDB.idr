@@ -344,22 +344,3 @@ export
 getChanges' : JsonSerializable (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Change a)
 getChanges' s e = onErrPrint $ getChanges s e
 
-updateListWithChange : {auto p : UKeyListCanPrepend ("id", String) fl} -> Change (Record (("id", String) :: fl)) -> List (Record (("id", String) :: fl)) -> List (Record (("id", String) :: fl))
-
-export
-createTableServices : {auto p : UKeyListCanPrepend ("id", String) fl} -> (db : String) -> (tbl : String) -> 
-                         (HasValue (db, tbl) (("id", String) :: fl) ts, JsonSerializable (Record fl), JsonSerializable  (Record (("id", String) :: fl))) => 
-                              (JsonSerializable (Change (Record (("id", String) :: fl)))) =>    
-                                   (s : String) -> RethinkServer ts -> Service s (CRUDCollection String (Record fl) (List (Record (("id", String) :: fl))))
-createTableServices db tbl s x = 
-  let 
-      table = GetTable db tbl
-      changesStream : IOStream (Change (Record (("id", String) :: fl)))
-      changesStream = getChanges' x $ GetChanges {includeInitial = True} $  ReadTable table
-
-      updatedViewStream : IOStream (List (Record (("id", String) :: fl)))
-      updatedViewStream = accum [] (updateListWithChange <$> changesStream)
-      insertPromise : Record fl -> Promise (Maybe String)
-      insertPromise w = run' x $ GetField "first_error" <| Insert table (Lit [w])
-  in MkCRUDCollectionService s (MkCRUDOperations updatedViewStream insertPromise)
-
