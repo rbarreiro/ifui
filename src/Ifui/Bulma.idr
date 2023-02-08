@@ -34,8 +34,12 @@ optionsToAttributes : List BulmaStyleOption -> List (WidgetAttribute a)
 optionsToAttributes xs = (\(MkBulmaStyleOption z) => class__ z)  <$> xs
 
 export
-div : {default Nothing  onclick : Maybe a}  -> {default [] styleOptions : List BulmaStyleOption} -> List (Widget a) -> Widget a
+div : {default Nothing onclick : Maybe a} -> {default [] styleOptions : List BulmaStyleOption} -> List (Widget a) -> Widget a
 div xs = node "div" ((optionsToAttributes styleOptions) ++ (catMaybes [onClick_ <$> onclick])) xs
+
+export
+span : {default Nothing onclick : Maybe a} -> {default [] styleOptions : List BulmaStyleOption} -> List (Widget a) -> Widget a
+span xs = node "span" ((optionsToAttributes styleOptions) ++ (catMaybes [onClick_ <$> onclick])) xs
 
 export
 data BulmaButtonStyleOption = MkBulmaButtonStyleOption String
@@ -150,4 +154,31 @@ formBulma f v0 =
                                       [text "Cancel"]] 
                   ]
 
+export
+box : List (Widget a) -> Widget a
+box xs = node "div" [class__ "box"] xs
 
+export
+card : {default Nothing headerTitle : Maybe String} -> {default [] footerItems: List (Widget a)} -> List (Widget a) -> Widget a
+card xs = 
+  let header = case headerTitle of 
+                    Nothing => []
+                    Just str => [node "header" [class__ "card-header"] [node "p" [class__ "card-header-title"] [text str]]]
+      content = case xs of
+                     [] => []
+                     o => [node "div" [class__ "card-content"] o]
+      footer = case footerItems of
+                    [] => []
+                    o => [node "footer" [class__ "card-footer"] ((\x => node "span" [class__ "card-footer-item"] [x]) <$> footerItems) ]
+  in node "div" [class__ "card"] (header ++ content ++ footer)
+
+export
+fasIconText : {default Nothing onclick : Maybe a} -> String -> String -> Widget a
+fasIconText icon str =
+  let attrs = case onclick of
+                   Nothing => []
+                   Just x => [onClick_ x]
+  in node "span" (class__ "icon-text" :: attrs) [
+       node "span" [class__ "icon"] [node "i" [class__ "fas", class__ icon] []],
+       node "span" [] [text str]
+     ]

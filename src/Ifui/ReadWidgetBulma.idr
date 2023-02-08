@@ -4,7 +4,7 @@ import Ifui
 import Data.Maybe
 import Data.Vect
 import public Ifui.ExtensibleRecords
-import Ifui.Bulma
+import public Ifui.Bulma
 
 export
 data Reader a = MkReader (Widget (Reader a)) (Maybe a)

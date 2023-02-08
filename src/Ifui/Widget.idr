@@ -313,14 +313,6 @@ streamAccumSetup (MkServerConnection url socket srv counter handles) s input out
             let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
             pure $ MkPromiseNodeRef procResult cancel isFinished
 
-streamUpdatedCollection : (s : String) -> (HasValue s (CRUDCollection id create view) ts, JsonSerializable view) => ServerConnection ts -> Widget view
-streamUpdatedCollection s sc = 
-  streamSetup sc s (JString "stream_updated_collection") fromJson 
-
-insertToCollection : (s : String) -> (HasValue s (CRUDCollection id create view) ts, JsonSerializable create) => ServerConnection ts -> create -> Widget (Maybe String)
-insertToCollection s sc x = 
-  rpcSetup sc s (JArray [JString "intert", toJson x]) fromJson
-
 export
 callRPC : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (RPC a b) ts) => 
             ServerConnection ts -> a -> Widget b
