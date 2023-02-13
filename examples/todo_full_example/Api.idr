@@ -3,13 +3,14 @@ module Api
 import IfuiServer
 import IfuiServer.RethinkDB
 
-public export
-DBTy : UKeyList (String, String) FieldList
-DBTy = [(("todoApp", "todoItem"), [("id", String), ("desc", String)])]
 
 public export
-Schema : ServerSchema DBTy
-Schema = [MkTableSchema "todoApp" "todoItem" IString  [("desc", SString)]]
+Schema : ServerSchema 
+Schema = [MkTableSchema "todoApp" "todoItem" String  [("desc", String)]]
+
+public export
+DBTy : UKeyList (String, String) FieldList
+DBTy = ServerSchemaTy Schema
 
 public export
 ApiServices : UKeyList String ServiceKind

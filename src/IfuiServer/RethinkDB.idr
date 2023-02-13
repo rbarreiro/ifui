@@ -55,35 +55,45 @@ export
 (|>) : Expr db ctxt a -> Expr db ctxt (a -> b) -> Expr db ctxt b
 (|>) x f = App f x
 
-public export
-data IdType = IString
+interface KeyType a where
+
+KeyType Int where
+KeyType String where
 
 public export
-InterpIT : IdType -> Type
-InterpIT IString = String
+data TableSchema : Type where
+  MkTableSchema : (d : String) -> (n : String) -> (idTy : Type) -> 
+                          (ts : UKeyList String Type) -> {auto noIdPrf : UKeyListCanPrepend ("id", idTy) ts}  -> 
+                              (KeyType idTy, JsonSerializable (Record (("id", idTy) :: ts))) =>
+                                     TableSchema
 
 public export
-data StorableType = SString
-                  | SRecord (UKeyList String StorableType)
+TableSchemaFields : TableSchema -> FieldList
+TableSchemaFields (MkTableSchema _ _ idTy ts) = ("id", idTy) :: ts
 
 public export
-InterpST : StorableType -> Type
-InterpST SString = String
-InterpST (SRecord ts) = Record (mapValues InterpST ts)
+TableSchemaDB : TableSchema -> String
+TableSchemaDB (MkTableSchema d _ _ _) = d
 
 public export
-data TableSchema : String -> String -> FieldList -> Type where
-  MkTableSchema : (d : String) -> (c : String) -> (idTy : IdType) -> 
-                          (ts : UKeyList String StorableType) -> {auto noIdPrf : UKeyListCanPrepend ("id", InterpIT idTy) (mapValues InterpST ts)}  -> 
-                                             TableSchema d c ((::) {p=noIdPrf} (("id", InterpIT idTy)) (mapValues InterpST ts))
+TableSchemaName : TableSchema -> String
+TableSchemaName (MkTableSchema _ n _ _) = n
 
-public export
-data ServerSchema : UKeyList (String, String) FieldList -> Type where
-  Nil : ServerSchema [] 
-  (::) : TableSchema db tbl ts -> ServerSchema rs -> {auto p : UKeyListCanPrepend ((db, tbl), ts) rs} -> ServerSchema ( (::) ((db, tbl), ts) rs {p=p})
+mutual
+  public export
+  data ServerSchema : Type where
+    Nil : ServerSchema
+    (::) : (t : TableSchema) -> (s : ServerSchema) -> 
+               {auto p : UKeyListCanPrepend ((TableSchemaDB t, TableSchemaName t), TableSchemaFields t) (ServerSchemaTy s)} -> 
+                   ServerSchema
+
+  public export
+  ServerSchemaTy : ServerSchema -> UKeyList (String, String) FieldList
+  ServerSchemaTy [] = []
+  ServerSchemaTy ((::) t s {p}) = (::) ((TableSchemaDB t, TableSchemaName t), TableSchemaFields t) (ServerSchemaTy s) {p = p}
   
-test : ServerSchema [(("todoApp", "todoItem"), [("id", String), ("desc", String)])]
-test = [MkTableSchema "todoApp" "todoItem" IString [("desc", SString)]]
+test : ServerSchema
+test = [MkTableSchema "todoApp" "todoItem" Int [("desc", String)]]
 
 export
 data RethinkServer : UKeyList (String, String) FieldList -> Type where
@@ -138,10 +148,10 @@ prim__insert_table_version : AnyPtr -> String -> String -> AnyPtr
 %foreign "node:lambda: (host, port, callback)  => {const r = require('rethinkdb'); r.connect({host:host, port: port}, (err, conn) => callback(err)(conn)())}"
 prim__connect : String -> Int -> (AnyPtr -> AnyPtr -> PrimIO ()) -> PrimIO ()
 
-getDbTableNames : TableSchema d t xs -> List String
+getDbTableNames : TableSchema -> List String
 getDbTableNames (MkTableSchema d t i ts) = [d, t]
 
-migrateTable : AnyPtr -> TableSchema d t xs -> Int -> AnyPtr -> Promise (Maybe String)
+migrateTable : AnyPtr -> TableSchema -> Int -> AnyPtr -> Promise (Maybe String)
 migrateTable r (MkTableSchema d t i ts) 0 conn =
   do
     let create = prim__table_if_not_exists r d t
@@ -155,11 +165,11 @@ migrateTable r x v conn =
   pure $ Just "Unexpected version \{show v} for table \{show (getDbTableNames x)}"
 
 
-getVersion : TableSchema d t xs -> List (Record [("id", List String), ("version", Int)]) -> Int
+getVersion : TableSchema -> List (Record [("id", List String), ("version", Int)]) -> Int
 getVersion x versions = 
   fromMaybe 0 $ get {k="version"} <$> find (\w => getDbTableNames x == get "id" w) versions
 
-migrateServer : AnyPtr -> ServerSchema ts -> List (Record [("id", List String), ("version", Int)]) -> AnyPtr -> Promise (Maybe String)
+migrateServer : AnyPtr -> ServerSchema -> List (Record [("id", List String), ("version", Int)]) -> AnyPtr -> Promise (Maybe String)
 migrateServer r [] versions conn = 
   pure Nothing
 migrateServer r (x :: y) versions conn =
@@ -167,7 +177,7 @@ migrateServer r (x :: y) versions conn =
     Nothing <- migrateTable r x (getVersion x versions) conn | Just e => pure $ Just e
     migrateServer r y versions conn
 
-doMigration : ServerSchema ts -> AnyPtr -> Promise (Maybe String)
+doMigration : ServerSchema -> AnyPtr -> Promise (Maybe String)
 doMigration s conn = 
   do
     let r =  prim__r ()
@@ -183,7 +193,7 @@ doMigration s conn =
          Left err => pure $ Just err
 
 export
-connect :  String -> Int -> ServerSchema ts -> Promise (Either String (RethinkServer ts))
+connect :  String -> Int -> (s : ServerSchema) -> Promise (Either String (RethinkServer (ServerSchemaTy s)))
 connect host port x = 
   MkPromise $ \w =>
     do
@@ -200,7 +210,7 @@ connect host port x =
       pure $ MkPromiseHandler (pure ())
 
 export
-connect' :  String -> Int -> ServerSchema ts -> Promise (RethinkServer ts)
+connect' :  String -> Int -> (s : ServerSchema) -> Promise (RethinkServer (ServerSchemaTy s))
 connect' host port x = onErrPrint $ connect host port x
 
 public export
