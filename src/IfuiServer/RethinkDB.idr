@@ -55,9 +55,12 @@ export
 (|>) : Expr db ctxt a -> Expr db ctxt (a -> b) -> Expr db ctxt b
 (|>) x f = App f x
 
+public export
 interface KeyType a where
 
+export
 KeyType Int where
+export
 KeyType String where
 
 public export
