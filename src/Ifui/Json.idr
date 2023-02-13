@@ -180,7 +180,8 @@ export
               else Nothing
   fromJsonTreeHeads _ _ = 
     Nothing
- 
+
+export
 {s : String} -> {pp : UKeyListCanPrepend (s, f) ts} -> (JsonSerializable1 f, JsonSerializableTreeHeads ts) => JsonSerializableTreeHeads ((s, f) :: ts) where
   toJsonTreeHeads s KHere x cont = 
     JObject [("k", JString s), ("v", toJson1 x cont)]
@@ -206,8 +207,11 @@ JsonSerializableTreeHeads ts => JsonSerializable (Tree ts) where
       (k ** (p ** x)) <- fromJsonTreeHeads {ts=ts} x fromJson
       pure $ N k x {p=p}
 
+testTree : Tree [("Record", UKeyList String), ("String", const ())]
+testTree = N "String" ()
 
-
+testJ : JSON
+testJ = toJson testTree
 
 %foreign "javascript:lambda: x => JSON.stringify(x)"
 export
