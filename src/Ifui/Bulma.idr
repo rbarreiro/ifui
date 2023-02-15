@@ -52,6 +52,10 @@ button : {default [] styleOptions : List BulmaButtonStyleOption} -> String -> a 
 button label x = node "button" (([class__ "button", onClick_ x] ++ buttonOptionsToAttributes styleOptions)) [text label]
 
 export
+container : List (Widget a) -> Widget a
+container x = node "div" [class__ "container"] x
+
+export
 navbar : Widget a -> List (Widget a) -> List (Widget a) -> Widget a
 navbar navbarBrand navbarStart navbarEnd = 
   node "nav" [class__ "navbar"] [
@@ -65,7 +69,7 @@ navbar navbarBrand navbarStart navbarEnd =
   ]
   where
     nitem : Widget a -> Widget a
-    nitem x = node "div" [class__ "navbar-item"] [x]
+    nitem x = node "a" [class__ "navbar-item"] [x]
 
 export
 column : Widget a -> Column a
