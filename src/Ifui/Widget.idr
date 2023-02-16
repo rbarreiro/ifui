@@ -252,6 +252,13 @@ data ServicesConnection : UKeyList String ServiceKind -> Type where
   Base : (0 ts : UKeyList String ServiceKind) -> ConnectionInfo -> ServicesConnection ts
   Sub : (s : String)  -> HasValue s (GroupService xs) ts => ServicesConnection ts -> ServicesConnection xs
 
+infixl 6 //
+
+export
+(//) : ServicesConnection ts -> (s : String) -> HasValue s (GroupService xs) ts => ServicesConnection xs
+(//) g s = Sub s g
+
+
 serverConnect : String -> (0 server : UKeyList String ServiceKind) -> (ServicesConnection server -> IO ()) -> IO ()
 serverConnect url server onOpen = serverConnect' url (\x => onOpen $ Base server x)
 
