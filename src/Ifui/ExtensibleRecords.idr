@@ -73,6 +73,11 @@ namespace UKeyList
   klookup ((k, v) :: xs) KHere = v
   klookup (y :: xs) (KThere x) = klookup xs x
 
+  public export
+  lookup' : (ts : UKeyList a b) -> (k : a) -> {auto p : KElem k ts} -> b
+  lookup' ((_, v) :: _) k {p = KHere} = v
+  lookup' (y :: xs) k {p = (KThere x)} = lookup' xs k {p = x}
+
   export
   calcCanPrepend : DecEq keys  => (x : (keys, b)) -> (l : UKeyList keys b) -> Maybe (UKeyListCanPrepend x l)
   calcCanPrepend x [] = 
