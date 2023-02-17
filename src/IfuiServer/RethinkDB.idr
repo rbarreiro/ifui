@@ -357,3 +357,11 @@ export
 getChanges' : JsonSerializable (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Change a)
 getChanges' s e = onErrPrint $ getChanges s e
 
+export
+insert1' : JsonSerializable (List (Record ts)) =>  RethinkServer db ->  Expr db [] (Table ts) -> Record ts  -> Promise (Maybe String)
+insert1' r t x =
+  do
+    res <- run r (Insert' t (Lit [x]))
+    case res of
+         (Left y) => pure $ Just y
+         (Right y) => pure $ get "first_error" y
