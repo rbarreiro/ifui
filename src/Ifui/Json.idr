@@ -100,7 +100,13 @@ export
       w <- fromJson {a=t} j
       pure $ MkEntry s w :: ws
 
+export
+JsonSerializable (Record ts) => JsonSerializable (Maybe (Record ts)) where
+  toJson Nothing = JNull
+  toJson (Just x) = toJson x
 
+  fromJson JNull = Just Nothing
+  fromJson o = Just <$> fromJson o
 
 export
 {s : String} -> JsonSerializable t => JsonSerializable (Variant [(s, t)]) where
