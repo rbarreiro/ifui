@@ -19,13 +19,9 @@ todosInsert srv =
 
 
 todosView : (HasValue "todoList" (StreamService () (Change String)) ts)  =>  
-              ServerConnection ts -> Maybe (List String) -> Widget a
-todosView srv todos =
-  do
-   r <- div [callStreamChangesAccumList "todoList" srv (), text $ show todos]
-   todosView srv $ Just r  
-
-
+              ServerConnection ts -> Widget a
+todosView srv =
+  callStreamChangesAccumList "todoList" srv () (\x => text $ show todos)
 
 mainWidget : Widget ()
 mainWidget =
@@ -34,7 +30,7 @@ mainWidget =
     loginRes <- serverConnectWithAuth "ws://\{!getLocationHostname}:6402" login RoleServer 
     case loginRes of
          (False ** _) => text "Failed Login"
-         (True ** srv) => div [todosInsert srv, todosView srv Nothing]
+         (True ** srv) => div [todosInsert srv, todosView srv]
 
 main : IO ()
 main =

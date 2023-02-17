@@ -7,6 +7,7 @@ import public Ifui.ExtensibleRecords
 import Ifui.WebSocketsClient
 import Data.IORef
 import Ifui.Json
+import Ifui.Patterns
 import Data.Maybe
 import Data.List
 
@@ -354,15 +355,27 @@ callRPC s sc y =
 
 export
 callStream : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (StreamService a b) ts) => 
-               ServicesConnection ts -> a -> Widget b
-callStream s sc y = 
-  streamSetup (getConnectionInfo sc) s (addServicePathToInput sc $ toJson y) fromJson
+               ServicesConnection ts -> a -> (b -> Widget c) -> Widget c
+callStream s sc y w = 
+  let stream : Widget b
+      stream = streamSetup (getConnectionInfo sc) s (addServicePathToInput sc $ toJson y) fromJson
+
+      w_ : Maybe b -> Widget c
+      w_ Nothing = neutral
+      w_ (Just x) = w x
+  in loopState Nothing (\x => ((Left . Just) <$> stream)  <+> (Right <$> w_ x) )
  
 export
 callStreamAccum : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (StreamService a b) ts) => 
-               ServicesConnection ts -> a -> c -> (b -> c -> c) -> Widget c
-callStreamAccum s sc y r0 acc = 
-  streamAccumSetup (getConnectionInfo sc) s (addServicePathToInput sc $ toJson y) fromJson r0 acc
+               ServicesConnection ts -> a -> c -> (b -> c -> c) -> (c -> Widget d) -> Widget d
+callStreamAccum s sc y r0 acc w = 
+  let stream : Widget c
+      stream = streamAccumSetup (getConnectionInfo sc) s (addServicePathToInput sc $ toJson y) fromJson r0 acc
+
+      w_ : Maybe c -> Widget d
+      w_ Nothing = neutral
+      w_ (Just x) = w x
+  in loopState Nothing (\x => ((Left . Just) <$> stream)  <+> (Right <$> w_ x) )
 
 accList : (Eq t) => Change t -> List t -> List t
 accList x xs = 
@@ -376,7 +389,7 @@ accList x xs =
   
 export
 callStreamChangesAccumList : (s : String) -> (JsonSerializable a, JsonSerializable (Change b), HasValue s (StreamService a (Change b)) ts, Eq b) => 
-               ServicesConnection ts -> a -> Widget (List b)
+               ServicesConnection ts -> a -> (List b -> Widget c) -> Widget c
 callStreamChangesAccumList s conn x = 
   callStreamAccum s conn x [] accList
 
