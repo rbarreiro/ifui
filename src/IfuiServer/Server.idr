@@ -88,7 +88,7 @@ onMessageFn cancelHandles server wsc msg =
                do
                  removeHandle i cancelHandles
                  x
-       Just (JArray [JString srv, JString i, x]) => 
+       Just (JArray [JString i, JArray [JString srv, x]]) => 
           runService cancelHandles wsc srv server i x
        Nothing => 
         do

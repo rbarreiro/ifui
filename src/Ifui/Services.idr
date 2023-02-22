@@ -15,7 +15,7 @@ namespace SubFields
   public export
   data SubFields : FieldList -> FieldList -> Type where
     Nil : SubFields [] ts
-    (::) : HasValue k t ts => {auto p : UKeyListCanPrepend (k, t) ss} -> SubFields ss ts -> SubFields ((k, t) :: ss) ts
+    (::) : {pk : KElem k ts} ->  {auto pp : UKeyListCanPrepend (k, klookup ts pk) ss} -> SubFields ss ts -> SubFields ((k, klookup ts pk) :: ss) ts
   
 
 public export

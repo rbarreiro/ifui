@@ -28,31 +28,31 @@ data Changes : Type -> Type where
 
 
 public export
-data Expr : UKeyList (String, String) FieldList -> List (String, Type) -> Type -> Type where
-    Var : (name : String) -> HasVar name t ctxt  -> Expr db ctxt t
-    Lambda : (arg : String) -> (a : Type)  -> Expr db ((arg, a) :: ctxt) b ->  Expr db ctxt (a -> b)
-    App : Expr db ctxt (a -> b) -> Expr db ctxt a -> Expr db ctxt b
-    GetTable : (d : String) -> (t : String) -> HasValue (d, t) ts db  => Expr db ctxt (Table ts)
-    ReadTable : Expr db ctxt (Table ts) -> Expr db ctxt (Cursor (Record ts))
-    GetChanges : (e : Expr db ctxt (Cursor t)) -> {default False includeInitial : Bool} -> Expr db ctxt (Changes t)
-    Insert' : Expr db ctxt (Table ts) -> Expr db ctxt (List (Record ts)) -> Expr db ctxt (Record [("first_error", Maybe String)])
-    Insert : {auto p : UKeyListCanPrepend ("id", String) ts} -> Expr db ctxt (Table ((::) ("id", String) ts)) -> 
-                Expr db ctxt (List (Record ts)) -> Expr db ctxt (Record [("first_error", Maybe String)])
-    Lit : JsonSerializable a => a -> Expr db ctxt a
-    StrEq : Expr db ctxt (String -> String -> Bool)
-    GetField : (key : String) -> HasValue key t fields  => Expr db ctxt (Record fields -> t)
-    MapCursor : Expr db ctxt ((a -> b) -> Cursor a -> Cursor b)
+data Query : UKeyList (String, String) FieldList -> List (String, Type) -> Type -> Type where
+    Var : (name : String) -> HasVar name t ctxt  -> Query db ctxt t
+    Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
+    App : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
+    GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (klookup db p))
+    ReadTable : Query db ctxt (Table ts) -> Query db ctxt (Cursor (Record ts))
+    GetChanges : {default False includeInitial : Bool} -> (e : Query db ctxt (Cursor t)) -> Query db ctxt (Changes t)
+    Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
+    Insert : {auto p : UKeyListCanPrepend ("id", String) ts} -> Query db ctxt (Table ((::) ("id", String) ts)) -> 
+                Query db ctxt (List (Record ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
+    Lit : JsonSerializable a => a -> Query db ctxt a
+    StrEq : Query db ctxt (String -> String -> Bool)
+    GetField : (key : String) -> {auto p : KElem key fields} -> Query db ctxt (Record fields -> klookup fields p)
+    MapCursor : Query db ctxt ((a -> b) -> Cursor a -> Cursor b)
 
 
 infixr 0 |>
 infixl 1 <|
 
 export
-(<|) : Expr db ctxt (a -> b) -> Expr db ctxt a -> Expr db ctxt b
+(<|) : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
 (<|) = App
 
 export
-(|>) : Expr db ctxt a -> Expr db ctxt (a -> b) -> Expr db ctxt b
+(|>) : Query db ctxt a -> Query db ctxt (a -> b) -> Query db ctxt b
 (|>) x f = App f x
 
 public export
@@ -170,7 +170,7 @@ migrateTable r x v conn =
 
 getVersion : TableSchema -> List (Record [("id", List String), ("version", Int)]) -> Int
 getVersion x versions = 
-  fromMaybe 0 $ get {k="version"} <$> find (\w => getDbTableNames x == get "id" w) versions
+  fromMaybe 0 $ (\x => get "version" x) <$> find (\w => getDbTableNames x == get "id" w) versions
 
 migrateServer : AnyPtr -> ServerSchema -> List (Record [("id", List String), ("version", Int)]) -> AnyPtr -> Promise (Maybe String)
 migrateServer r [] versions conn = 
@@ -255,30 +255,30 @@ prim__changes : AnyPtr -> AnyPtr -> AnyPtr
 prim__rmap : AnyPtr -> AnyPtr
 
 
-compileExpr : AnyPtr -> VarStack ctxt ->  Expr db ctxt r -> AnyPtr 
-compileExpr r vars (Var name x) = 
+compileQuery : AnyPtr -> VarStack ctxt ->  Query db ctxt r -> AnyPtr 
+compileQuery r vars (Var name x) = 
   getVar x vars
-compileExpr r vars (Lambda arg a x) = 
-  fnToPtr $ \w => compileExpr r (AddVar arg w vars) x
-compileExpr r vars (App f x) = 
-  prim__app r (compileExpr r vars f) (compileExpr r vars x)
-compileExpr r vars (GetTable d t) = 
+compileQuery r vars (Lambda arg a x) = 
+  fnToPtr $ \w => compileQuery r (AddVar arg w vars) x
+compileQuery r vars (App f x) = 
+  prim__app r (compileQuery r vars f) (compileQuery r vars x)
+compileQuery r vars (GetTable d t) = 
   prim__getTable r d t
-compileExpr r vars (ReadTable x) = 
-  compileExpr r vars x
-compileExpr r vars (GetChanges x {includeInitial = includeInitial}) = 
-  prim__changes (compileExpr r vars x) (json2ptr $ JObject [("includeInitial", JBoolean includeInitial)])
-compileExpr r vars (Insert t xs) = 
-  prim__insert (compileExpr r vars t) (compileExpr r vars xs)
-compileExpr r vars (Insert' t xs) = 
-  prim__insert (compileExpr r vars t) (compileExpr r vars xs)
-compileExpr r vars (Lit x) = 
+compileQuery r vars (ReadTable x) = 
+  compileQuery r vars x
+compileQuery r vars (GetChanges x {includeInitial = includeInitial}) = 
+  prim__changes (compileQuery r vars x) (json2ptr $ JObject [("includeInitial", JBoolean includeInitial)])
+compileQuery r vars (Insert t xs) = 
+  prim__insert (compileQuery r vars t) (compileQuery r vars xs)
+compileQuery r vars (Insert' t xs) = 
+  prim__insert (compileQuery r vars t) (compileQuery r vars xs)
+compileQuery r vars (Lit x) = 
   prim__expr r $ toPtr x
-compileExpr r vars StrEq = 
+compileQuery r vars StrEq = 
   prim__req r 
-compileExpr r vars (GetField key) = 
+compileQuery r vars (GetField key) = 
   prim__rget key
-compileExpr r vars MapCursor =
+compileQuery r vars MapCursor =
   prim__rmap r
 
 
@@ -286,39 +286,39 @@ compileExpr r vars MapCursor =
 prim__toString : AnyPtr -> String
 
 export
-debugShowExpr : Expr db [] t -> String
-debugShowExpr x =
+debugShowQuery : Query db [] t -> String
+debugShowQuery x =
   let r = prim__r ()
-      e = compileExpr r Empty x
+      e = compileQuery r Empty x
   in prim__toString e
 
 export
-run : JsonSerializable a => RethinkServer ts -> Expr ts [] a -> Promise (Either String a)
+run : JsonSerializable a => RethinkServer ts -> Query ts [] a -> Promise (Either String a)
 run (MkRethinkServer s) e = 
   do
     let r = prim__r ()
-    let query = compileExpr r Empty e
+    let query = compileQuery r Empty e
     z <- runPtr query s
     case z of 
          Left err => pure $ Left err
-         Right ptr => pure $ readResultPtr "run \{debugShowExpr e}"  ptr
+         Right ptr => pure $ readResultPtr "run \{debugShowQuery e}"  ptr
 
 export
-run' : JsonSerializable a => RethinkServer ts -> Expr ts [] a -> Promise a
+run' : JsonSerializable a => RethinkServer ts -> Query ts [] a -> Promise a
 run' x y = onErrPrint $ run x y
 
 export
-toArray : JsonSerializable a => RethinkServer ts -> Expr ts [] (Cursor a) -> Promise (Either String (List a))
+toArray : JsonSerializable a => RethinkServer ts -> Query ts [] (Cursor a) -> Promise (Either String (List a))
 toArray (MkRethinkServer s) e = 
   do
     let r = prim__r ()
-    let query = compileExpr r Empty e
+    let query = compileQuery r Empty e
     Right z <- runPtr query s | Left e => pure $ Left e
     Right res <- toArrayPtr z | Left e => pure $ Left e
-    pure $ readResultPtr "toArray \{debugShowExpr e}" res
+    pure $ readResultPtr "toArray \{debugShowQuery e}" res
 
 export
-toArray' : JsonSerializable a => RethinkServer ts -> Expr ts [] (Cursor a) -> Promise (List a)
+toArray' : JsonSerializable a => RethinkServer ts -> Query ts [] (Cursor a) -> Promise (List a)
 toArray' s e = onErrPrint $ toArray s e
 
 %foreign "node:lambda: (cursor, callback)  => cursor.each((err, res) => callback(err ? err + '' : '')(res)())"
@@ -332,19 +332,19 @@ prim__add_null_key : String -> AnyPtr -> AnyPtr
 
 
 export
-getChanges : JsonSerializable (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Either String (Change a))
+getChanges : JsonSerializable (Change a) => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Either String (Change a))
 getChanges (MkRethinkServer conn) e =
    MkIOStream $ \w => do
     let r = prim__r ()
     cursor <- newIORef $ the (Maybe AnyPtr) Nothing
     canceled <- newIORef False
-    let query = compileExpr r Empty e
+    let query = compileQuery r Empty e
     primIO $ prim__run query conn $ 
       \err, result => toPrim $ if err == "" then 
                                              if !(readIORef canceled) 
                                                 then primIO $ prim__close result (\x => toPrim $ pure ())
                                                 else primIO $ prim__each result $ \err_, r => 
-                                                   if err_ == "" then toPrim $ w $ readResultPtr "getChanges \{debugShowExpr e}" (prim__add_null_key "old_val" r)
+                                                   if err_ == "" then toPrim $ w $ readResultPtr "getChanges \{debugShowQuery e}" (prim__add_null_key "old_val" r)
                                                                  else toPrim $ w $ Left err
                                              else w $ Left err
     pure $ MkStreamHandler $ do 
@@ -354,11 +354,11 @@ getChanges (MkRethinkServer conn) e =
            Just c => primIO $ prim__close c (\x => toPrim $ pure ())           
 
 export
-getChanges' : JsonSerializable (Change a) => RethinkServer ts -> Expr ts [] (Changes a) -> IOStream (Change a)
+getChanges' : JsonSerializable (Change a) => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Change a)
 getChanges' s e = onErrPrint $ getChanges s e
 
 export
-insert1' : JsonSerializable (List (Record ts)) =>  RethinkServer db ->  Expr db [] (Table ts) -> Record ts  -> Promise (Maybe String)
+insert1' : JsonSerializable (List (Record ts)) =>  RethinkServer db ->  Query db [] (Table ts) -> Record ts  -> Promise (Maybe String)
 insert1' r t x =
   do
     res <- run r (Insert' t (Lit [x]))

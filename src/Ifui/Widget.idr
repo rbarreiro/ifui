@@ -249,27 +249,31 @@ serverConnectWithAuth' url login  =
 
 
 export
-data ServicesConnection : UKeyList String ServiceKind -> Type where
-  Base : (0 ts : UKeyList String ServiceKind) -> ConnectionInfo -> ServicesConnection ts
-  Sub : (s : String)  -> HasValue s (GroupService xs) ts => ServicesConnection ts -> ServicesConnection xs
+data SrvRef : ServiceKind -> Type where
+  Base : ConnectionInfo -> SrvRef t
+  Sub : (s : String)  -> SrvRef r -> SrvRef t
+
 
 infixl 6 //
 
 export
-(//) : ServicesConnection ts -> (s : String) -> HasValue s (GroupService xs) ts => ServicesConnection xs
+(//) : SrvRef (GroupService ts) -> (s : String) -> {auto p : KElem s ts}  -> SrvRef (klookup ts p)
 (//) g s = Sub s g
 
+serviceConnectionPathStr : SrvRef x -> String
+serviceConnectionPathStr (Base (MkConnectionInfo url socket counter handles)) = url
+serviceConnectionPathStr (Sub s y) = serviceConnectionPathStr y ++ "/" ++ s
 
-serverConnect : String -> (0 server : UKeyList String ServiceKind) -> (ServicesConnection server -> IO ()) -> IO ()
-serverConnect url server onOpen = serverConnect' url (\x => onOpen $ Base server x)
+serverConnect : String -> (0 server : UKeyList String ServiceKind) -> (SrvRef (GroupService server) -> IO ()) -> IO ()
+serverConnect url server onOpen = serverConnect' url (\x => onOpen $ Base x)
 
 export
 serverConnectWithAuth : (JsonSerializable loginTy, JsonSerializable roleTy) => String -> loginTy -> 
-                        (sf : roleTy -> UKeyList String ServiceKind) -> Widget (DPair roleTy (\r => ServicesConnection (sf r)))
+                        (sf : roleTy -> UKeyList String ServiceKind) -> Widget (DPair roleTy (\r => SrvRef (GroupService (sf r))))
 serverConnectWithAuth url login sf = 
   do
      (r, z) <- serverConnectWithAuth' url login
-     pure $ (r ** (Base (sf r) z))
+     pure $ (r ** (Base z))
 
 removeHandle : String -> IORef (List (String, a)) -> IO ()
 removeHandle str x = 
@@ -277,59 +281,59 @@ removeHandle str x =
    h <- readIORef x
    writeIORef x (deleteBy (\x, (y,_) => x == y)  str h)
 
-streamSetup : ConnectionInfo -> String -> JSON -> (JSON -> Maybe a)  -> Widget a
-streamSetup (MkConnectionInfo url socket counter handles) s input outputReader = 
+streamSetup : String -> ConnectionInfo -> JSON -> (JSON -> Maybe a)  -> Widget a
+streamSetup path (MkConnectionInfo url socket counter handles) input outputReader = 
    MarkupWidget $ \n, onEvt => 
      do
         let proc = \ptr => do
           let j = ptr2json_ ptr
-          fromMaybe (putStrLn $ "invalid json in service \{s}")  (onEvt <$> outputReader j)
-        setNodePromise n ("streamService/" ++ url ++ "/" ++ s ++ "?" ++ show input) proc  $ do
+          fromMaybe (putStrLn $ "invalid json in service \{path}")  (onEvt <$> outputReader j)
+        setNodePromise n ("streamService/" ++ url ++ "/" ++ "?" ++ show input) proc  $ do
           h <- readIORef handles
           i <- readIORef counter
           isFinished <- newIORef False
           let i_ = show i
-          send socket (show $ JArray [JString s, JString i_, input])
+          send socket (show $ JArray [JString i_, input])
           procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
           writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j))  :: h) 
           writeIORef counter (i+1)
           let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
           pure $ MkPromiseNodeRef procResult cancel isFinished
 
-rpcSetup : ConnectionInfo -> String -> JSON -> (JSON -> Maybe a)  -> Widget a
-rpcSetup (MkConnectionInfo url socket counter handles) s input outputReader = 
+rpcSetup : String -> ConnectionInfo -> JSON -> (JSON -> Maybe a)  -> Widget a
+rpcSetup path (MkConnectionInfo url socket counter handles) input outputReader = 
    MarkupWidget $ \n, onEvt => 
                                  do
                                     let proc = \ptr => do
                                       let j = ptr2json_ ptr
-                                      fromMaybe (putStrLn $ "invalid json in service \{s}")  (onEvt <$> outputReader j)
-                                    setNodePromise n ("rpc/" ++ url ++ "/" ++ s ++ "?" ++ show input) proc  $ do
+                                      fromMaybe (putStrLn $ "invalid json in service \{path}")  (onEvt <$> outputReader j)
+                                    setNodePromise n ("rpc/" ++ url ++ "/" ++ "?" ++ show input) proc  $ do
                                       h <- readIORef handles
                                       i <- readIORef counter
                                       isFinished <- newIORef False
                                       let i_ = show i
-                                      send socket (show $ JArray [JString s, JString i_, input])
+                                      send socket (show $ JArray [JString i_, input])
                                       procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
                                       writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j) >> removeHandle i_ handles >> writeIORef isFinished True)  :: h) 
                                       writeIORef counter (i+1)
                                       let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
                                       pure $ MkPromiseNodeRef procResult cancel isFinished
 
-streamAccumSetup : ConnectionInfo -> String -> JSON -> (JSON -> Maybe a) -> c -> (a -> c -> c)  -> Widget c
-streamAccumSetup (MkConnectionInfo url socket counter handles) s input outputReader r0 acc = 
+streamAccumSetup : String -> ConnectionInfo -> JSON -> (JSON -> Maybe a) -> c -> (a -> c -> c)  -> Widget c
+streamAccumSetup path (MkConnectionInfo url socket counter handles) input outputReader r0 acc = 
    MarkupWidget $ \n, onEvt => 
        do
           let proc = \ptr => onEvt (believe_me ptr)
-          setNodePromise n ("streamServiceAccum/" ++ url ++ "/" ++ s ++ "?" ++ show input) proc  $ do
+          setNodePromise n ("streamServiceAccum/" ++ url ++ "/" ++ "?" ++ show input) proc  $ do
             h <- readIORef handles
             i <- readIORef counter
             isFinished <- newIORef False
             let i_ = show i
-            send socket (show $ JArray [JString s, JString i_, input])
+            send socket (show $ JArray [JString i_, input])
             procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
             a <- newIORef r0
             let handle = the (JSON -> IO ()) $ \j =>  do
-              let Just x = outputReader j | Nothing => putStrLn "invalid json in service \{s}"
+              let Just x = outputReader j | Nothing => putStrLn "invalid json in service \{path}"
               modifyIORef a (acc x)
               r <- readIORef a
               p <- readIORef procResult
@@ -340,25 +344,27 @@ streamAccumSetup (MkConnectionInfo url socket counter handles) s input outputRea
             pure $ MkPromiseNodeRef procResult cancel isFinished
 
 
-addServicePathToInput : ServicesConnection ts -> JSON -> JSON
-addServicePathToInput (Base _ _) json = json
+addServicePathToInput : SrvRef ts -> JSON -> JSON
+addServicePathToInput (Base _) json = json
 addServicePathToInput (Sub s x) json = JArray [JString s, addServicePathToInput x json]
 
-getConnectionInfo : ServicesConnection ts -> ConnectionInfo
+getConnectionInfo : SrvRef ts -> ConnectionInfo
+getConnectionInfo (Base x) = x
+getConnectionInfo (Sub s x) = getConnectionInfo x
 
 export
-callRPC : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (RPC a b) ts) => 
-            ServicesConnection ts -> a -> Widget b
-callRPC s sc y = 
-  rpcSetup (getConnectionInfo sc) s (addServicePathToInput sc $ toJson y) fromJson
+callRPC : (JsonSerializable a, JsonSerializable b) => SrvRef (RPC a b) ->
+            a -> Widget b
+callRPC sc y = 
+  rpcSetup (serviceConnectionPathStr sc) (getConnectionInfo sc) (addServicePathToInput sc $ toJson y) fromJson
 
 
 export
-callStream : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (StreamService a b) ts) => 
-               ServicesConnection ts -> a -> (b -> Widget c) -> Widget c
-callStream s sc y w = 
+callStream : (JsonSerializable a, JsonSerializable b) => 
+               SrvRef (StreamService a b) -> a -> (b -> Widget c) -> Widget c
+callStream sc y w = 
   let stream : Widget b
-      stream = streamSetup (getConnectionInfo sc) s (addServicePathToInput sc $ toJson y) fromJson
+      stream = streamSetup (serviceConnectionPathStr sc) (getConnectionInfo sc) (addServicePathToInput sc $ toJson y) fromJson
 
       w_ : Maybe b -> Widget c
       w_ Nothing = neutral
@@ -366,11 +372,11 @@ callStream s sc y w =
   in loopState Nothing (\x => ((Left . Just) <$> stream)  <+> (Right <$> w_ x) )
  
 export
-callStreamAccum : (s : String) -> (JsonSerializable a, JsonSerializable b, HasValue s (StreamService a b) ts) => 
-               ServicesConnection ts -> a -> c -> (b -> c -> c) -> (c -> Widget d) -> Widget d
-callStreamAccum s sc y r0 acc w = 
+callStreamAccum : (JsonSerializable a, JsonSerializable b) => 
+               SrvRef (StreamService a b) -> a -> c -> (b -> c -> c) -> (c -> Widget d) -> Widget d
+callStreamAccum sc y r0 acc w = 
   let stream : Widget c
-      stream = streamAccumSetup (getConnectionInfo sc) s (addServicePathToInput sc $ toJson y) fromJson r0 acc
+      stream = streamAccumSetup (serviceConnectionPathStr sc) (getConnectionInfo sc) (addServicePathToInput sc $ toJson y) fromJson r0 acc
 
       w_ : Maybe c -> Widget d
       w_ Nothing = neutral
@@ -388,10 +394,10 @@ accList x xs =
           ((Just y), (Just z)) => replaceOn y z xs
   
 export
-callStreamChangesAccumList : (s : String) -> (JsonSerializable a, JsonSerializable (Change b), HasValue s (StreamService a (Change b)) ts, Eq b) => 
-               ServicesConnection ts -> a -> (List b -> Widget c) -> Widget c
-callStreamChangesAccumList s conn x = 
-  callStreamAccum s conn x [] accList
+callStreamChangesAccumList : (JsonSerializable a, JsonSerializable (Change b), Eq b) => 
+               SrvRef (StreamService a (Change b)) -> a -> (List b -> Widget c) -> Widget c
+callStreamChangesAccumList conn x = 
+  callStreamAccum conn x [] accList
 
 export
 runWidget : Widget () -> IO ()

@@ -169,25 +169,9 @@ export
   show (MkEntry s x) = s ++ "^= " ++ show x
 
 public export
-interface HasValue (0 k : a) (0 t : b) (0 ts : UKeyList a b) | a, ts where
-  hasValue : Elem k t ts
-
-
-export
-{0 k : a} -> {0 t : b} -> {0 ts : UKeyList a b} -> {p : UKeyListCanPrepend (k, t) ts} -> HasValue k t ((k,t)::ts) where
-  hasValue = Here
-
-export
-{0 k : a} -> {0 t : b} -> {0 o : (a, b)} -> {0 ts : UKeyList a b} -> {p : UKeyListCanPrepend o ts} -> HasValue k t ts  => HasValue k t (o::ts) where
-  hasValue = There $ hasValue {ts=ts}
-
-getAux : Elem k t ts -> Record ts -> t
-getAux Here ((MkEntry _ x) :: _) = x
-getAux (There x) (_ :: z) = getAux x z
-
-export
-get : {0 t : Type} -> {0 ts : FieldList} -> (k : String) ->  HasValue k t ts => Record ts -> t
-get k x = getAux (hasValue {k=k} {t=t} {ts=ts}) x
+get : (k : String) -> Record ts -> {auto p : KElem k ts} -> klookup ts p
+get k ((MkEntry k x) :: _) {p = KHere} = x
+get k (_ :: z) {p = (KThere y)} = get k z {p = y}
 
 export
 Eq (Record []) where
