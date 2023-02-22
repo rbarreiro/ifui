@@ -245,8 +245,8 @@ prim__rget : String -> AnyPtr
 %foreign "node:lambda: (r, x) => r.expr(x)"
 prim__expr : AnyPtr -> AnyPtr -> AnyPtr
 
-%foreign "node:lambda: (t, xs) => t.insert(xs).do(x => x.merge(r.expr({'first_error': x('first_error').default(null)})))"
-prim__insert : AnyPtr -> AnyPtr -> AnyPtr
+%foreign "node:lambda: (r, t, xs) => t.insert(xs).do(x => x.merge(r.expr({'first_error': x('first_error').default(null)})))"
+prim__insert : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr
 
 %foreign "node:lambda: (t, options) => t.changes(options)"
 prim__changes : AnyPtr -> AnyPtr -> AnyPtr
@@ -269,9 +269,9 @@ compileQuery r vars (ReadTable x) =
 compileQuery r vars (GetChanges x {includeInitial = includeInitial}) = 
   prim__changes (compileQuery r vars x) (json2ptr $ JObject [("includeInitial", JBoolean includeInitial)])
 compileQuery r vars (Insert t xs) = 
-  prim__insert (compileQuery r vars t) (compileQuery r vars xs)
+  prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
 compileQuery r vars (Insert' t xs) = 
-  prim__insert (compileQuery r vars t) (compileQuery r vars xs)
+  prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
 compileQuery r vars (Lit x) = 
   prim__expr r $ toPtr x
 compileQuery r vars StrEq = 
