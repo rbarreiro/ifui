@@ -28,7 +28,7 @@ getServiceU n [] x =
   Nothing
 getServiceU n ((y, z) :: l) ((MkEntry y x) :: w) =
   if n == y then Just (z ** x)
-            else Nothing
+            else getServiceU n l w
 
 removeHandle : String -> IORef (List (String, a)) -> IO ()
 removeHandle str x = 
