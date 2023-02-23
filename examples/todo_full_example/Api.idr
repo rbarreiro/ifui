@@ -13,25 +13,25 @@ DBTy : UKeyList (String, String) FieldList
 DBTy = ServerSchemaTy Schema
 
 public export
-ApiServices : UKeyList String ServiceKind
-ApiServices = [ ("todoList", StreamService () (Change String))
-              , ("createTodo", RPC String ())
-              ]
+ApiServices : ServiceKind
+ApiServices = GroupService [ ("todoList", StreamService () (Change String))
+                           , ("createTodo", RPC String ())
+                           ]
 
-logedInTodoApi : RethinkServer DBTy -> Server ApiServices
+logedInTodoApi : RethinkServer DBTy -> Service ApiServices
 logedInTodoApi r =
   let todoItem = GetTable "todoApp" "todoItem"
       descsQuery : Query DBTy [] (Cursor String)
       descsQuery = ReadTable todoItem |> MapCursor <| GetField "desc"
       descList : IOStream (Change String)
       descList= getChanges' r $ GetChanges {includeInitial=True} descsQuery
-      in [MkStreamService "todoList" (\() => descList )
-     , MkRPC "createTodo" (\x => do _ <- run' r (Insert todoItem (Lit [["desc" ^= x]])); pure ())
-     ]
+      in MkGroupService  [ "todoList" ^= MkStreamService (\() => descList )
+                         , "createTodo" ^= MkRPC (\x => do _ <- run' r (Insert todoItem (Lit [["desc" ^= x]])); pure ())
+                         ]
 
 public export
-RoleServer : Bool -> UKeyList String ServiceKind
-RoleServer False = []
+RoleServer : Bool -> ServiceKind
+RoleServer False = EmptyService
 RoleServer True = ApiServices
 
 public export
@@ -45,7 +45,7 @@ todoApi r =
     (\x => pure $ (the String $ get "login" x) == get "password" x)
     (\x =>
           case x of
-            False => []
+            False => MkEmptyService
             True => logedInTodoApi r
     )
     

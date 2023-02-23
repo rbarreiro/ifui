@@ -12,34 +12,23 @@ import System.File
 import Data.IORef
 import Data.List
 
-mutual
-  public export
-  data Service : String -> ServiceKind -> Type where
-    MkRPC : (JsonSerializable a, JsonSerializable b) => (s : String) -> (a -> Promise b)  -> Service s (RPC a b)
-    MkStreamService : (JsonSerializable a, JsonSerializable b) => (s : String) -> (a -> IOStream b) -> Service s (StreamService a b)
-    MkGroupService : (s : String) -> Server xs -> Service s (GroupService xs)
-
-  public export
-  data Server : UKeyList String ServiceKind -> Type where
-    Nil : Server []
-    (::) : {auto p : UKeyListCanPrepend (s, spec) ts} -> Service s spec -> Server ts -> Server ((s, spec) :: ts)
+public export
+data Service : ServiceKind -> Type where
+  MkRPC : (JsonSerializable a, JsonSerializable b) => (a -> Promise b)  -> Service (RPC a b)
+  MkStreamService : (JsonSerializable a, JsonSerializable b) => (a -> IOStream b) -> Service (StreamService a b)
+  MkGroupService : {xs : UKeyList String ServiceKind} ->  Record (mapValues Service xs) -> Service (GroupService xs)
+  MkEmptyService : Service EmptyService
 
 public export
-data ServerWithAuth : (loginTy : Type) -> (roleTy : Type) -> (roleTy -> UKeyList String ServiceKind) -> Type where
-  MkServerWithAuth : (loginTy -> Promise roleTy) -> ((r:roleTy) -> Server (sf r)) -> ServerWithAuth loginTy roleTy sf
+data ServerWithAuth : (loginTy : Type) -> (roleTy : Type) -> (roleTy -> ServiceKind) -> Type where
+  MkServerWithAuth : (loginTy -> Promise roleTy) -> ((r:roleTy) -> Service (sf r)) -> ServerWithAuth loginTy roleTy sf
 
-getServiceU: (n : String) -> Server ts -> Maybe (k : ServiceKind ** Service n k)
-getServiceU n [] = 
+getServiceU: (n : String) -> (xs : UKeyList String ServiceKind) -> Record (mapValues Service xs) -> Maybe (k : ServiceKind ** Service k)
+getServiceU n [] x = 
   Nothing
-getServiceU n ((MkRPC {a} {b} s f) :: y) = 
-  if n == s then Just (RPC a b ** MkRPC n f)
-            else getServiceU n y
-getServiceU n ((MkStreamService {a} {b} s f) :: y) = 
-  if n == s then Just (StreamService a b ** MkStreamService n f)
-            else getServiceU n y
-getServiceU n ((MkGroupService {xs} s srv) :: y) =
-  if n == s then Just (GroupService xs ** MkGroupService n srv)
-            else getServiceU n y
+getServiceU n ((y, z) :: l) ((MkEntry y x) :: w) =
+  if n == y then Just (z ** x)
+            else Nothing
 
 removeHandle : String -> IORef (List (String, a)) -> IO ()
 removeHandle str x = 
@@ -47,38 +36,70 @@ removeHandle str x =
    h <- readIORef x
    writeIORef x (deleteBy (\x, (y,_) => x == y)  str h)
 
-runService : IORef (List (String, IO ())) -> WsConnection -> String -> Server ts -> String -> JSON -> IO ()
-runService cancelHandles wsc srv server i x =
-    case getServiceU srv server of
-         Just ((RPC a b) ** (MkRPC srv f)) => 
-            case the (Maybe a) (fromJson x) of
-                 Just y =>
-                  do
-                    promiseh <- (f y).run (\z => do removeHandle i cancelHandles; wsSend wsc (show (JArray [JString i, toJson z])))
-                    h <- readIORef cancelHandles 
-                    writeIORef cancelHandles ((i, promiseh.cancel) :: h)
-                 Nothing =>
-                  putStrLn "Invalid Input to service \{srv} \{show x}"
-         Just ((StreamService a b) ** (MkStreamService srv f)) => 
-            case the (Maybe a) (fromJson x) of
-                 Just y =>
-                  do
-                    streamh <- (f y).run (\z => wsSend wsc (show (JArray [JString i, toJson z])))
-                    h <- readIORef cancelHandles 
-                    writeIORef cancelHandles ((i, streamh.cancel) :: h)
-                 Nothing =>
-                  putStrLn "Invalid Input to service \{srv} \{show x}"
-         Just ((GroupService xs) ** (MkGroupService srv subsrvs)) => 
+runService : IORef (List (String, IO ())) -> WsConnection -> Service st -> String -> JSON -> IO ()
+runService cancelHandles wsc service i x =
+  case service of
+       MkEmptyService =>
+           putStrLn "Not possible to call EmptyService"
+       (MkRPC {a} {b} f) => 
+           case the (Maybe a) (fromJson x) of
+                Just y =>
+                 do
+                   promiseh <- (f y).run (\z => do removeHandle i cancelHandles; wsSend wsc (show (JArray [JString i, toJson z])))
+                   h <- readIORef cancelHandles 
+                   writeIORef cancelHandles ((i, promiseh.cancel) :: h)
+                Nothing =>
+                 putStrLn "Invalid Input \{show x}"
+       (MkStreamService {a} {b} f) => 
+           case the (Maybe a) (fromJson x) of
+                Just y =>
+                 do
+                   streamh <- (f y).run (\z => wsSend wsc (show (JArray [JString i, toJson z])))
+                   h <- readIORef cancelHandles 
+                   writeIORef cancelHandles ((i, streamh.cancel) :: h)
+                Nothing =>
+                 putStrLn "Invalid Input \{show x}"
+       (MkGroupService {xs} y) => 
            case x of
-                JArray [JString subs, z] =>
-                   runService cancelHandles wsc subs subsrvs i z
-                o =>
-                   putStrLn "Invalid subservice format \{show o}"  
-         Nothing =>
-           putStrLn "Invalid Service \{srv}"
+               JArray [JString subs, z] =>
+                  case getServiceU subs xs y of
+                    Just (k ** w) =>
+                      runService cancelHandles wsc w i z
+                    Nothing =>
+                      putStrLn "Invalid Sub Service \{subs}"
+               o =>
+                  putStrLn "Invalid subservice format \{show o}"  
 
-onMessageFn : IORef (List (String, IO ())) -> Server ts -> WsConnection -> String -> IO()
-onMessageFn cancelHandles server wsc msg =
+--    case getServiceU srv server of
+--         Just ((RPC a b) ** (MkRPC srv f)) => 
+--            case the (Maybe a) (fromJson x) of
+--                 Just y =>
+--                  do
+--                    promiseh <- (f y).run (\z => do removeHandle i cancelHandles; wsSend wsc (show (JArray [JString i, toJson z])))
+--                    h <- readIORef cancelHandles 
+--                    writeIORef cancelHandles ((i, promiseh.cancel) :: h)
+--                 Nothing =>
+--                  putStrLn "Invalid Input to service \{srv} \{show x}"
+--         Just ((StreamService a b) ** (MkStreamService srv f)) => 
+--            case the (Maybe a) (fromJson x) of
+--                 Just y =>
+--                  do
+--                    streamh <- (f y).run (\z => wsSend wsc (show (JArray [JString i, toJson z])))
+--                    h <- readIORef cancelHandles 
+--                    writeIORef cancelHandles ((i, streamh.cancel) :: h)
+--                 Nothing =>
+--                  putStrLn "Invalid Input to service \{srv} \{show x}"
+--         Just ((GroupService xs) ** (MkGroupService srv subsrvs)) => 
+--           case x of
+--                JArray [JString subs, z] =>
+--                   runService cancelHandles wsc subs subsrvs i z
+--                o =>
+--                   putStrLn "Invalid subservice format \{show o}"  
+--         Nothing =>
+--           putStrLn "Invalid Service \{srv}"
+
+onMessageFn : IORef (List (String, IO ())) -> Service st -> WsConnection -> String -> IO()
+onMessageFn cancelHandles service wsc msg =
   case Language.JSON.parse msg of
        Just (JArray [JString "cancel", JString i]) => 
         case lookup i !(readIORef cancelHandles) of
@@ -88,8 +109,8 @@ onMessageFn cancelHandles server wsc msg =
                do
                  removeHandle i cancelHandles
                  x
-       Just (JArray [JString i, JArray [JString srv, x]]) => 
-          runService cancelHandles wsc srv server i x
+       Just (JArray [JString i, x]) => 
+          runService cancelHandles wsc service i x
        Nothing => 
         do
           putStrLn "Error parsing request \{msg}"
@@ -124,13 +145,13 @@ startWsServerWithAuth port (MkServerWithAuth checkLogin getServices) =
                 onMessageFn cancelHandles (getServices role) wsc msg
 
 export
-startWsServer : Int -> Server ts -> IO ()
-startWsServer port server =
+startWsServer : Int -> Service st -> IO ()
+startWsServer port service =
   do
     wss <- startWebSocketsServer port
     setOnConnection wss $ \wsc => do
       cancelHandles <- newIORef $ the (List (String, IO ()))  []
-      setOnMessageStr wsc (onMessageFn cancelHandles server wsc)
+      setOnMessageStr wsc (onMessageFn cancelHandles service wsc)
 
 export
 serveStatic : Int -> String -> IO ()

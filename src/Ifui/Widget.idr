@@ -264,12 +264,12 @@ serviceConnectionPathStr : SrvRef x -> String
 serviceConnectionPathStr (Base (MkConnectionInfo url socket counter handles)) = url
 serviceConnectionPathStr (Sub s y) = serviceConnectionPathStr y ++ "/" ++ s
 
-serverConnect : String -> (0 server : UKeyList String ServiceKind) -> (SrvRef (GroupService server) -> IO ()) -> IO ()
+serverConnect : String -> (0 server : ServiceKind) -> (SrvRef server -> IO ()) -> IO ()
 serverConnect url server onOpen = serverConnect' url (\x => onOpen $ Base x)
 
 export
 serverConnectWithAuth : (JsonSerializable loginTy, JsonSerializable roleTy) => String -> loginTy -> 
-                        (sf : roleTy -> UKeyList String ServiceKind) -> Widget (DPair roleTy (\r => SrvRef (GroupService (sf r))))
+                        (sf : roleTy -> ServiceKind) -> Widget (DPair roleTy (\r => SrvRef (sf r)))
 serverConnectWithAuth url login sf = 
   do
      (r, z) <- serverConnectWithAuth' url login
