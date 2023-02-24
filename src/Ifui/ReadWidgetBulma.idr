@@ -79,7 +79,7 @@ ReadWidgetBulma (Record []) where
   getReaderBulma x = MkReader neutral (Just Nil)
 
 export
-{p : UKeyListCanPrepend (s, t) ts} -> (ReadWidgetBulma (Entry s t), ReadWidgetBulma (Record ts)) => ReadWidgetBulma (Record ((s,t) :: ts)) where
+{p : CanPrependKey s ts} -> (ReadWidgetBulma (Entry s t), ReadWidgetBulma (Record ts)) => ReadWidgetBulma (Record ((s,t) :: ts)) where
   getReaderBulma x = 
     MkReader (w (getReaderBulma ((\(z::zs) => z) <$> x)) (getReaderBulma ((\(z::zs) => zs) <$> x)))  x
     where 
@@ -114,7 +114,7 @@ VariantReader [] where
   getOptions = MkVariantOptions [] []
 
 export
-{s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (VariantReader ts, ReadWidgetBulma t) => VariantReader ((s, t) :: ts) where
+{s : String} -> {p : CanPrependKey s ts} -> (VariantReader ts, ReadWidgetBulma t) => VariantReader ((s, t) :: ts) where
   getVariantOptionReader (MkVariant s x Here) = (\w => MkVariant s w Here) <$> getReaderBulma (Just x)
   getVariantOptionReader (MkVariant s x (There later)) = weakenVariant <$> (the (Reader (Variant ts)) $ getVariantOptionReader (MkVariant s x later) )
 
@@ -164,7 +164,7 @@ TreeReader [] where
   treeOptions = MkTreeOptions [] [] 
 
 export
-{s : String} -> {p : UKeyListCanPrepend (s, f) ts} -> (TreeReader ts, ReadWidgetBulma1 f) => TreeReader ((s, f) :: ts) where
+{s : String} -> {p : CanPrependKey s ts} -> (TreeReader ts, ReadWidgetBulma1 f) => TreeReader ((s, f) :: ts) where
   branchValueReader cont KHere x = 
     getReaderBulma1 cont x
   branchValueReader cont (KThere y) x = 

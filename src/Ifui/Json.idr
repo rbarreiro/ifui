@@ -89,7 +89,7 @@ JsonObjectSerializable (Record []) where
   fromListJson _ = Just []
 
 export
-{s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (JsonSerializable t, JsonObjectSerializable (Record ts)) => JsonObjectSerializable (Record ((s,t) :: ts)) where
+{s : String} -> {p : CanPrependKey s ts} -> (JsonSerializable t, JsonObjectSerializable (Record ts)) => JsonObjectSerializable (Record ((s,t) :: ts)) where
   toListJson ((MkEntry s x) :: y) =
     (s, toJson x) :: toListJson y
 
@@ -123,7 +123,7 @@ export
     Nothing
 
 export
-{s : String} -> {p : UKeyListCanPrepend (s, t) ts} -> (JsonSerializable t, JsonSerializable (Variant ts)) => JsonSerializable (Variant ((s, t) :: ts)) where
+{s : String} -> {p : CanPrependKey s ts} -> (JsonSerializable t, JsonSerializable (Variant ts)) => JsonSerializable (Variant ((s, t) :: ts)) where
   toJson (MkVariant s x Here) = 
     JObject [("k", JString s), ("v", toJson x)]
   toJson (MkVariant str x (There y)) =
@@ -146,7 +146,7 @@ fromListJsonUKeyList fromJsonB  ((x, y) :: xs) =
   do
     xs_ <- fromListJsonUKeyList fromJsonB xs
     y_ <- fromJsonB y
-    prf <- calcCanPrepend (x, y_) xs_
+    prf <- calcCanPrependKey x xs_
     pure ((::) (x, y_) xs_  {p=prf})
 
 toListJsonUKeyList : (b -> JSON) -> UKeyList String b -> List (String, JSON)
@@ -188,7 +188,7 @@ export
     Nothing
 
 export
-{s : String} -> {pp : UKeyListCanPrepend (s, f) ts} -> (JsonSerializable1 f, JsonSerializableTreeHeads ts) => JsonSerializableTreeHeads ((s, f) :: ts) where
+{s : String} -> {pp : CanPrependKey s ts} -> (JsonSerializable1 f, JsonSerializableTreeHeads ts) => JsonSerializableTreeHeads ((s, f) :: ts) where
   toJsonTreeHeads s KHere x cont = 
     JObject [("k", JString s), ("v", toJson1 x cont)]
   toJsonTreeHeads s (KThere y) x cont = 

@@ -36,7 +36,7 @@ data Query : UKeyList (String, String) FieldList -> List (String, Type) -> Type 
     ReadTable : Query db ctxt (Table ts) -> Query db ctxt (Cursor (Record ts))
     GetChanges : {default False includeInitial : Bool} -> (e : Query db ctxt (Cursor t)) -> Query db ctxt (Changes t)
     Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
-    Insert : {auto p : UKeyListCanPrepend ("id", String) ts} -> Query db ctxt (Table ((::) ("id", String) ts)) -> 
+    Insert : {auto p : CanPrependKey "id" ts} -> Query db ctxt (Table ((::) ("id", String) ts)) -> 
                 Query db ctxt (List (Record ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
     Lit : JsonSerializable a => a -> Query db ctxt a
     StrEq : Query db ctxt (String -> String -> Bool)
@@ -66,7 +66,7 @@ KeyType String where
 public export
 data TableSchema : Type where
   MkTableSchema : (d : String) -> (n : String) -> (idTy : Type) -> 
-                          (ts : UKeyList String Type) -> {auto noIdPrf : UKeyListCanPrepend ("id", idTy) ts}  -> 
+                          (ts : UKeyList String Type) -> {auto noIdPrf : CanPrependKey "id" ts}  -> 
                               (KeyType idTy, JsonSerializable (Record (("id", idTy) :: ts))) =>
                                      TableSchema
 
@@ -87,7 +87,7 @@ mutual
   data ServerSchema : Type where
     Nil : ServerSchema
     (::) : (t : TableSchema) -> (s : ServerSchema) -> 
-               {auto p : UKeyListCanPrepend ((TableSchemaDB t, TableSchemaName t), TableSchemaFields t) (ServerSchemaTy s)} -> 
+               {auto p : CanPrependKey (TableSchemaDB t, TableSchemaName t) (ServerSchemaTy s)} -> 
                    ServerSchema
 
   public export
