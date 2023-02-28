@@ -82,12 +82,8 @@ JsonObjectSerializable a => JsonSerializable a where
   fromJson (JObject x) = fromListJson x
   fromJson _ = Nothing
 
-All : (f : Type -> Type) -> UKeyList String Type -> Type
-All f []        = ()
-All f ((k,v) :: xs) = (f v, All f xs)
-
 export
-{zs : UKeyList String Type} -> All JsonSerializable zs => JsonObjectSerializable (Record zs) where
+{zs : UKeyList String Type} -> AllI JsonSerializable zs => JsonObjectSerializable (Record zs) where
   toListJson {zs = []} _ = 
     []
   toListJson {zs = ((s, t) :: l)} ((MkEntry s x) :: z) = 
@@ -112,7 +108,7 @@ JsonSerializable (Record ts) => JsonSerializable (Maybe (Record ts)) where
   fromJson o = Just <$> fromJson o
 
 export
-{zs : UKeyList String Type} -> All JsonSerializable zs => JsonSerializable (Variant zs) where
+{zs : UKeyList String Type} -> AllI JsonSerializable zs => JsonSerializable (Variant zs) where
   toJson {zs = []} x = 
     JNull
   toJson {zs = ((s, z) :: l)} (MkVariant s x Here) = 
@@ -166,12 +162,8 @@ interface JsonSerializableTreeHeads (0 ts : UKeyList String (Type -> Type)) wher
   fromJsonTreeHeads : JSON -> (JSON -> Maybe (Tree rs)) -> Maybe (k : String ** (p : KElem k ts ** (klookup ts p) (Tree rs)))
 
 
-All1 : (f : (Type -> Type) -> Type) -> UKeyList String (Type -> Type) -> Type
-All1 f []        = ()
-All1 f ((k,v) :: xs) = (f v, All1 f xs)
-
 export
-{zs : UKeyList String (Type -> Type)} -> All1 JsonSerializable1 zs => JsonSerializableTreeHeads zs where
+{zs : UKeyList String (Type -> Type)} -> AllI1 JsonSerializable1 zs => JsonSerializableTreeHeads zs where
   toJsonTreeHeads {zs = []} s p x cont = 
     JNull
   toJsonTreeHeads {zs = ((_, v) :: l)} s KHere x cont = 

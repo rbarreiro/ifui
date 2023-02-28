@@ -230,3 +230,15 @@ namespace Tree
   public export
   data Tree : UKeyList String (Type -> Type) -> Type where
     N : (s : String) -> {auto p : KElem s ts} -> ((klookup ts p) (Tree ts))  -> Tree ts
+
+
+public export
+AllI : (f : Type -> Type) -> UKeyList String Type -> Type
+AllI f []        = ()
+AllI f ((k,v) :: xs) = (f v, AllI f xs)
+
+public export
+AllI1 : (f : (Type -> Type) -> Type) -> UKeyList String (Type -> Type) -> Type
+AllI1 f []        = ()
+AllI1 f ((k,v) :: xs) = (f v, AllI1 f xs)
+
