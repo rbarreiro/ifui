@@ -82,23 +82,26 @@ JsonObjectSerializable a => JsonSerializable a where
   fromJson (JObject x) = fromListJson x
   fromJson _ = Nothing
 
-export
-JsonObjectSerializable (Record []) where
-  toListJson  _ = []
-
-  fromListJson _ = Just []
+All : (f : Type -> Type) -> UKeyList String Type -> Type
+All f []        = ()
+All f ((k,v) :: xs) = (f v, All f xs)
 
 export
-{s : String} -> {p : CanPrependKey s ts} -> (JsonSerializable t, JsonObjectSerializable (Record ts)) => JsonObjectSerializable (Record ((s,t) :: ts)) where
-  toListJson ((MkEntry s x) :: y) =
-    (s, toJson x) :: toListJson y
+{zs : UKeyList String Type} -> All JsonSerializable zs => JsonObjectSerializable (Record zs) where
+  toListJson {zs = []} _ = 
+    []
+  toListJson {zs = ((s, t) :: l)} ((MkEntry s x) :: z) = 
+    (s, toJson x) :: toListJson z
 
-  fromListJson xs = 
+  fromListJson {zs = []} x = 
+    Just []
+  fromListJson {zs = ((::) {d = d} {p = p} (k, v) l)} x = 
     do
-      ws <- fromListJson {a = Record ts} xs 
-      j <- lookup s xs 
-      w <- fromJson {a=t} j
-      pure $ MkEntry s w :: ws
+      ws <- fromListJson {a = Record l} x 
+      j <- lookup k x
+      w <- fromJson {a=v} j
+      pure $ ExtensibleRecords.(::) {p = p} (MkEntry k w) ws
+
 
 export
 JsonSerializable (Record ts) => JsonSerializable (Maybe (Record ts)) where
@@ -109,35 +112,24 @@ JsonSerializable (Record ts) => JsonSerializable (Maybe (Record ts)) where
   fromJson o = Just <$> fromJson o
 
 export
-{s : String} -> JsonSerializable t => JsonSerializable (Variant [(s, t)]) where
-  toJson (MkVariant s x Here) = 
+{zs : UKeyList String Type} -> All JsonSerializable zs => JsonSerializable (Variant zs) where
+  toJson {zs = []} x = 
+    JNull
+  toJson {zs = ((s, z) :: l)} (MkVariant s x Here) = 
     JObject [("k", JString s), ("v", toJson x)]
-  toJson (MkVariant s x (There y)) impossible
+  toJson {zs = ((s, z) :: l)} (MkVariant k x (There y)) = 
+    toJson {a = Variant l} (MkVariant k x y)
 
-  fromJson (JObject [("k", JString k), ("v", v)]) = 
-    if s == k then do
-                      w <- fromJson {a = t}  v
-                      pure $ MkVariant s w Here
-              else Nothing
-  fromJson _ = 
+  fromJson {zs = []} x = 
     Nothing
-
-export
-{s : String} -> {p : CanPrependKey s ts} -> (JsonSerializable t, JsonSerializable (Variant ts)) => JsonSerializable (Variant ((s, t) :: ts)) where
-  toJson (MkVariant s x Here) = 
-    JObject [("k", JString s), ("v", toJson x)]
-  toJson (MkVariant str x (There y)) =
-    toJson {a=Variant ts} (MkVariant str x y)
-  
-  fromJson z@(JObject [("k", JString k), ("v", v)]) = 
+  fromJson {zs = ((s, t) :: l)} z@(JObject [("k", JString k), ("v", v)]) = 
     if s == k then do
-                      w <- fromJson {a = t}  v
-                      pure $ MkVariant s w Here
-              else case fromJson {a=Variant ts} z of
-                      Nothing => Nothing 
-                      (Just (MkVariant str x pe)) => Just $ MkVariant str x (There pe)
-  fromJson _ = 
-    Nothing
+                    w <- fromJson {a = t} v
+                    pure $ MkVariant s w Here
+              else case fromJson {a=Variant l} z of
+                        Nothing => Nothing
+                        (Just (MkVariant str x pe)) => Just $ MkVariant str x (There pe)
+  fromJson _ = Nothing
 
 fromListJsonUKeyList :  (JSON -> Maybe b) -> List (String, JSON) -> Maybe (UKeyList String b)
 fromListJsonUKeyList _ [] = 
@@ -173,36 +165,32 @@ interface JsonSerializableTreeHeads (0 ts : UKeyList String (Type -> Type)) wher
   toJsonTreeHeads : (s : String) -> (p : KElem s ts) -> ((klookup ts p) (Tree rs)) -> (Tree rs -> JSON) -> JSON
   fromJsonTreeHeads : JSON -> (JSON -> Maybe (Tree rs)) -> Maybe (k : String ** (p : KElem k ts ** (klookup ts p) (Tree rs)))
 
+
+All1 : (f : (Type -> Type) -> Type) -> UKeyList String (Type -> Type) -> Type
+All1 f []        = ()
+All1 f ((k,v) :: xs) = (f v, All1 f xs)
+
 export
-{s : String} -> JsonSerializable1 f => JsonSerializableTreeHeads [(s, f)] where
-  toJsonTreeHeads s KHere x cont = 
+{zs : UKeyList String (Type -> Type)} -> All1 JsonSerializable1 zs => JsonSerializableTreeHeads zs where
+  toJsonTreeHeads {zs = []} s p x cont = 
+    JNull
+  toJsonTreeHeads {zs = ((_, v) :: l)} s KHere x cont = 
     JObject [("k", JString s), ("v", toJson1 x cont)]
-  toJsonTreeHeads s (KThere y) x cont impossible
-    
-  fromJsonTreeHeads (JObject [("k", JString k), ("v", v)]) cont = 
-    if s == k then do
-                     w <- fromJson1 {f=f} v cont
-                     pure $ (s ** (KHere ** w))
-              else Nothing
-  fromJsonTreeHeads _ _ = 
+  toJsonTreeHeads {zs = ((y, w) :: l)} s (KThere z) x cont =
+    toJsonTreeHeads s z x cont
+
+  fromJsonTreeHeads {zs = []} (JObject [("k", JString k), ("v", v)]) cont = 
     Nothing
-
-export
-{s : String} -> {pp : CanPrependKey s ts} -> (JsonSerializable1 f, JsonSerializableTreeHeads ts) => JsonSerializableTreeHeads ((s, f) :: ts) where
-  toJsonTreeHeads s KHere x cont = 
-    JObject [("k", JString s), ("v", toJson1 x cont)]
-  toJsonTreeHeads s (KThere y) x cont = 
-    toJsonTreeHeads {ts=ts} s y x cont
-
-  fromJsonTreeHeads z@(JObject [("k", JString k), ("v", v)]) cont =
+  fromJsonTreeHeads {zs = ((s, f) :: l)} z@(JObject [("k", JString k), ("v", v)]) cont =
     if s == k then do
-                     w <- fromJson1 {f=f} v cont
-                     pure $ (s ** (KHere ** w))
-              else case fromJsonTreeHeads {ts=ts} z cont of
+                    w <- fromJson1 {f = f} v cont
+                    pure (s ** KHere ** w)
+              else case fromJsonTreeHeads {ts=l} z cont of
                         Nothing => Nothing
-                        (Just ((k_ ** ((p_ ** x))))) => Just $ (k_ ** ( KThere p_ ** x))
+                        (Just ((k_ ** ((p_ ** x_))))) => Just (k_ ** ( KThere p_ ** x_ ))
   fromJsonTreeHeads _ _ = 
     Nothing
+
 
 export
 JsonSerializableTreeHeads ts => JsonSerializable (Tree ts) where
@@ -328,3 +316,14 @@ toPtr = json2ptr . toJson
 export
 fromPtr : JsonSerializable a => AnyPtr -> Maybe a
 fromPtr x = ptr2json x >>= fromJson 
+
+ChangeTest : Type -> Type
+ChangeTest a = Record [("old_val", Maybe a), ("new_val", Maybe a)]
+
+TestTy : Type 
+TestTy = ChangeTest (Record [("spec", Tree [("stuff2", const ()), ("stuff", const ()), ("Record", UKeyList String), ("String", const ())])])
+
+-- takes to much time
+--testInstanceRec : TestTy -> JSON
+--testInstanceRec = toJson 
+

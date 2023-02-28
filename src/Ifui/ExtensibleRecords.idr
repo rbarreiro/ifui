@@ -12,7 +12,8 @@ namespace UList
 
     public export
     KeyNotInUList : a -> UList a -> Bool
-    KeyNotInUList x [] = True
+    KeyNotInUList x [] = 
+      True
     KeyNotInUList x (y :: ys) = 
       case decEq x y of
            (Yes prf) => False
@@ -51,7 +52,7 @@ namespace UKeyList
     public export
     data UKeyList : Type -> Type -> Type where
       Nil : UKeyList a b
-      (::) : DecEq a => (x : (a,b)) -> (l : UKeyList a b) -> {auto p : So (KeyNotInUKeyList (Builtin.fst x) l)} -> UKeyList a b
+      (::) : (d : DecEq a) => (x : (a,b)) -> (l : UKeyList a b) -> {auto p : So (KeyNotInUKeyList (Builtin.fst x) l)} -> UKeyList a b
 
     public export
     KeyNotInUKeyList : a -> UKeyList a b -> Bool
@@ -155,7 +156,7 @@ FieldList = UKeyList String Type
 public export
 data Record : FieldList -> Type where
   Nil : Record []
-  (::) : {auto p : CanPrependKey s ts} -> Entry s t -> Record ts -> Record ((s,t) :: ts)
+  (::) : DecEq String => {auto p : CanPrependKey s ts} -> Entry s t -> Record ts -> Record ((s,t) :: ts)
 
 export
 {s : String} -> Show t => Show (Entry s t) where
