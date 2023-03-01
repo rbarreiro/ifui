@@ -70,34 +70,6 @@ runService cancelHandles wsc service i x =
                o =>
                   putStrLn "Invalid subservice format \{show o}"  
 
---    case getServiceU srv server of
---         Just ((RPC a b) ** (MkRPC srv f)) => 
---            case the (Maybe a) (fromJson x) of
---                 Just y =>
---                  do
---                    promiseh <- (f y).run (\z => do removeHandle i cancelHandles; wsSend wsc (show (JArray [JString i, toJson z])))
---                    h <- readIORef cancelHandles 
---                    writeIORef cancelHandles ((i, promiseh.cancel) :: h)
---                 Nothing =>
---                  putStrLn "Invalid Input to service \{srv} \{show x}"
---         Just ((StreamService a b) ** (MkStreamService srv f)) => 
---            case the (Maybe a) (fromJson x) of
---                 Just y =>
---                  do
---                    streamh <- (f y).run (\z => wsSend wsc (show (JArray [JString i, toJson z])))
---                    h <- readIORef cancelHandles 
---                    writeIORef cancelHandles ((i, streamh.cancel) :: h)
---                 Nothing =>
---                  putStrLn "Invalid Input to service \{srv} \{show x}"
---         Just ((GroupService xs) ** (MkGroupService srv subsrvs)) => 
---           case x of
---                JArray [JString subs, z] =>
---                   runService cancelHandles wsc subs subsrvs i z
---                o =>
---                   putStrLn "Invalid subservice format \{show o}"  
---         Nothing =>
---           putStrLn "Invalid Service \{srv}"
-
 onMessageFn : IORef (List (String, IO ())) -> Service st -> WsConnection -> String -> IO()
 onMessageFn cancelHandles service wsc msg =
   case Language.JSON.parse msg of

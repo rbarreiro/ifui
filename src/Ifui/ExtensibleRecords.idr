@@ -52,7 +52,8 @@ namespace UKeyList
     public export
     data UKeyList : Type -> Type -> Type where
       Nil : UKeyList a b
-      (::) : (d : DecEq a) => (x : (a,b)) -> (l : UKeyList a b) -> {auto p : So (KeyNotInUKeyList (Builtin.fst x) l)} -> UKeyList a b
+      (::) : (d : DecEq a) => (x : (a,b)) -> (l : UKeyList a b) -> 
+                {auto p : So (KeyNotInUKeyList (Builtin.fst x) l)} -> UKeyList a b
 
     public export
     KeyNotInUKeyList : a -> UKeyList a b -> Bool
@@ -134,6 +135,16 @@ namespace UKeyList
   length [] = Z
   length (x :: l) = S $ length l
 
+public export
+AllI : (f : Type -> Type) -> UKeyList String Type -> Type
+AllI f []        = ()
+AllI f ((k,v) :: xs) = (f v, AllI f xs)
+
+public export
+AllI1 : (f : (Type -> Type) -> Type) -> UKeyList String (Type -> Type) -> Type
+AllI1 f []        = ()
+AllI1 f ((k,v) :: xs) = (f v, AllI1 f xs)
+
 
 public export
 data Entry : String -> Type -> Type where
@@ -167,22 +178,20 @@ get : (k : String) -> Record ts -> {auto p : KElem k ts} -> klookup ts p
 get k ((MkEntry k x) :: _) {p = KHere} = x
 get k (_ :: z) {p = (KThere y)} = get k z {p = y}
 
-export
-Eq (Record []) where
-  (==) x y = True
 
 export
-{s : String} -> {p : CanPrependKey s ts} -> (Eq t, Eq (Record ts)) => Eq (Record ((s, t) :: ts)) where
-  (==) ((MkEntry s x) :: z) ((MkEntry s y) :: w) = x == y && z == w
+AllI Eq ts => Eq (Record ts) where
+  [] == [] = True
+  ((MkEntry s x) :: z) == ((MkEntry s y) :: w) = x == y && z == w
 
 export
-Show (Record []) where
-  show x = "[]"
-
-export
-{s : String} -> {p : CanPrependKey s ts} -> (Show (Entry s t), Show (Record ts)) => Show (Record ((s, t) :: ts)) where
-  show (x :: []) = "[" ++ show x ++ "]"
-  show (x :: (y :: r)) = "[" ++ show x  ++ ","  ++ (let z = show (y :: r) in substr 1 (length z) z)
+{ts : UKeyList String Type} -> AllI Show ts => Show (Record ts) where
+  show {ts = []} x = 
+    "[]"
+  show {ts = ((s, z) :: [])} ((MkEntry s x) :: []) = 
+    "[\{s}^=\{show x}]"
+  show {ts = ((s, w) :: (z :: l))} ((MkEntry s x) :: r) = 
+    "[\{s}^=\{show x}, " ++ (let z = show r in substr 1 (length z) z)
 
 namespace StringEnum
   public export
@@ -215,30 +224,17 @@ namespace Variant
   public export
   weakenVariant : {auto p : CanPrependKey s ts} -> Variant ts -> Variant ((s,t):: ts)
   weakenVariant (MkVariant k v y) = MkVariant k v (There y)
-  
-  export
-  Show (Variant []) where
-    show (MkVariant _ _ Here) impossible
-    show (MkVariant _ _ (There later)) impossible
  
   export
-  {s : String} -> {p : CanPrependKey s ts} -> (Show  t, Show (Variant ts)) => Show (Variant ((s, t) :: ts)) where
-    show (MkVariant k v Here) = "(" ++ k ++ " -= " ++ show v ++ ")"
-    show (MkVariant k v (There later)) = show (MkVariant k v later)
+  {ts : UKeyList String Type} -> AllI Show ts => Show (Variant ts) where
+    show {ts = []} (MkVariant _ _ Here) impossible
+    show {ts = []} (MkVariant _ _ (There y)) impossible
+    show {ts = ((s, t) :: l)} (MkVariant s x Here) = "(\{s}-=\{show x})"
+    show {ts = ((s, t) :: l)} (MkVariant str x (There y)) = show (MkVariant str x y)
 
 namespace Tree
   public export
   data Tree : UKeyList String (Type -> Type) -> Type where
     N : (s : String) -> {auto p : KElem s ts} -> ((klookup ts p) (Tree ts))  -> Tree ts
 
-
-public export
-AllI : (f : Type -> Type) -> UKeyList String Type -> Type
-AllI f []        = ()
-AllI f ((k,v) :: xs) = (f v, AllI f xs)
-
-public export
-AllI1 : (f : (Type -> Type) -> Type) -> UKeyList String (Type -> Type) -> Type
-AllI1 f []        = ()
-AllI1 f ((k,v) :: xs) = (f v, AllI1 f xs)
 
