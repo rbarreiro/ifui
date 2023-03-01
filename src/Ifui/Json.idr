@@ -4,6 +4,45 @@ import public Language.JSON
 import public Ifui.ExtensibleRecords
 import Data.List
 
+total
+eqJson : JSON -> JSON -> Bool
+eqJson JNull JNull = 
+  True
+eqJson JNull _ = 
+  False
+eqJson (JBoolean x) (JBoolean y) = 
+  x == y
+eqJson (JBoolean _) _ = 
+  False
+eqJson (JNumber x) (JNumber y) = 
+  x == y
+eqJson (JNumber _) _ = 
+  False
+eqJson (JString x) (JString y) = 
+  x == y
+eqJson (JString _) _ = 
+  False
+eqJson (JArray x) (JArray y) = assert_total $
+  length x == length y && all (\(z,w) => eqJson z w) (zip x y) 
+eqJson (JArray _) _ = 
+  False
+eqJson (JObject xs) (JObject ys) = assert_total $
+   length xs == length ys && (
+     let comp : (String, JSON) -> (String, JSON) -> Ordering
+         comp = (\(i,_), (j, _) => compare i j) 
+         
+         xs_ : List (String, JSON)
+         xs_ = sortBy comp xs
+         ys_ : List (String, JSON)
+         ys_ = sortBy comp ys
+     in all (\((i,z), (j, w)) => i == j && eqJson z w) (zip xs_ ys_))
+eqJson (JObject _) _ = 
+  False
+
+export
+Eq JSON where
+  (==) = eqJson 
+
 public export
 interface JsonSerializable a where
   toJson : a -> JSON
@@ -309,6 +348,7 @@ export
 fromPtr : JsonSerializable a => AnyPtr -> Maybe a
 fromPtr x = ptr2json x >>= fromJson 
 
+
 ChangeTest : Type -> Type
 ChangeTest a = Record [("old_val", Maybe a), ("new_val", Maybe a)]
 
@@ -318,4 +358,5 @@ TestTy = ChangeTest (Record [("spec", Tree [("stuff2", const ()), ("stuff", cons
 -- takes to much time
 --testInstanceRec : TestTy -> JSON
 --testInstanceRec = toJson 
+
 

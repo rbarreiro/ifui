@@ -232,9 +232,9 @@ namespace Variant
     show {ts = ((s, t) :: l)} (MkVariant s x Here) = "(\{s}-=\{show x})"
     show {ts = ((s, t) :: l)} (MkVariant str x (There y)) = show (MkVariant str x y)
 
+
 namespace Tree
   public export
   data Tree : UKeyList String (Type -> Type) -> Type where
     N : (s : String) -> {auto p : KElem s ts} -> ((klookup ts p) (Tree ts))  -> Tree ts
-
 
