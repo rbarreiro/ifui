@@ -232,6 +232,14 @@ JsonSerializableTreeHeads ts => JsonSerializable (Tree ts) where
       (k ** (p ** x)) <- fromJsonTreeHeads {ts=ts} x fromJson
       pure $ N k x {p=p}
 
+export
+JsonSerializable (Tree ts) => JsonSerializable (Maybe (Tree ts)) where
+  toJson Nothing = JNull
+  toJson (Just x) = toJson x
+
+  fromJson JNull = Just Nothing
+  fromJson o = Just <$> fromJson o
+
 testTree : Tree [("Record", UKeyList String), ("String", const ())]
 testTree = N "String" ()
 
