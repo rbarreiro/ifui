@@ -383,18 +383,18 @@ callStreamAccum sc y r0 acc w =
       w_ (Just x) = w x
   in loopState Nothing (\x => ((Left . Just) <$> stream)  <+> (Right <$> w_ x) )
 
-accList : (Eq t) => Change t -> List t -> List t
+accList : (JsonSerializable t) => Change t -> List t -> List t
 accList x xs = 
   let old_val = the (Maybe t) (get "old_val" x)
       new_val = the (Maybe t) (get "new_val" x)
   in case (old_val, new_val) of
           (Nothing, Nothing) => xs
           (Nothing, (Just y)) => xs ++ [y]
-          ((Just y), Nothing) => delete y xs
-          ((Just y), (Just z)) => replaceOn y z xs
+          ((Just y), Nothing) => let j = toJson y in filter (\e => toJson e /= j)  xs
+          ((Just y), (Just z)) =>  let j = toJson y in replaceWhen (\e => toJson e == j) z xs
   
 export
-callStreamChangesAccumList : (JsonSerializable a, JsonSerializable (Change b), Eq b) => 
+callStreamChangesAccumList : (JsonSerializable a, JsonSerializable (Change b), JsonSerializable b) => 
                SrvRef (StreamService a (Change b)) -> a -> (List b -> Widget c) -> Widget c
 callStreamChangesAccumList conn x = 
   callStreamAccum conn x [] accList
