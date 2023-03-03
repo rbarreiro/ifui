@@ -95,14 +95,28 @@ namespace UKeyList
     public export
     mapValues : (a -> b) -> UKeyList k a -> UKeyList k b
     mapValues f [] = []
-    mapValues f ((::) {p=prf}  (x, y) l) = (::) (x, f y) (mapValues f l) {p = mapValuesPrf x f l prf} 
+    mapValues f ((::) {p=prf} (x, y) l) = (::) (x, f y) (mapValues f l) {p = mapValuesPrf x l prf} 
 
     public export
-    mapValuesPrf : (x : k) -> (a -> b) -> (l : UKeyList k a) -> So (KeyNotInUKeyList x l) -> So (KeyNotInUKeyList x (mapValues f l))
-    mapValuesPrf x g [] y = y
-    mapValuesPrf x g ((z, w) :: l) y with (decEq x z)
-      mapValuesPrf x g ((z, w) :: l) y | Yes prf = y
-      mapValuesPrf x g ((z, w) :: l) y | No contra = mapValuesPrf x g l y
+    mapValuesPrf : (x : k) -> (l : UKeyList k a) -> So (KeyNotInUKeyList x l) -> So (KeyNotInUKeyList x (mapValues f l))
+    mapValuesPrf x [] y = y
+    mapValuesPrf x ((z, w) :: l) y with (decEq x z)
+      mapValuesPrf x ((z, w) :: l) y | Yes prf = y
+      mapValuesPrf x ((z, w) :: l) y | No contra = mapValuesPrf x l y
+
+  mutual
+    public export
+    mapValuesWithKey : (k -> a -> b) -> UKeyList k a -> UKeyList k b
+    mapValuesWithKey f [] = []
+    mapValuesWithKey f ((::) {p=prf} (x, y) l) = (::) (x, f x y) (mapValuesWithKey f l) {p = mapValuesWithKeyPrf x l prf} 
+
+    public export
+    mapValuesWithKeyPrf : (x : k) -> (l : UKeyList k a) -> So (KeyNotInUKeyList x l) -> 
+                                     So (KeyNotInUKeyList x (mapValuesWithKey f l))
+    mapValuesWithKeyPrf x [] y = y
+    mapValuesWithKeyPrf x ((z, w) :: l) y with (decEq x z)
+      mapValuesWithKeyPrf x ((z, w) :: l) y | Yes prf = y
+      mapValuesWithKeyPrf x ((z, w) :: l) y | No contra = mapValuesWithKeyPrf x l y
 
   export
   Functor (UKeyList k) where
@@ -135,16 +149,17 @@ namespace UKeyList
   length [] = Z
   length (x :: l) = S $ length l
 
-public export
-AllI : (f : Type -> Type) -> UKeyList String Type -> Type
-AllI f []        = ()
-AllI f ((k,v) :: xs) = (f v, AllI f xs)
 
-public export
-AllI1 : (f : (Type -> Type) -> Type) -> UKeyList String (Type -> Type) -> Type
-AllI1 f []        = ()
-AllI1 f ((k,v) :: xs) = (f v, AllI1 f xs)
+  public export
+  AllIG : (f : a -> b -> Type) -> UKeyList a b -> Type
+  AllIG f [] = ()
+  AllIG f ((k,v) :: l) = (f k v, AllIG f l)
 
+
+  public export
+  AllI : (f : Type -> Type) -> UKeyList a Type -> Type
+  AllI f []        = ()
+  AllI f ((k,v) :: xs) = (f v, AllI f xs)
 
 public export
 data Entry : String -> Type -> Type where

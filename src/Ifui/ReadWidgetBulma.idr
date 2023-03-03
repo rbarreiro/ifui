@@ -74,6 +74,39 @@ export
         z_ <- numberInputBulma {label = Just s} z
         pure $ MkReader (w z_) (MkEntry s <$> z_)
 
+
+-- starts : (rs : UKeyList String Type) -> AllIG (\s, t => ReadWidgetBulma (Entry s t)) rs => 
+--             Maybe (Record rs) -> Record (mapValuesWithKey (\i, j => Reader (Entry i j)) rs)
+-- starts [] x = 
+--   []
+-- starts ((::) {p} (y, z) ls) Nothing = 
+--   (::) {p = mapValuesWithKeyPrf y ls p} 
+--        (y ^= getReaderBulma Nothing) 
+--        (starts ls Nothing)
+-- starts ((::) {p} (y, z) ls) (Just (x :: xs)) = 
+--   (::) {p = mapValuesWithKeyPrf y ls p} 
+--        (y ^= getReaderBulma (Just x)) 
+--        (starts ls (Just xs))
+-- 
+-- 
+-- 
+-- renderReaders : (zs : FieldList) -> Record (mapValuesWithKey (\i, j => Reader (Entry i j)) zs) -> 
+--                     Widget (Variant (mapValuesWithKey (\i, j => Reader (Entry i j)) zs))
+-- renderReaders [] [] = 
+--   neutral
+-- renderReaders ((::) {p} (y, z) ls) (x :: w) =
+--   ?h1 <+> ((\w => weakenVariant {p = ?h} w) <$> renderReaders ls w)
+-- 
+-- export
+-- {zs : FieldList} -> AllIG (\s, t => ReadWidgetBulma (Entry s t)) zs => ReadWidgetBulma (Record zs) where
+--   getReaderBulma {zs} x =
+--     let w : Record (mapValuesWithKey (\i, j => Reader (Entry i j)) zs) -> Widget (Reader (Record zs))
+--         w x = 
+--           do
+--             ?htrsdstd
+-- 
+--     in MkReader (w (starts zs x)) x
+
 export
 ReadWidgetBulma (Record []) where
   getReaderBulma x = MkReader neutral (Just Nil)
@@ -142,14 +175,6 @@ export
                  Right y => pure $ MkReader (w (Just opt) (Just y)) (getValue y)
     in MkReader (w (getVariantIdx <$> x) (getVariantOptionReader <$> x)) x
         
-export
-{s : String } -> ReadWidgetBulma (Variant ts) => ReadWidgetBulma (Entry s (Variant ts)) where
-  getReaderBulma x = 
-    MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
-    where
-      f : Widget a -> Widget a
-      f x = fieldsSection s [x]
-
 data TreeOptions : UKeyList String (Type -> Type) -> Type where
   MkTreeOptions : {0 ts : UKeyList String (Type -> Type)} -> Vect (UKeyList.length ts) String -> Vect (UKeyList.length ts) (k : String ** KElem k ts) -> TreeOptions ts
 
@@ -205,6 +230,30 @@ export
         startValueReader : Tree ts -> Reader (Tree ts)
         startValueReader (N s {p} x) =  N s {p=p} <$> branchValueReader (getReaderBulma {a = Tree ts}) p (Just x)
     in MkReader (w (join $ rootIdx <$> x) (startValueReader <$> x)) x
+
+export
+{s : String } -> ReadWidgetBulma (Variant ts) => ReadWidgetBulma (Entry s (Variant ts)) where
+  getReaderBulma x = 
+    MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
+    where
+      f : Widget a -> Widget a
+      f x = fieldsSection s [x]
+
+export
+{s : String } -> ReadWidgetBulma (Record ts) => ReadWidgetBulma (Entry s (Record ts)) where
+  getReaderBulma x = 
+    MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
+    where
+      f : Widget a -> Widget a
+      f x = fieldsSection s [x]
+
+export
+{s : String } -> ReadWidgetBulma (Tree ts) => ReadWidgetBulma (Entry s (Tree ts)) where
+  getReaderBulma x = 
+    MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
+    where
+      f : Widget a -> Widget a
+      f x = fieldsSection s [x]
 
 export
 getFormBulma : ReadWidgetBulma a => {default Nothing startVal : Maybe a} -> Widget (Maybe a)

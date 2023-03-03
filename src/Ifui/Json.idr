@@ -202,7 +202,7 @@ interface JsonSerializableTreeHeads (0 ts : UKeyList String (Type -> Type)) wher
 
 
 export
-{zs : UKeyList String (Type -> Type)} -> AllI1 JsonSerializable1 zs => JsonSerializableTreeHeads zs where
+{zs : UKeyList String (Type -> Type)} -> AllIG (\_, w => JsonSerializable1 w) zs => JsonSerializableTreeHeads zs where
   toJsonTreeHeads {zs = []} s p x cont = 
     JNull
   toJsonTreeHeads {zs = ((_, v) :: l)} s KHere x cont = 
