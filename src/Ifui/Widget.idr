@@ -59,8 +59,8 @@ node tag attrs children =
         (Right xs) => 
            MarkupWidget $ \n, onEvt => do
              setNodeTag n tag
-             setNodeAttributes n (convAttr onEvt <$> attrs)
              updateVNodes n.children (applyStart onEvt <$> xs)
+             setNodeAttributes n (convAttr onEvt <$> attrs)
    where
      convAttr : (a -> IO ()) -> WidgetAttribute a -> Attribute
      convAttr onEvt (WidgetSimpleAttribute spec) = SimpleAttribute spec
