@@ -346,7 +346,7 @@ streamAccumSetup path (MkConnectionInfo url socket counter handles) input output
 
 addServicePathToInput : SrvRef ts -> JSON -> JSON
 addServicePathToInput (Base _) json = json
-addServicePathToInput (Sub s x) json = JArray [JString s, addServicePathToInput x json]
+addServicePathToInput (Sub s x) json = addServicePathToInput x $ JArray [JString s, json]
 
 getConnectionInfo : SrvRef ts -> ConnectionInfo
 getConnectionInfo (Base x) = x
