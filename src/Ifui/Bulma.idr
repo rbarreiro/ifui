@@ -85,7 +85,7 @@ export
 textInputBulma : {default Nothing label : Maybe String} ->
                     String -> Widget String
 textInputBulma {label = Nothing} value  = 
-  node "div" [class__ "control", value_ value, onChange_] [node "input" [type__ "text", class__ "input"] []]
+  node "div" [class__ "control"] [node "input" [type__ "text", class__ "input", value_ value, onChange_] []]
 textInputBulma {label = (Just x)} value = 
  node "div" [class__ "field"]
   [ node "label" [class__ "label"] [text x]
@@ -96,11 +96,16 @@ export
 numberInputBulma : {default Nothing label : Maybe String} ->
                     Maybe Double -> Widget (Maybe Double)
 numberInputBulma {label = Nothing} value  = 
-  node "div" [ class__ "control"
-             , value_ $ fromMaybe "" $  cast <$> value
-             , (\x => if x == "" then Nothing else Just (cast x)) <$> onChange_
-             ] 
-             [node "input" [type__ "number", class__ "input"] []]
+  node "div" [ class__ "control"] 
+             [node 
+               "input" 
+               [type__ "number"
+               , class__ "input"
+               , value_ $ fromMaybe "" $  cast <$> value
+               , (\x => if x == "" then Nothing else Just (cast x)) <$> onChange_
+               ] 
+               []
+             ]
 numberInputBulma {label = (Just x)} value = 
  node "div" [class__ "field"]
   [ node "label" [class__ "label"] [text x]
