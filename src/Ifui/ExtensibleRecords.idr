@@ -128,6 +128,11 @@ namespace UKeyList
     foldr f i (x :: l) = f (snd x) (foldr f i l)
 
   export
+  toListPairs : UKeyList a b -> List (a, b)
+  toListPairs [] = []
+  toListPairs (x :: l) = x :: toListPairs l
+
+  export
   calcCanPrependKey : (x : k) -> (xs : UKeyList k b) -> Maybe (CanPrependKey x xs)
   calcCanPrependKey x [] = Just Oh
   calcCanPrependKey x ((y, z) :: l) with (decEq x y)

@@ -32,7 +32,12 @@ interface ReadWidgetBulma a where
 
 public export
 interface ReadWidgetBulma1 (0 f : Type -> Type) where
-  getReaderBulma1 :(Maybe a -> Reader a) -> Maybe (f a)  -> Reader (f a)
+  getReaderBulma1 : (Maybe a -> Reader a) -> Maybe (f a) -> Reader (f a)
+
+export
+ReadWidgetBulma () where
+  getReaderBulma x = 
+    MkReader neutral (Just ())
 
 export
 ReadWidgetBulma String where
@@ -232,6 +237,60 @@ export
     in MkReader (w (join $ rootIdx <$> x) (startValueReader <$> x)) x
 
 export
+ReadWidgetBulma b => ReadWidgetBulma1 (const b) where
+  getReaderBulma1 cont x = getReaderBulma x
+
+
+data UKeyListReaderEvent a = ChangeKey String String
+                           | AddEmptyKey
+                           | ChangeValue String (Reader a)
+
+
+makeNameNotRepeated : String -> (l : UKeyList String a) -> (k : String ** CanPrependKey k l)
+makeNameNotRepeated str l = 
+  case calcCanPrependKey str l of
+       Nothing => makeNameNotRepeated (str ++ "_")  l
+       (Just x) => (str ** x)
+
+toUKeyList : List (String, a) -> UKeyList String a
+toUKeyList [] = []
+toUKeyList ((x, y) :: xs) = 
+  let xs_      = toUKeyList xs
+      (k ** p) = makeNameNotRepeated x xs_
+  in (::) {p = p} (k, y) xs_
+
+export
+ReadWidgetBulma1 (UKeyList String) where
+  getReaderBulma1 cont x =
+    let add : Widget (UKeyListReaderEvent a)
+        add = fasIconText {onclick = (Just AddEmptyKey)} "plus" "Add"
+
+        renderItem : (String, Reader a) -> Widget (UKeyListReaderEvent a)
+        renderItem (s, r) =
+          div [ChangeKey s <$> textInputBulma {label = Just "Entry Key"} s ,ChangeValue s <$> getWidget r]
+
+        w : UKeyList String (Reader a) -> Widget (Reader (UKeyList String a))
+        w itemsReaders = 
+          do
+            let pairs = toListPairs itemsReaders
+            res <- div ( add :: (map renderItem pairs)) 
+            let newReaders = case res of 
+                               ChangeKey sold snew => 
+                                  toUKeyList $ map (\(k,v) => if k == sold then (snew, v) else (k,v))  pairs
+                               AddEmptyKey => 
+                                  let (k ** p) = makeNameNotRepeated "" itemsReaders
+                                  in (::) {p = p} (k, cont Nothing) itemsReaders
+                               ChangeValue s valnew => 
+                                  mapValuesWithKey (\k, v => if s == k then valnew else v) itemsReaders 
+            pure $ MkReader (w newReaders) (fromAllJust $ mapValues getValue newReaders )
+
+        startReaders : UKeyList String (Reader a)
+        startReaders = case x of
+                  Nothing => []
+                  Just x => mapValues (cont . Just) x
+    in MkReader (w startReaders) x
+
+export
 {s : String } -> ReadWidgetBulma (Variant ts) => ReadWidgetBulma (Entry s (Variant ts)) where
   getReaderBulma x = 
     MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
@@ -263,3 +322,7 @@ getFormBulma =
     getRes : Maybe (Reader a) -> Maybe a
     getRes Nothing = Nothing
     getRes (Just x) = getValue x
+
+test : Widget (Maybe (Tree [("Record", UKeyList String), ("String", const ())]))
+test = getFormBulma
+
