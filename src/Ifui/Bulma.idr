@@ -112,7 +112,7 @@ selectBulma : Vect n String -> Maybe (Fin n) -> Widget (Fin n)
 selectBulma xs z = 
   node "div" [class__ "select", value_ $ fromMaybe "" $ (\w => index w xs) <$> z, WidgetEventListener "change" change]
     [ node "select" []
-        (toList $ (\x => node "option" [WidgetSimpleAttribute (StringAttr "value" x )] [text x] ) <$> xs)
+        (toList $ (\x => node "option" [WidgetSimpleAttribute (ValueAttr x )] [text x] ) <$> xs)
     ]
   where
     change : DomEvent -> IO (Fin n)
@@ -128,7 +128,7 @@ fieldsSection : String -> List (Widget a) -> Widget a
 fieldsSection x xs = 
   node "div" [] [
     node "label" [class__ "label"] [text x],
-    node "div" [class__ "ml-3"] xs
+    node "div" [class__ "ml-6"] xs
   ]
 
 export
