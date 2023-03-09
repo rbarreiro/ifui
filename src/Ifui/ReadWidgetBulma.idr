@@ -317,11 +317,18 @@ export
 export
 getFormBulma : ReadWidgetBulma a => {default Nothing startVal : Maybe a} -> Widget (Maybe a)
 getFormBulma = 
-  getRes <$> formBulma getWidget (the (Reader a) $ getReaderBulma startVal)
-  where
-    getRes : Maybe (Reader a) -> Maybe a
-    getRes Nothing = Nothing
-    getRes (Just x) = getValue x
+  loopState 
+    (getReaderBulma startVal)
+    (\x => do
+             res <- formBulma getWidget x
+             case res of
+                  Nothing => 
+                     pure $ Right Nothing
+                  Just r =>
+                     case getValue r of
+                          Nothing => pure $ Left r
+                          Just v =>  pure $ Right $ Just v
+    )
 
 test : Widget (Maybe (Tree [("Record", UKeyList String), ("String", const ())]))
 test = getFormBulma
