@@ -68,12 +68,15 @@ ReadWidgetBulma Double where
 export
 {s : String} -> ReadWidgetBulma (Entry s String) where
   getReaderBulma x = 
-    MkReader (w $ fromMaybe "" (value <$>x)) x
+    MkReader (w (isJust x) $ fromMaybe "" (value <$>x)) x
     where
-      w : String -> Bool -> Widget (Reader (Entry s String))
-      w z check = do
-        z_ <- textInputBulma {label = Just s} z
-        pure $ MkReader (w z_) (Just $  MkEntry s z_)
+      w : Bool -> String -> Bool -> Widget (Reader (Entry s String))
+      w filled z check = do
+        let warn = if not filled && check 
+                         then warning "Missing"
+                         else neutral
+        z_ <- div [textInputBulma {label = Just s} z, warn]
+        pure $ MkReader (w True z_) (Just $  MkEntry s z_)
     
 export
 {s : String} -> ReadWidgetBulma (Entry s Double) where
@@ -171,20 +174,24 @@ export
 {0 ts : FieldList} -> VariantReader ts => ReadWidgetBulma (Variant ts) where
   getReaderBulma x = 
     let MkVariantOptions options readers = the (VariantOptions ts) getOptions
-        w : Maybe (Fin (UKeyList.length ts)) -> Maybe (Reader (Variant ts)) -> Bool -> Widget (Reader (Variant ts))
-        w Nothing _ check =
+        w : Maybe (Fin (UKeyList.length ts), Reader (Variant ts)) -> Bool -> Widget (Reader (Variant ts))
+        w Nothing check = 
           do
-            y <- selectBulma options Nothing
-            pure $ MkReader (w (Just y) Nothing) Nothing
-        w (Just opt) altreader check = 
+            let warn = if check then warning "Missing"
+                                else neutral
+            y <- div [selectBulma options Nothing, warn]
+            let ar = index y readers
+            pure $ MkReader (w $ Just (y, ar)) (getValue ar)
+        w (Just (opt, reader)) check = 
           do
             let or = selectBulma options (Just opt)
-            let ar = fromMaybe (index opt readers) altreader 
-            res <- (Left <$> or) <+> (Right <$> getWidget ar check)
+            res <- (Left <$> or) <+> (Right <$> getWidget reader check)
             case res of 
-                 Left y => pure $ MkReader (w (Just y) Nothing) (getValue ar)
-                 Right y => pure $ MkReader (w (Just opt) (Just y)) (getValue y)
-    in MkReader (w (getVariantIdx <$> x) (getVariantOptionReader <$> x)) x
+                 Left y => 
+                    let ar = index y readers
+                    in pure $ MkReader (w $ Just (y, ar)) (getValue ar)
+                 Right y => pure $ MkReader (w $ Just (opt, y)) (getValue y)
+    in MkReader (w $ (,) <$> (getVariantIdx <$> x) <*> (getVariantOptionReader <$> x)) x
         
 data TreeOptions : UKeyList String (Type -> Type) -> Type where
   MkTreeOptions : {0 ts : UKeyList String (Type -> Type)} -> Vect (UKeyList.length ts) String -> Vect (UKeyList.length ts) (k : String ** KElem k ts) -> TreeOptions ts
@@ -221,28 +228,30 @@ export
           let (k **prf) = index x prfs
           in N k {p=prf} <$> branchValueReader (getReaderBulma {a = Tree ts}) prf Nothing
 
-        w : Maybe (Fin (UKeyList.length ts)) -> (Maybe (Reader (Tree ts))) -> Bool -> Widget (Reader (Tree ts))
-        w Nothing _  check = 
+        w : Maybe (Fin (UKeyList.length ts), Reader (Tree ts)) -> Bool -> Widget (Reader (Tree ts))
+        w Nothing check = 
           do
             let warn = if check then warning "Missing"
                                 else neutral
             y <- div [selectBulma options Nothing, warn]
-            pure $ MkReader (w (Just y) Nothing) Nothing
-        w (Just opt) prevReader check = 
+            let ar = getEmptyBranchReader y
+            pure $ MkReader (w $ Just (y, ar)) (getValue ar)
+        w (Just (opt, reader)) check = 
           do
             let or = selectBulma options (Just opt)
-            let ar = fromMaybe (getEmptyBranchReader opt) prevReader 
-            res <- (Left <$> or) <+> (Right <$> getWidget ar check)
+            res <- (Left <$> or) <+> (Right <$> getWidget reader check)
             case res of 
-                 Left y => pure $ MkReader (w (Just y) Nothing) (getValue ar)
-                 Right y => pure $ MkReader (w (Just opt) (Just y)) (getValue y)
+                 Left y => 
+                    let ar = getEmptyBranchReader y
+                    in pure $ MkReader (w $ Just (y, ar)) (getValue ar)
+                 Right y => pure $ MkReader (w $ Just (opt, y)) (getValue y)
 
         rootIdx : Tree ts -> Maybe (Fin (UKeyList.length ts))
         rootIdx (N s _) = findIndex (==s)  options
 
         startValueReader : Tree ts -> Reader (Tree ts)
         startValueReader (N s {p} x) =  N s {p=p} <$> branchValueReader (getReaderBulma {a = Tree ts}) p (Just x)
-    in MkReader (w (join $ rootIdx <$> x) (startValueReader <$> x)) x
+    in MkReader (w $ (,) <$> (join $ rootIdx <$> x) <*> (startValueReader <$> x)) x
 
 export
 ReadWidgetBulma b => ReadWidgetBulma1 (const b) where
