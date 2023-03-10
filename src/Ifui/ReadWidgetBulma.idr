@@ -7,24 +7,24 @@ import public Ifui.ExtensibleRecords
 import public Ifui.Bulma
 
 export
-data Reader a = MkReader (Widget (Reader a)) (Maybe a)
+data Reader a = MkReader (Bool -> Widget (Reader a)) (Maybe a)
 
 export
 getValue : Reader a -> Maybe a
 getValue (MkReader x y) = y
 
 export
-getWidget : Reader a -> Widget (Reader a)
+getWidget : Reader a -> Bool -> Widget (Reader a)
 getWidget (MkReader x y) = x
 
 export
 Functor Reader where
-  map f (MkReader x y) = MkReader ((\z => f <$> z) <$> x) (f <$> y)
+  map f (MkReader x y) = MkReader (\check => (\z => f <$> z) <$> x check) (f <$> y)
 
 export
 transformReader : (Widget (Reader a) -> Widget (Reader a)) -> Reader a -> Reader a
 transformReader f (MkReader x y) = 
-  MkReader (f $ transformReader f <$> x ) y
+  MkReader (\check => f $ transformReader f <$> x check) y
 
 public export
 interface ReadWidgetBulma a where
@@ -44,8 +44,8 @@ ReadWidgetBulma String where
   getReaderBulma x = 
     MkReader (w $ fromMaybe "" x) x
     where
-      w : String -> Widget (Reader String)
-      w s = do
+      w : String -> Bool -> Widget (Reader String)
+      w s check = do
         s_ <- textInputBulma s
         pure $ MkReader (w s_)  (Just s_)
 
@@ -54,8 +54,8 @@ ReadWidgetBulma Double where
   getReaderBulma x = 
     MkReader (w x) x
     where
-      w : Maybe Double -> Widget (Reader Double)
-      w s = do
+      w : Maybe Double -> Bool -> Widget (Reader Double)
+      w s check = do
         s_ <- numberInputBulma s
         pure $ MkReader (w s_) s_
 
@@ -64,8 +64,8 @@ export
   getReaderBulma x = 
     MkReader (w $ fromMaybe "" (value <$>x)) x
     where
-      w : String -> Widget (Reader (Entry s String))
-      w z = do
+      w : String -> Bool -> Widget (Reader (Entry s String))
+      w z check = do
         z_ <- textInputBulma {label = Just s} z
         pure $ MkReader (w z_) (Just $  MkEntry s z_)
     
@@ -74,8 +74,8 @@ export
   getReaderBulma x = 
     MkReader (w $ value <$>x) x
     where
-      w : Maybe Double -> Widget (Reader (Entry s Double))
-      w z = do
+      w : Maybe Double -> Bool -> Widget (Reader (Entry s Double))
+      w z check = do
         z_ <- numberInputBulma {label = Just s} z
         pure $ MkReader (w z_) (MkEntry s <$> z_)
 
@@ -121,9 +121,9 @@ export
   getReaderBulma x = 
     MkReader (w (getReaderBulma ((\(z::zs) => z) <$> x)) (getReaderBulma ((\(z::zs) => zs) <$> x)))  x
     where 
-      w : Reader (Entry s t) -> Reader (Record ts) -> Widget (Reader (Record ((s, t) :: ts)))
-      w t r = do
-        res <- (Left <$> getWidget t) <+> (Right <$> getWidget r)
+      w : Reader (Entry s t) -> Reader (Record ts) -> Bool -> Widget (Reader (Record ((s, t) :: ts)))
+      w t r check = do
+        res <- (Left <$> getWidget t check) <+> (Right <$> getWidget r check)
         case res of
              (Left y) => pure $ MkReader (w y r) ((::) {p=p} <$> getValue y <*> getValue r)
              (Right y) => pure $ MkReader (w t y) ((::) {p=p} <$> getValue t <*> getValue y)
@@ -165,18 +165,18 @@ export
 {0 ts : FieldList} -> VariantReader ts => ReadWidgetBulma (Variant ts) where
   getReaderBulma x = 
     let MkVariantOptions options readers = the (VariantOptions ts) getOptions
-        w : Maybe (Fin (UKeyList.length ts)) -> Maybe (Reader (Variant ts)) -> Widget (Reader (Variant ts))
-        w Nothing _ =
+        w : Maybe (Fin (UKeyList.length ts)) -> Maybe (Reader (Variant ts)) -> Bool -> Widget (Reader (Variant ts))
+        w Nothing _ check =
           do
             y <- selectBulma options Nothing
             pure $ MkReader (w (Just y) Nothing) Nothing
-        w (Just opt) altreader = 
+        w (Just opt) altreader check = 
           do
             let or = selectBulma options (Just opt)
-            let ar = getWidget $ fromMaybe (index opt readers) altreader 
-            res <- (Left <$> or) <+> (Right <$> ar)
+            let ar = fromMaybe (index opt readers) altreader 
+            res <- (Left <$> or) <+> (Right <$> getWidget ar check)
             case res of 
-                 Left y => pure $ MkReader (w (Just y) Nothing) Nothing
+                 Left y => pure $ MkReader (w (Just y) Nothing) (getValue ar)
                  Right y => pure $ MkReader (w (Just opt) (Just y)) (getValue y)
     in MkReader (w (getVariantIdx <$> x) (getVariantOptionReader <$> x)) x
         
@@ -215,18 +215,18 @@ export
           let (k **prf) = index x prfs
           in N k {p=prf} <$> branchValueReader (getReaderBulma {a = Tree ts}) prf Nothing
 
-        w : Maybe (Fin (UKeyList.length ts)) -> (Maybe (Reader (Tree ts))) -> Widget (Reader (Tree ts))
-        w Nothing _ = 
+        w : Maybe (Fin (UKeyList.length ts)) -> (Maybe (Reader (Tree ts))) -> Bool -> Widget (Reader (Tree ts))
+        w Nothing _  check = 
           do
             y <- selectBulma options Nothing
             pure $ MkReader (w (Just y) Nothing) Nothing
-        w (Just opt) prevReader = 
+        w (Just opt) prevReader check = 
           do
             let or = selectBulma options (Just opt)
-            let ar = getWidget $ fromMaybe (getEmptyBranchReader opt) prevReader 
-            res <- (Left <$> or) <+> (Right <$> ar)
+            let ar = fromMaybe (getEmptyBranchReader opt) prevReader 
+            res <- (Left <$> or) <+> (Right <$> getWidget ar check)
             case res of 
-                 Left y => pure $ MkReader (w (Just y) Nothing) Nothing
+                 Left y => pure $ MkReader (w (Just y) Nothing) (getValue ar)
                  Right y => pure $ MkReader (w (Just opt) (Just y)) (getValue y)
 
         rootIdx : Tree ts -> Maybe (Fin (UKeyList.length ts))
@@ -265,15 +265,15 @@ ReadWidgetBulma1 (UKeyList String) where
     let add : Widget (UKeyListReaderEvent a)
         add = fasIconText {onclick = (Just AddEmptyKey)} "plus" "Add"
 
-        renderItem : (String, Reader a) -> Widget (UKeyListReaderEvent a)
-        renderItem (s, r) =
-          div [ChangeKey s <$> textInputBulma {label = Just "Entry Key"} s ,ChangeValue s <$> getWidget r]
+        renderItem : Bool -> (String, Reader a) -> Widget (UKeyListReaderEvent a)
+        renderItem check (s, r) =
+          div [ChangeKey s <$> textInputBulma {label = Just "Entry Key"} s ,ChangeValue s <$> getWidget r check]
 
-        w : UKeyList String (Reader a) -> Widget (Reader (UKeyList String a))
-        w itemsReaders = 
+        w : UKeyList String (Reader a) -> Bool -> Widget (Reader (UKeyList String a))
+        w itemsReaders check = 
           do
             let pairs = toListPairs itemsReaders
-            res <- div ( add :: (map renderItem pairs)) 
+            res <- div ( add :: (map (renderItem check) pairs)) 
             let newReaders = case res of 
                                ChangeKey sold snew => 
                                   toUKeyList $ map (\(k,v) => if k == sold then (snew, v) else (k,v))  pairs
@@ -318,15 +318,15 @@ export
 getFormBulma : ReadWidgetBulma a => {default Nothing startVal : Maybe a} -> Widget (Maybe a)
 getFormBulma = 
   loopState 
-    (getReaderBulma startVal)
-    (\x => do
-             res <- formBulma getWidget x
+    (False, getReaderBulma startVal)
+    (\(check, x) => do
+             res <- formBulma (\z => getWidget z check) x
              case res of
                   Nothing => 
                      pure $ Right Nothing
                   Just r =>
                      case getValue r of
-                          Nothing => pure $ Left r
+                          Nothing => pure $ Left (True ,r)
                           Just v =>  pure $ Right $ Just v
     )
 

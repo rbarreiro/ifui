@@ -30,6 +30,10 @@ export
 ml : Fin 7 -> BulmaStyleOption
 ml z = MkBulmaStyleOption $ "ml-" ++ show z
 
+export
+hasTextSuccess : BulmaStyleOption
+hasTextSuccess = MkBulmaStyleOption "has-text-success"
+
 optionsToAttributes : List BulmaStyleOption -> List (WidgetAttribute a)
 optionsToAttributes xs = (\(MkBulmaStyleOption z) => class__ z)  <$> xs
 
@@ -182,12 +186,21 @@ card xs =
   in node "div" [class__ "card"] (header ++ content ++ footer)
 
 export
-fasIconText : {default Nothing onclick : Maybe a} -> String -> String -> Widget a
+fasIconText : {default [] styleOptions : List BulmaStyleOption} -> {default Nothing onclick : Maybe a} -> String -> String -> Widget a
 fasIconText icon str =
   let attrs = case onclick of
                    Nothing => []
                    Just x => [onClick_ x]
-  in node "span" (class__ "icon-text" :: attrs) [
-       node "span" [class__ "icon"] [node "i" [class__ "fas", class__ icon] []],
+  in node "span" (class__ "icon-text" :: (attrs ++ optionsToAttributes styleOptions)) [
+       node "span" [class__ "icon"] [node "i" [class__ "fas", class__ "fa-\{icon}"] []],
        node "span" [] [text str]
      ]
+
+
+export
+fasIcon : {default [] styleOptions : List BulmaStyleOption} -> {default Nothing onclick : Maybe a} -> String -> Widget a
+fasIcon icon =
+  let attrs = case onclick of
+                   Nothing => []
+                   Just x => [onClick_ x]
+  in node "span" (class__ "icon" :: (attrs ++ optionsToAttributes styleOptions)) [node "i" [class__ "fas", class__ "fa-\{icon}"] []]
