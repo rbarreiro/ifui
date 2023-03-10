@@ -37,17 +37,23 @@ interface ReadWidgetBulma1 (0 f : Type -> Type) where
 export
 ReadWidgetBulma () where
   getReaderBulma x = 
-    MkReader neutral (Just ())
+    MkReader (const neutral) (Just ())
+
+warning : String -> Widget a
+warning s = fasIconText {styleOptions = [hasTextWarning]}  "exclamation-triangle" s
 
 export
 ReadWidgetBulma String where
   getReaderBulma x = 
-    MkReader (w $ fromMaybe "" x) x
+    MkReader (w (isJust x) $ fromMaybe "" x) x
     where
-      w : String -> Bool -> Widget (Reader String)
-      w s check = do
-        s_ <- textInputBulma s
-        pure $ MkReader (w s_)  (Just s_)
+      w : Bool -> String -> Bool -> Widget (Reader String)
+      w filled s check = do
+        let warn = if not filled && check 
+                         then warning "Missing"
+                         else neutral
+        s_ <- div [textInputBulma s, warn]
+        pure $ MkReader (w True s_)  (Just s_)
 
 export
 ReadWidgetBulma Double where
@@ -218,7 +224,9 @@ export
         w : Maybe (Fin (UKeyList.length ts)) -> (Maybe (Reader (Tree ts))) -> Bool -> Widget (Reader (Tree ts))
         w Nothing _  check = 
           do
-            y <- selectBulma options Nothing
+            let warn = if check then warning "Missing"
+                                else neutral
+            y <- div [selectBulma options Nothing, warn]
             pure $ MkReader (w (Just y) Nothing) Nothing
         w (Just opt) prevReader check = 
           do

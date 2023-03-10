@@ -34,6 +34,10 @@ export
 hasTextSuccess : BulmaStyleOption
 hasTextSuccess = MkBulmaStyleOption "has-text-success"
 
+export
+hasTextWarning : BulmaStyleOption
+hasTextWarning = MkBulmaStyleOption "has-text-warning"
+
 optionsToAttributes : List BulmaStyleOption -> List (WidgetAttribute a)
 optionsToAttributes xs = (\(MkBulmaStyleOption z) => class__ z)  <$> xs
 
