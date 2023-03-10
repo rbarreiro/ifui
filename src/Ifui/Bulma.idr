@@ -163,7 +163,8 @@ formBulma f v0 =
                                       ]
                                       [text "Submit"]] 
                   , node "div" [class__ "control"] 
-                       [node "button" [ class__ "button"
+                       [node "button" [ type__ "button"
+                                      , class__ "button"
                                       , class__ "is-link"
                                       , class__ "is-light"
                                       , onClick_ (Right Nothing)
