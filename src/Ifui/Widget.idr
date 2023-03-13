@@ -29,10 +29,6 @@ Semigroup (Widget a) where
   (<+>) (MarkupWidget x) (WidgetGroup ys) = WidgetGroup ((MarkupWidget x) :: ys)
   (<+>) (MarkupWidget xs) (MarkupWidget ys) = WidgetGroup  [MarkupWidget xs, MarkupWidget ys]
 
-export
-Monoid (Widget a) where
-  neutral = WidgetGroup []
-
 total
 simplifyWList : List (Widget a) -> Either a (List (VNode -> (a -> IO ()) -> IO ()))
 simplifyWList [] = Right []
@@ -65,6 +61,10 @@ node tag attrs children =
      convAttr : (a -> IO ()) -> WidgetAttribute a -> Attribute
      convAttr onEvt (WidgetSimpleAttribute spec) = SimpleAttribute spec
      convAttr onEvt (WidgetEventListener x g) = EventListener x (\e => g e >>= onEvt)
+
+export
+Monoid (Widget a) where
+  neutral = node "span" [] []
 
 export
 Functor WidgetAttribute where
@@ -293,7 +293,7 @@ streamSetup path (MkConnectionInfo url socket counter handles) input outputReade
           i <- readIORef counter
           isFinished <- newIORef False
           let i_ = show i
-          send socket (show $ JArray [JString i_, input])
+          send socket (show $ JArray [JString "call", JString i_, input])
           procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
           writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j))  :: h) 
           writeIORef counter (i+1)
@@ -312,11 +312,17 @@ rpcSetup path (MkConnectionInfo url socket counter handles) input outputReader =
                                       i <- readIORef counter
                                       isFinished <- newIORef False
                                       let i_ = show i
-                                      send socket (show $ JArray [JString i_, input])
+                                      send socket (show $ JArray [JString "call", JString i_, input])
                                       procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
-                                      writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j) >> removeHandle i_ handles >> writeIORef isFinished True)  :: h) 
+                                      writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j) >> 
+                                                                       removeHandle i_ handles >> 
+                                                                        writeIORef isFinished True
+                                                          )  :: h
+                                                         ) 
                                       writeIORef counter (i+1)
-                                      let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
+                                      let cancel = removeHandle i_ handles >> 
+                                                    writeIORef isFinished True >> 
+                                                     send socket (show $ JArray [JString "cancel", JString i_])
                                       pure $ MkPromiseNodeRef procResult cancel isFinished
 
 streamAccumSetup : String -> ConnectionInfo -> JSON -> (JSON -> Maybe a) -> c -> (a -> c -> c)  -> Widget c
@@ -329,7 +335,7 @@ streamAccumSetup path (MkConnectionInfo url socket counter handles) input output
             i <- readIORef counter
             isFinished <- newIORef False
             let i_ = show i
-            send socket (show $ JArray [JString i_, input])
+            send socket (show $ JArray [JString "call", JString i_, input])
             procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
             a <- newIORef r0
             let handle = the (JSON -> IO ()) $ \j =>  do
@@ -369,7 +375,7 @@ callStream sc y w =
       w_ : Maybe b -> Widget c
       w_ Nothing = neutral
       w_ (Just x) = w x
-  in loopState Nothing (\x => ((Left . Just) <$> stream)  <+> (Right <$> w_ x) )
+  in loopState Nothing (\x => ((Left . Just) <$> stream) <+> (Right <$> w_ x) )
  
 export
 callStreamAccum : (JsonSerializable a, JsonSerializable b) => 
