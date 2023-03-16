@@ -8,7 +8,7 @@ namespace UList
     public export
     data UList : Type -> Type where
       Nil : UList a
-      (::) : DecEq a => (x : a) -> (l : UList a) -> {auto p : So (KeyNotInUList x l)} -> UList a
+      (::) : DecEq a => (x : a) -> (l : UList a) -> {auto 0 p : So (KeyNotInUList x l)} -> UList a
 
     public export
     KeyNotInUList : a -> UList a -> Bool
@@ -25,8 +25,8 @@ namespace UList
 
   public export
   data Elem : a -> UList a -> Type where
-    Here : {0 x : a} -> DecEq a => {auto p : CanPrepend x xs} -> Elem x ((::) x xs {p = p})
-    There : {0 x : a} -> DecEq a => {auto p :  CanPrepend x xs} -> Elem y xs -> Elem y ((::) x xs {p = p})
+    Here : {0 x : a} -> DecEq a => {auto 0 p : CanPrepend x xs} -> Elem x ((::) x xs {p = p})
+    There : {0 x : a} -> DecEq a => {auto 0 p :  CanPrepend x xs} -> Elem y xs -> Elem y ((::) x xs {p = p})
 
   export
   calcUListElem : (s : a) -> (l : UList a) -> Maybe (Elem s l)
@@ -53,7 +53,7 @@ namespace UKeyList
     data UKeyList : Type -> Type -> Type where
       Nil : UKeyList a b
       (::) : (d : DecEq a) => (x : (a,b)) -> (l : UKeyList a b) -> 
-                {auto p : So (KeyNotInUKeyList (Builtin.fst x) l)} -> UKeyList a b
+                {auto 0 p : So (KeyNotInUKeyList (Builtin.fst x) l)} -> UKeyList a b
 
     public export
     KeyNotInUKeyList : a -> UKeyList a b -> Bool
@@ -73,13 +73,13 @@ namespace UKeyList
 
   public export
   data Elem : k -> v -> UKeyList k v -> Type where
-    Here : {0 k : a} -> DecEq a => {auto p : CanPrependKey k xs} -> Elem k v ((::) (k, v) xs {p = p})
-    There : {0 k : a} -> DecEq a => {auto p : CanPrepend y xs} -> Elem k v xs -> Elem k v ((::) y xs {p = p})
+    Here : {0 k : a} -> DecEq a => {auto 0 p : CanPrependKey k xs} -> Elem k v ((::) (k, v) xs {p = p})
+    There : {0 k : a} -> DecEq a => {auto 0 p : CanPrepend y xs} -> Elem k v xs -> Elem k v ((::) y xs {p = p})
 
   public export
   data KElem : k -> UKeyList k v -> Type where
-    KHere : {0 k : a} -> DecEq a => {auto p : CanPrependKey k xs} -> KElem k ((::) (k, v) xs {p = p})
-    KThere : {0 k : a} -> DecEq a => {auto p : CanPrepend y xs} -> KElem k xs -> KElem k ((::) y xs {p = p})
+    KHere : {0 k : a} -> DecEq a => {auto 0 p : CanPrependKey k xs} -> KElem k ((::) (k, v) xs {p = p})
+    KThere : {0 k : a} -> DecEq a => {auto 0 p : CanPrepend y xs} -> KElem k xs -> KElem k ((::) y xs {p = p})
 
   public export
   klookup : (ts : UKeyList a b)  -> (KElem k ts) -> b
@@ -187,7 +187,7 @@ FieldList = UKeyList String Type
 public export
 data Record : FieldList -> Type where
   Nil : Record []
-  (::) : DecEq String => {auto p : CanPrependKey s ts} -> Entry s t -> Record ts -> Record ((s,t) :: ts)
+  (::) : DecEq String => {auto 0 p : CanPrependKey s ts} -> Entry s t -> Record ts -> Record ((s,t) :: ts)
 
 export
 {s : String} -> Show t => Show (Entry s t) where
@@ -216,7 +216,7 @@ export
 namespace StringEnum
   public export
   data StringEnum : UList String -> Type where
-    SE : (s : String) -> {auto p : Elem s xs} -> StringEnum xs
+    SE : (s : String) -> {auto 0 p : Elem s xs} -> StringEnum xs
   
   public export
   toStringEnum : {l : UList String}  -> String -> Maybe (StringEnum l)
@@ -242,7 +242,7 @@ namespace Variant
   (-=) x y {p} = MkVariant x y p 
 
   public export
-  weakenVariant : {auto p : CanPrependKey s ts} -> Variant ts -> Variant ((s,t):: ts)
+  weakenVariant : {auto 0 p : CanPrependKey s ts} -> Variant ts -> Variant ((s,t):: ts)
   weakenVariant (MkVariant k v y) = MkVariant k v (There y)
  
   export
@@ -257,4 +257,18 @@ namespace Tree
   public export
   data Tree : UKeyList String (Type -> Type) -> Type where
     N : (s : String) -> {auto p : KElem s ts} -> ((klookup ts p) (Tree ts))  -> Tree ts
+
+
+treeCaseAux : (ts : UKeyList String (Type -> Type)) -> Record (UKeyList.mapValues (\f => (f (Tree rs) -> a)) ts) -> 
+                  (p : KElem s ts) -> (((klookup ts p) (Tree rs)) -> a)
+treeCaseAux [] _ KHere impossible
+treeCaseAux [] _ (KThere z) impossible
+treeCaseAux ((s, v) :: l) (x :: z) KHere = value x
+treeCaseAux ((y, z) :: l) (x :: v) (KThere w) = treeCaseAux l v w
+
+public export
+treeCase : {ts : UKeyList String (Type -> Type)} -> Tree ts -> Record (mapValues (\f => (f (Tree ts) -> a)) ts) -> a
+treeCase {ts = ts} (N s {p} x) y = 
+  let g = treeCaseAux ts y p
+  in g x
 
