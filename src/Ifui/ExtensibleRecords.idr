@@ -259,6 +259,7 @@ namespace Tree
     N : (s : String) -> {auto p : KElem s ts} -> ((klookup ts p) (Tree ts))  -> Tree ts
 
 
+public export
 treeCaseAux : (ts : UKeyList String (Type -> Type)) -> Record (UKeyList.mapValues (\f => (f (Tree rs) -> a)) ts) -> 
                   (p : KElem s ts) -> (((klookup ts p) (Tree rs)) -> a)
 treeCaseAux [] _ KHere impossible
