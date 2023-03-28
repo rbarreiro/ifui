@@ -1,6 +1,6 @@
 module IfuiServer.RethinkDB
 
-import public Ifui.ExtensibleRecords
+import public Ifui.ExtensibleTypes
 import Data.List
 import Data.Maybe
 import public Data.List.Elem
@@ -15,10 +15,10 @@ import IfuiServer.Server
 public export
 data HasVar : String -> Type -> List (String, Type) -> Type where
   Here : HasVar s t ((s, t) :: xs)
-  There : HasVar s t xs -> {auto p : Not (s = s_)}  -> HasVar s t ((s_, t_) :: xs)
+  There : HasVar s t xs -> HasVar s t ((s_, t_) :: xs)
 
 export
-data Table : UKeyList String Type -> Type where
+data Table : List (String, Type) -> Type where
 
 export
 data Cursor : Type -> Type where
@@ -28,19 +28,20 @@ data Changes : Type -> Type where
 
 
 public export
-data Query : UKeyList (String, String) FieldList -> List (String, Type) -> Type -> Type where
+data Query : List ((String, String), List (String, Type)) -> List (String, Type) -> Type -> Type where
     Var : (name : String) -> HasVar name t ctxt  -> Query db ctxt t
     Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
     App : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
-    GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (klookup db p))
-    ReadTable : Query db ctxt (Table ts) -> Query db ctxt (Cursor (Record ts))
+    GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (lookup db p))
+    ReadTable : Query db ctxt (Table ts) -> Query db ctxt (Cursor (Record' ts))
     GetChanges : {default False includeInitial : Bool} -> (e : Query db ctxt (Cursor t)) -> Query db ctxt (Changes t)
-    Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
-    Insert : {auto p : CanPrependKey "id" ts} -> Query db ctxt (Table ((::) ("id", String) ts)) -> 
-                Query db ctxt (List (Record ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
+    Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record' ts)) -> 
+                 Query db ctxt (Record [("first_error", Maybe String)])
+    Insert : Query db ctxt (Table (("id", String) :: ts)) -> 
+                Query db ctxt (List (Record' ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
     Lit : JsonSerializable a => a -> Query db ctxt a
     StrEq : Query db ctxt (String -> String -> Bool)
-    GetField : (key : String) -> {auto p : KElem key fields} -> Query db ctxt (Record fields -> klookup fields p)
+    GetField : (key : String) -> {auto p : Vect.KElem key fields} -> Query db ctxt (Record fields -> Vect.lookup fields p)
     MapCursor : Query db ctxt ((a -> b) -> Cursor a -> Cursor b)
 
 
@@ -66,12 +67,12 @@ KeyType String where
 public export
 data TableSchema : Type where
   MkTableSchema : (d : String) -> (n : String) -> (idTy : Type) -> 
-                          (ts : UKeyList String Type) -> {auto noIdPrf : CanPrependKey "id" ts}  -> 
-                              (KeyType idTy, JsonSerializable (Record (("id", idTy) :: ts))) =>
+                          (ts : List (String, Type)) -> {auto 0  prf : So (UniqueKeys (("id", idTy) :: ts))}  -> 
+                              (KeyType idTy, JsonSerializable (Record' (("id", idTy) :: ts))) =>
                                      TableSchema
 
 public export
-TableSchemaFields : TableSchema -> FieldList
+TableSchemaFields : TableSchema -> List (String, Type)
 TableSchemaFields (MkTableSchema _ _ idTy ts) = ("id", idTy) :: ts
 
 public export
@@ -86,20 +87,18 @@ mutual
   public export
   data ServerSchema : Type where
     Nil : ServerSchema
-    (::) : (t : TableSchema) -> (s : ServerSchema) -> 
-               {auto p : CanPrependKey (TableSchemaDB t, TableSchemaName t) (ServerSchemaTy s)} -> 
-                   ServerSchema
+    (::) : TableSchema -> ServerSchema -> ServerSchema
 
   public export
-  ServerSchemaTy : ServerSchema -> UKeyList (String, String) FieldList
+  ServerSchemaTy : ServerSchema -> List ((String, String), (List (String, Type)))
   ServerSchemaTy [] = []
-  ServerSchemaTy ((::) t s {p}) = (::) ((TableSchemaDB t, TableSchemaName t), TableSchemaFields t) (ServerSchemaTy s) {p = p}
+  ServerSchemaTy (t :: s) = ((TableSchemaDB t, TableSchemaName t), TableSchemaFields t) :: (ServerSchemaTy s)
   
 test : ServerSchema
 test = [MkTableSchema "todoApp" "todoItem" Int [("desc", String)]]
 
 export
-data RethinkServer : UKeyList (String, String) FieldList -> Type where
+data RethinkServer : List ((String, String), List (String, Type)) -> Type where
   MkRethinkServer : AnyPtr -> RethinkServer a
 
 %foreign "node:lambda: (cursor, callback)  => cursor.toArray((err, res) => callback(err ? err + '' : '')(res)())"
@@ -358,7 +357,7 @@ getChanges' : JsonSerializable (Change a) => RethinkServer ts -> Query ts [] (Ch
 getChanges' s e = onErrPrint $ getChanges s e
 
 export
-insert1' : JsonSerializable (List (Record ts)) =>  RethinkServer db ->  Query db [] (Table ts) -> Record ts  -> Promise (Maybe String)
+insert1' : JsonSerializable (List (Record' ts)) =>  RethinkServer db ->  Query db [] (Table ts) -> Record' ts -> Promise (Maybe String)
 insert1' r t x =
   do
     res <- run r (Insert' t (Lit [x]))

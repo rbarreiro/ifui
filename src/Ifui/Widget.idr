@@ -3,7 +3,7 @@ module Ifui.Widget
 import public Ifui.VirtualDom
 import public Ifui.Dom
 import public Ifui.Services
-import public Ifui.ExtensibleRecords 
+import public Ifui.ExtensibleTypes
 import Ifui.WebSocketsClient
 import Data.IORef
 import Ifui.Json
@@ -257,7 +257,7 @@ data SrvRef : ServiceKind -> Type where
 infixl 6 //
 
 export
-(//) : SrvRef (GroupService ts) -> (s : String) -> {auto p : KElem s ts}  -> SrvRef (klookup ts p)
+(//) : SrvRef (GroupService ts) -> {auto 0 prf : So (UniqueKeys ts)} -> (s : String) -> {auto p : KElem s ts} -> SrvRef (lookup ts p)
 (//) g s = Sub s g
 
 serviceConnectionPathStr : SrvRef x -> String

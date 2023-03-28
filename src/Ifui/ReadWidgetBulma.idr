@@ -3,7 +3,7 @@ module Ifui.ReadWidgetBulma
 import Ifui
 import Data.Maybe
 import Data.Vect
-import public Ifui.ExtensibleRecords
+import public Ifui.ExtensibleTypes
 import public Ifui.Bulma
 
 export
@@ -20,6 +20,25 @@ getWidget (MkReader x y) = x
 export
 Functor Reader where
   map f (MkReader x y) = MkReader (\check => (\z => f <$> z) <$> x check) (f <$> y)
+
+export
+Applicative Reader where
+  pure x = MkReader (const neutral) (Just x)
+
+  (<*>) x y = 
+    let w : Reader (a -> b) -> Reader a -> Bool -> Widget (Reader b)
+        w r s filled =
+          do
+            res <- (Left <$> getWidget r filled) <+> (Right <$> getWidget s filled)
+            case res of
+                 Left k =>
+                    pure $ MkReader (\f => w k s f) (getValue k <*> getValue s)
+                 Right k =>
+                    pure $ MkReader (\f => w r k f) (getValue r <*> getValue k)
+    in MkReader 
+        (w x y)
+        (getValue x <*> getValue y)
+
 
 export
 transformReader : (Widget (Reader a) -> Widget (Reader a)) -> Reader a -> Reader a
@@ -88,232 +107,123 @@ export
         z_ <- numberInputBulma {label = Just s} z
         pure $ MkReader (w z_) (MkEntry s <$> z_)
 
+export
+recordGetReaderBulma : {zs : Vect n (String, Type)} -> 
+                         Record (mapValuesWithKey (\s,t => Maybe (Entry s t) -> Reader (Entry s t)) zs) -> 
+                           Maybe (Record zs) -> Reader (Record zs)
+recordGetReaderBulma {zs = []} x y = 
+  pure []
+recordGetReaderBulma {zs = ((z, w) :: xs)} ((MkEntry z x) :: v) Nothing = 
+  (::) <$> x Nothing <*> recordGetReaderBulma {zs = xs} v Nothing
+recordGetReaderBulma {zs = ((z, w) :: xs)} ((MkEntry z x) :: v) (Just (y :: s)) = 
+  (::) <$> x (Just y) <*> recordGetReaderBulma {zs = xs} v (Just s)
 
--- starts : (rs : UKeyList String Type) -> AllIG (\s, t => ReadWidgetBulma (Entry s t)) rs => 
---             Maybe (Record rs) -> Record (mapValuesWithKey (\i, j => Reader (Entry i j)) rs)
--- starts [] x = 
---   []
--- starts ((::) {p} (y, z) ls) Nothing = 
---   (::) {p = mapValuesWithKeyPrf y ls p} 
---        (y ^= getReaderBulma Nothing) 
---        (starts ls Nothing)
--- starts ((::) {p} (y, z) ls) (Just (x :: xs)) = 
---   (::) {p = mapValuesWithKeyPrf y ls p} 
---        (y ^= getReaderBulma (Just x)) 
---        (starts ls (Just xs))
--- 
--- 
--- 
--- renderReaders : (zs : FieldList) -> Record (mapValuesWithKey (\i, j => Reader (Entry i j)) zs) -> 
---                     Widget (Variant (mapValuesWithKey (\i, j => Reader (Entry i j)) zs))
--- renderReaders [] [] = 
---   neutral
--- renderReaders ((::) {p} (y, z) ls) (x :: w) =
---   ?h1 <+> ((\w => weakenVariant {p = ?h} w) <$> renderReaders ls w)
--- 
--- export
--- {zs : FieldList} -> AllIG (\s, t => ReadWidgetBulma (Entry s t)) zs => ReadWidgetBulma (Record zs) where
---   getReaderBulma {zs} x =
---     let w : Record (mapValuesWithKey (\i, j => Reader (Entry i j)) zs) -> Widget (Reader (Record zs))
---         w x = 
---           do
---             ?htrsdstd
--- 
---     in MkReader (w (starts zs x)) x
+getReaderPartsRecord :(zs : Vect n (String, Type)) -> Record (mapValuesWithKey (\s, t => ReadWidgetBulma (Entry s t))  zs) -> 
+                         Record (mapValuesWithKey (\s,t => Maybe (Entry s t) -> Reader (Entry s t)) zs)
+getReaderPartsRecord [] x = []
+getReaderPartsRecord ((y, z) :: xs) ((MkEntry y x) :: w) = MkEntry y getReaderBulma :: getReaderPartsRecord xs w
 
 export
-ReadWidgetBulma (Record []) where
-  getReaderBulma x = MkReader neutral (Just Nil)
+{zs : Vect n (String, Type)} -> 
+       (i : Record  (mapValuesWithKey (\s, t => ReadWidgetBulma (Entry s t))  zs)) => 
+                ReadWidgetBulma (Record zs) where 
+  getReaderBulma x = recordGetReaderBulma {zs = zs} (getReaderPartsRecord zs i) x
+
+
+public export
+TreeHeadsGetReader : Vect n (String, Type -> Type) -> Type -> Vect n (String, Type)
+TreeHeadsGetReader zs a = (mapValues (\f => ((Maybe a -> Reader a) -> Maybe (f a) -> Reader (f a))) zs)
+
+getReaderTreeHead : (zs : Vect n (String, Type -> Type)) -> (k : Fin n) -> 
+                   index2 k (TreeHeadsGetReader zs a) -> Maybe ((index2 k zs) a) -> (Maybe a -> Reader a)  -> Reader ((index2 k zs) a)
+getReaderTreeHead [] FZ _ _ _ impossible
+getReaderTreeHead [] (FS z) _ _ _ impossible
+getReaderTreeHead ((z, w) :: xs) FZ x y f = x f y
+getReaderTreeHead ((z, w) :: xs) (FS v) x y f = getReaderTreeHead xs v x y f
 
 export
-{p : CanPrependKey s ts} -> (ReadWidgetBulma (Entry s t), ReadWidgetBulma (Record ts)) => ReadWidgetBulma (Record ((s,t) :: ts)) where
-  getReaderBulma x = 
-    MkReader (w (getReaderBulma ((\(z::zs) => z) <$> x)) (getReaderBulma ((\(z::zs) => zs) <$> x)))  x
-    where 
-      w : Reader (Entry s t) -> Reader (Record ts) -> Bool -> Widget (Reader (Record ((s, t) :: ts)))
-      w t r check = do
-        res <- (Left <$> getWidget t check) <+> (Right <$> getWidget r check)
-        case res of
-             (Left y) => pure $ MkReader (w y r) ((::) {p=p} <$> getValue y <*> getValue r)
-             (Right y) => pure $ MkReader (w t y) ((::) {p=p} <$> getValue t <*> getValue y)
+treeGetReaderBulma : {zs : Vect n (String, Type -> Type)} -> 
+                      Record (TreeHeadsGetReader zs (Tree zs)) -> Maybe (Tree zs) -> Reader (Tree zs)
+treeGetReaderBulma x y =
+  let w : Maybe (Fin n, Reader (Tree zs)) -> Bool -> Widget (Reader (Tree zs))
+      w Nothing check = 
+         do
+           let warn = if check then warning "Missing"
+                               else neutral
+           k <- div [selectBulma (map fst zs) Nothing, warn]
+           let r = valueIndex k x
+           let ar = MkTree k <$> getReaderTreeHead zs k r Nothing (treeGetReaderBulma {zs = zs} x)
+           pure $ MkReader (w $ Just (k, ar)) (getValue ar)
+      w (Just (opt, reader)) check = 
+         do
+           let or = selectBulma (map fst zs) (Just opt)
+           res <- (Left <$> or) <+> (Right <$> getWidget reader check)
+           case res of 
+                Left k => 
+                   let r = valueIndex k x
+                       ar = MkTree k <$> getReaderTreeHead zs k r Nothing (treeGetReaderBulma {zs = zs} x)
+                   in pure $ MkReader (w $ Just (k, ar)) (getValue ar)
+                Right y => pure $ MkReader (w $ Just (opt, y)) (getValue y)
 
+      start : Maybe (Fin n, Reader (Tree zs))
+      start = case y of
+                   Nothing => 
+                      Nothing
+                   (Just (MkTree k z)) => 
+                      let r = valueIndex k x
+                      in Just (k, MkTree k <$> getReaderTreeHead zs k r (Just z) (treeGetReaderBulma {zs = zs} x))
+      
+  in MkReader (\check => w start check) y
 
-
-listElemToFin : Elem x y xs -> Fin (UKeyList.length xs)
-listElemToFin Here = FZ
-listElemToFin (There y) = FS $ listElemToFin y
-
-getVariantIdx : {0 ts : FieldList} ->  Variant ts -> Fin (UKeyList.length ts)
-getVariantIdx (MkVariant _ _ y) = listElemToFin y
-
-data VariantOptions : FieldList -> Type where
-  MkVariantOptions : {0 ts : FieldList} -> Vect (UKeyList.length ts) String -> Vect (UKeyList.length ts) (Reader (Variant ts)) -> VariantOptions ts
-
-export
-interface VariantReader (0 ts : FieldList) where
-  getVariantOptionReader : Variant ts -> Reader (Variant ts)
-  getOptions : VariantOptions ts
-
-export
-VariantReader [] where
-  getVariantOptionReader (MkVariant _ _ Here) impossible
-  getVariantOptionReader (MkVariant _ _ (There later)) impossible
-  getOptions = MkVariantOptions [] []
-
-export
-{s : String} -> {p : CanPrependKey s ts} -> (VariantReader ts, ReadWidgetBulma t) => VariantReader ((s, t) :: ts) where
-  getVariantOptionReader (MkVariant s x Here) = (\w => MkVariant s w Here) <$> getReaderBulma (Just x)
-  getVariantOptionReader (MkVariant s x (There later)) = weakenVariant <$> (the (Reader (Variant ts)) $ getVariantOptionReader (MkVariant s x later) )
-
-  getOptions =
-    let MkVariantOptions options readers = the (VariantOptions ts) getOptions
-    in  MkVariantOptions (s :: options) 
-                     (((\w => MkVariant s w Here)  <$> (the (Reader t) $ getReaderBulma Nothing)) :: ((map weakenVariant) <$> readers))
+getReaderPartsTree : (zs : Vect n (String, Type -> Type)) -> Record (mapValues (\f => ReadWidgetBulma1 f)  zs) -> 
+                         Record (TreeHeadsGetReader zs (Tree zs))
+getReaderPartsTree [] x = []
+getReaderPartsTree ((y, z) :: xs) ((MkEntry y x) :: w) = ?hhh -- :: getReaderPartsTree xs w
 
 export
-{0 ts : FieldList} -> VariantReader ts => ReadWidgetBulma (Variant ts) where
-  getReaderBulma x = 
-    let MkVariantOptions options readers = the (VariantOptions ts) getOptions
-        w : Maybe (Fin (UKeyList.length ts), Reader (Variant ts)) -> Bool -> Widget (Reader (Variant ts))
-        w Nothing check = 
-          do
-            let warn = if check then warning "Missing"
-                                else neutral
-            y <- div [selectBulma options Nothing, warn]
-            let ar = index y readers
-            pure $ MkReader (w $ Just (y, ar)) (getValue ar)
-        w (Just (opt, reader)) check = 
-          do
-            let or = selectBulma options (Just opt)
-            res <- (Left <$> or) <+> (Right <$> getWidget reader check)
-            case res of 
-                 Left y => 
-                    let ar = index y readers
-                    in pure $ MkReader (w $ Just (y, ar)) (getValue ar)
-                 Right y => pure $ MkReader (w $ Just (opt, y)) (getValue y)
-    in MkReader (w $ (,) <$> (getVariantIdx <$> x) <*> (getVariantOptionReader <$> x)) x
-        
-data TreeOptions : UKeyList String (Type -> Type) -> Type where
-  MkTreeOptions : {0 ts : UKeyList String (Type -> Type)} -> Vect (UKeyList.length ts) String -> Vect (UKeyList.length ts) (k : String ** KElem k ts) -> TreeOptions ts
-
-interface TreeReader (0 ts : UKeyList String (Type -> Type)) where
-  branchValueReader : (Maybe a -> Reader a) -> (pElem : KElem k ts) -> Maybe ((klookup ts pElem) a) -> Reader ((klookup ts pElem) a) 
-  treeOptions : TreeOptions ts
-
-export
-TreeReader [] where
-  branchValueReader _ KHere _ impossible
-  branchValueReader _ (KThere y) _ impossible
-  treeOptions = MkTreeOptions [] [] 
-
-export
-{s : String} -> {p : CanPrependKey s ts} -> (TreeReader ts, ReadWidgetBulma1 f) => TreeReader ((s, f) :: ts) where
-  branchValueReader cont KHere x = 
-    getReaderBulma1 cont x
-  branchValueReader cont (KThere y) x = 
-    branchValueReader cont y x
-
-  treeOptions = 
-    let MkTreeOptions o p = treeOptions {ts=ts}
-    in MkTreeOptions (s :: o) ((s ** KHere) :: ((\(k ** prf) => (k ** KThere prf) ) <$> p))
-
-
-export
-{0 ts : UKeyList String (Type -> Type)} -> TreeReader ts => ReadWidgetBulma (Tree ts) where
-  getReaderBulma x =
-    let MkTreeOptions options prfs = treeOptions {ts=ts}
-
-        getEmptyBranchReader : Fin (UKeyList.length ts) -> Reader (Tree ts)
-        getEmptyBranchReader x =
-          let (k **prf) = index x prfs
-          in N k {p=prf} <$> branchValueReader (getReaderBulma {a = Tree ts}) prf Nothing
-
-        w : Maybe (Fin (UKeyList.length ts), Reader (Tree ts)) -> Bool -> Widget (Reader (Tree ts))
-        w Nothing check = 
-          do
-            let warn = if check then warning "Missing"
-                                else neutral
-            y <- div [selectBulma options Nothing, warn]
-            let ar = getEmptyBranchReader y
-            pure $ MkReader (w $ Just (y, ar)) (getValue ar)
-        w (Just (opt, reader)) check = 
-          do
-            let or = selectBulma options (Just opt)
-            res <- (Left <$> or) <+> (Right <$> getWidget reader check)
-            case res of 
-                 Left y => 
-                    let ar = getEmptyBranchReader y
-                    in pure $ MkReader (w $ Just (y, ar)) (getValue ar)
-                 Right y => pure $ MkReader (w $ Just (opt, y)) (getValue y)
-
-        rootIdx : Tree ts -> Maybe (Fin (UKeyList.length ts))
-        rootIdx (N s _) = findIndex (==s)  options
-
-        startValueReader : Tree ts -> Reader (Tree ts)
-        startValueReader (N s {p} x) =  N s {p=p} <$> branchValueReader (getReaderBulma {a = Tree ts}) p (Just x)
-    in MkReader (w $ (,) <$> (join $ rootIdx <$> x) <*> (startValueReader <$> x)) x
+{zs : Vect n (String, Type -> Type)} ->
+       (i : Record  (mapValues (\f => ReadWidgetBulma1 f)  zs)) => 
+                ReadWidgetBulma (Tree zs) where 
+  getReaderBulma x = treeGetReaderBulma {zs = zs} (getReaderPartsTree zs i) x
 
 export
 ReadWidgetBulma b => ReadWidgetBulma1 (const b) where
   getReaderBulma1 cont x = getReaderBulma x
 
+data KeyListReaderEvent a = ChangeKey String String
+                          | AddEmptyKey
+                          | ChangeValue String (Reader a)
 
-data UKeyListReaderEvent a = ChangeKey String String
-                           | AddEmptyKey
-                           | ChangeValue String (Reader a)
 
-
-makeNameNotRepeated : String -> (l : UKeyList String a) -> (k : String ** CanPrependKey k l)
-makeNameNotRepeated str l = 
-  case calcCanPrependKey str l of
-       Nothing => makeNameNotRepeated (str ++ "_")  l
-       (Just x) => (str ** x)
-
-toUKeyList : List (String, a) -> UKeyList String a
-toUKeyList [] = []
-toUKeyList ((x, y) :: xs) = 
-  let xs_      = toUKeyList xs
-      (k ** p) = makeNameNotRepeated x xs_
-  in (::) {p = p} (k, y) xs_
+fromAllJust : List (Maybe a) -> Maybe (List a)
 
 export
-ReadWidgetBulma1 (UKeyList String) where
+ReadWidgetBulma1 (\w => List (String, w)) where
   getReaderBulma1 cont x =
-    let add : Widget (UKeyListReaderEvent a)
+    let add : Widget (KeyListReaderEvent a)
         add = fasIconText {onclick = (Just AddEmptyKey)} "plus" "Add"
 
-        renderItem : Bool -> (String, Reader a) -> Widget (UKeyListReaderEvent a)
+        renderItem : Bool -> (String, Reader a) -> Widget (KeyListReaderEvent a)
         renderItem check (s, r) =
           div [ChangeKey s <$> textInputBulma {label = Just "Entry Key"} s ,ChangeValue s <$> getWidget r check]
 
-        w : UKeyList String (Reader a) -> Bool -> Widget (Reader (UKeyList String a))
+        w : List (String, Reader a) -> Bool -> Widget (Reader (List (String, a)))
         w itemsReaders check = 
           do
-            let pairs = toListPairs itemsReaders
-            res <- div ( add :: (map (renderItem check) pairs)) 
-            let newReaders = case res of 
+            res <- div ( add :: (map (renderItem check) itemsReaders)) 
+            let newReaders = the (List (String, Reader a)) $  case res of 
                                ChangeKey sold snew => 
-                                  toUKeyList $ map (\(k,v) => if k == sold then (snew, v) else (k,v))  pairs
-                               AddEmptyKey => 
-                                  let (k ** p) = makeNameNotRepeated "" itemsReaders
-                                  in (::) {p = p} (k, cont Nothing) itemsReaders
+                                  map (\(k,v) => if k == sold then (snew, v) else (k,v)) itemsReaders
+                               AddEmptyKey =>
+                                  ("", cont Nothing) :: itemsReaders
                                ChangeValue s valnew => 
-                                  mapValuesWithKey (\k, v => if s == k then valnew else v) itemsReaders 
-            pure $ MkReader (w newReaders) (fromAllJust $ mapValues getValue newReaders )
-
-        startReaders : UKeyList String (Reader a)
+                                  map (\(k,v) => if k == s then (k, valnew) else (k,v)) itemsReaders
+            pure $ MkReader (w newReaders) (fromAllJust $ map (\(k,v) => (k,)  <$> getValue v) newReaders)
+        startReaders : List (String, Reader a)
         startReaders = case x of
                   Nothing => []
-                  Just x => mapValues (cont . Just) x
+                  Just x => map (\(k,v) => (k, cont (Just v))) x
     in MkReader (w startReaders) x
-
-export
-{s : String } -> ReadWidgetBulma (Variant ts) => ReadWidgetBulma (Entry s (Variant ts)) where
-  getReaderBulma x = 
-    MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
-    where
-      f : Widget a -> Widget a
-      f x = fieldsSection s [x]
 
 export
 {s : String } -> ReadWidgetBulma (Record ts) => ReadWidgetBulma (Entry s (Record ts)) where
@@ -347,6 +257,6 @@ getFormBulma =
                           Just v =>  pure $ Right $ Just v
     )
 
-test : Widget (Maybe (Tree [("Record", UKeyList String), ("String", const ())]))
+test : Widget (Maybe (Tree [("Record", \w => List (String, w)), ("String", const ())]))
 test = getFormBulma
 

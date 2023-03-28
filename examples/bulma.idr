@@ -3,10 +3,10 @@ module Main
 import Ifui
 import Ifui.Bulma
 import Ifui.ReadWidgetBulma
-import Ifui.ExtensibleRecords
+import Ifui.ExtensibleTypes
 
 IData : Type
-IData =  Record [("Name", String), ("Surname", String), ("whatever", Variant [("age", Double), ("age_class", String)])]
+IData =  Record [("Name", String), ("Surname", String), ("whatever", String )]
 
 mainWidget : Widget ()
 mainWidget =

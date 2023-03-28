@@ -1,7 +1,7 @@
 module Ifui.Json
 
 import public Language.JSON
-import public Ifui.ExtensibleRecords
+import public Ifui.ExtensibleTypes
 import Data.List
 
 total
@@ -73,6 +73,19 @@ JsonSerializable () where
   fromJson _ = Just ()
 
 export
+(JsonSerializable a, JsonSerializable b) => JsonSerializable (a, b) where
+  toJson (x, y)  = 
+    JObject [("fst", toJson x), ("snd", toJson y)]
+
+  fromJson (JObject l) =
+     do
+       j1 <- lookup "fst" l
+       j2 <- lookup "snd" l
+       (,) <$> fromJson j1 <*> fromJson j2
+  fromJson _ = 
+    Nothing
+
+export
 JsonSerializable String where
   toJson x = JString x
 
@@ -103,6 +116,11 @@ JsonSerializable Bool where
   fromJson _ = Nothing
 
 export
+JsonSerializable b => JsonSerializable1 (const b) where
+  toJson1 x cont = toJson x 
+  fromJson1 x cont = fromJson x
+
+export
 JsonSerializable1 List where
   toJson1 x g = JArray (map g x)
 
@@ -110,33 +128,56 @@ JsonSerializable1 List where
   fromJson1 _ _ = Nothing
 
 export
-interface JsonObjectSerializable a where
-  toListJson : a -> List (String, JSON)
-  fromListJson : List (String, JSON) -> Maybe a
+JsonSerializable a => JsonSerializable1 (\t => List (a, t)) where
+  toJson1 x g = JArray (map (\(z,w) => toJson (toJson z, g w)) x)
+
+  fromJson1 (JArray x) g = sequence $ map (\j => do (z, w) <- fromJson {a = (a, JSON)} j; (z,) <$> g w) x
+  fromJson1 _ _ = Nothing
 
 export
-JsonObjectSerializable a => JsonSerializable a where
-  toJson x = JObject $ toListJson x
+recordToJson : {zs : Vect n (String, Type)} -> {auto 0  prf : So (UniqueKeys zs)} ->
+                 Record (Vect.mapValues (\t => (t -> JSON)) zs) -> Record zs  -> List (String, JSON)
+recordToJson {zs = []} x y = 
+  []
+recordToJson {zs = ((z, w) :: xs)} ((MkEntry z x) :: s) ((MkEntry z y) :: v) = 
+  ((z, x y) :: recordToJson {zs = xs} {prf = soAnd2 prf} s v)
 
-  fromJson (JObject x) = fromListJson x
+export
+recordFromJson : {zs : Vect n (String, Type)} -> {auto 0 prf : So (UniqueKeys zs)} -> 
+                    Record (Vect.mapValues (\t => (JSON -> Maybe t)) zs) -> List (String, JSON) -> Maybe (Record zs)
+recordFromJson {zs = []} x xs = Just 
+  []
+recordFromJson {zs = ((y, z) :: ys)} ((MkEntry y x) :: w) xs = 
+  do
+    ws <- recordFromJson {zs = ys} {prf = soAnd2 prf} w xs
+    j <- lookup y xs
+    w <- x j
+    pure $ MkEntry y w :: ws
+
+toPartsRecord :(zs : Vect n (String, Type)) -> Record (mapValues JsonSerializable zs) -> Record (Vect.mapValues (\t => (t -> JSON)) zs)
+toPartsRecord [] x = []
+toPartsRecord ((y, z) :: xs) ((MkEntry y x) :: w) = MkEntry y toJson :: toPartsRecord xs w
+
+fromPartsRecord :(zs : Vect n (String, Type)) -> Record (mapValues JsonSerializable zs) -> Record (Vect.mapValues (\t => (JSON -> Maybe t)) zs)
+fromPartsRecord [] x = []
+fromPartsRecord ((y, z) :: xs) ((MkEntry y x) :: w) = MkEntry y fromJson :: fromPartsRecord xs w
+
+export
+{zs : Vect n (String, Type)} -> (prf : So (UniqueKeys zs)) => 
+       (i : Record  (mapValues (JsonSerializable) zs)) => 
+                JsonSerializable (Record zs) where
+  toJson x =
+    JObject $ recordToJson {zs = zs} {prf = prf} (toPartsRecord zs i) x 
+
+  fromJson (JObject x) = recordFromJson {zs = zs} {prf = prf} (fromPartsRecord zs i) x
   fromJson _ = Nothing
 
-export
-{zs : UKeyList String Type} -> AllI JsonSerializable zs => JsonObjectSerializable (Record zs) where
-  toListJson {zs = []} _ = 
-    []
-  toListJson {zs = ((s, t) :: l)} ((MkEntry s x) :: z) = 
-    (s, toJson x) :: toListJson z
 
-  fromListJson {zs = []} x = 
-    Just []
-  fromListJson {zs = ((::) {d = d} {p = p} (k, v) l)} x = 
-    do
-      ws <- fromListJson {a = Record l} x 
-      j <- lookup k x
-      w <- fromJson {a=v} j
-      pure $ ExtensibleRecords.(::) {p = p} (MkEntry k w) ws
+testRecord : Record [("a", String), ("b", Int)]
+testRecord = ["a" ^= "a", "b" ^= 2]
 
+testRecordJson : JSON
+testRecordJson = toJson testRecord
 
 export
 JsonSerializable (Record ts) => JsonSerializable (Maybe (Record ts)) where
@@ -146,91 +187,63 @@ JsonSerializable (Record ts) => JsonSerializable (Maybe (Record ts)) where
   fromJson JNull = Just Nothing
   fromJson o = Just <$> fromJson o
 
-export
-{zs : UKeyList String Type} -> AllI JsonSerializable zs => JsonSerializable (Variant zs) where
-  toJson {zs = []} x = 
-    JNull
-  toJson {zs = ((s, z) :: l)} (MkVariant s x Here) = 
-    JObject [("k", JString s), ("v", toJson x)]
-  toJson {zs = ((s, z) :: l)} (MkVariant k x (There y)) = 
-    toJson {a = Variant l} (MkVariant k x y)
-
-  fromJson {zs = []} x = 
-    Nothing
-  fromJson {zs = ((s, t) :: l)} z@(JObject [("k", JString k), ("v", v)]) = 
-    if s == k then do
-                    w <- fromJson {a = t} v
-                    pure $ MkVariant s w Here
-              else case fromJson {a=Variant l} z of
-                        Nothing => Nothing
-                        (Just (MkVariant str x pe)) => Just $ MkVariant str x (There pe)
-  fromJson _ = Nothing
-
-fromListJsonUKeyList :  (JSON -> Maybe b) -> List (String, JSON) -> Maybe (UKeyList String b)
-fromListJsonUKeyList _ [] = 
-  Just []
-fromListJsonUKeyList fromJsonB  ((x, y) :: xs) =
-  do
-    xs_ <- fromListJsonUKeyList fromJsonB xs
-    y_ <- fromJsonB y
-    prf <- calcCanPrependKey x xs_
-    pure ((::) (x, y_) xs_  {p=prf})
-
-toListJsonUKeyList : (b -> JSON) -> UKeyList String b -> List (String, JSON)
-toListJsonUKeyList f [] = []
-toListJsonUKeyList f ((k, v) :: l) = (k, f v)  :: toListJsonUKeyList f l
-
-
-export
-JsonSerializable1 (UKeyList String) where
-  toJson1 x cont = 
-    JObject $ toListJsonUKeyList cont x
-  fromJson1 (JObject x) cont = 
-    fromListJsonUKeyList cont x
-  fromJson1 _ cont = 
-    Nothing
     
+public export
+TreeHeadsToJson : Vect n (String, Type -> Type) -> Type -> Vect n (String, Type)
+TreeHeadsToJson zs a = (mapValues (\f => ((f a) -> (a -> JSON) -> JSON)) zs)
+
+toJsonTreeHead : (zs : Vect n (String, Type -> Type)) -> (k : Fin n) -> 
+                   index2 k (TreeHeadsToJson zs a) -> (index2 k zs) a -> (a -> JSON)  -> JSON
+toJsonTreeHead [] FZ _ _ _ impossible
+toJsonTreeHead [] (FS y) _ _ _ impossible
+toJsonTreeHead ((y, z) :: xs) FZ f x cont = f x cont
+toJsonTreeHead ((y, w) :: xs) (FS z) f x cont = toJsonTreeHead xs z f x cont
+
 export
-JsonSerializable b => JsonSerializable1 (const b) where
-  toJson1 x cont = toJson x 
-  fromJson1 x cont = fromJson x
+treeToJson : {zs : Vect n (String, Type -> Type)} -> {auto 0 prf : So (UniqueKeys zs)} ->
+                 Record (TreeHeadsToJson zs (Tree zs)) -> Tree zs -> JSON
+treeToJson x (MkTree k y) = 
+  let w = valueIndex k x
+  in toJsonTreeHead zs k w y (treeToJson {zs = zs} {prf = prf} x) 
 
 public export
-interface JsonSerializableTreeHeads (0 ts : UKeyList String (Type -> Type)) where
-  toJsonTreeHeads : (s : String) -> (p : KElem s ts) -> ((klookup ts p) (Tree rs)) -> (Tree rs -> JSON) -> JSON
-  fromJsonTreeHeads : JSON -> (JSON -> Maybe (Tree rs)) -> Maybe (k : String ** (p : KElem k ts ** (klookup ts p) (Tree rs)))
+TreeHeadsFromJson : Vect n (String, Type -> Type) -> Type -> Vect n (String, Type)
+TreeHeadsFromJson zs a = (mapValues (\f => JSON -> (JSON -> Maybe a) -> Maybe (f a)) zs)
 
-
-export
-{zs : UKeyList String (Type -> Type)} -> AllIG (\_, w => JsonSerializable1 w) zs => JsonSerializableTreeHeads zs where
-  toJsonTreeHeads {zs = []} s p x cont = 
-    JNull
-  toJsonTreeHeads {zs = ((_, v) :: l)} s KHere x cont = 
-    JObject [("k", JString s), ("v", toJson1 x cont)]
-  toJsonTreeHeads {zs = ((y, w) :: l)} s (KThere z) x cont =
-    toJsonTreeHeads s z x cont
-
-  fromJsonTreeHeads {zs = []} (JObject [("k", JString k), ("v", v)]) cont = 
-    Nothing
-  fromJsonTreeHeads {zs = ((s, f) :: l)} z@(JObject [("k", JString k), ("v", v)]) cont =
-    if s == k then do
-                    w <- fromJson1 {f = f} v cont
-                    pure (s ** KHere ** w)
-              else case fromJsonTreeHeads {ts=l} z cont of
-                        Nothing => Nothing
-                        (Just ((k_ ** ((p_ ** x_))))) => Just (k_ ** ( KThere p_ ** x_ ))
-  fromJsonTreeHeads _ _ = 
-    Nothing
-
+fromJsonTreeHead : (zs : Vect n (String, Type -> Type)) -> (k : Fin n) -> 
+                   index2 k (TreeHeadsFromJson zs a) -> JSON -> (JSON -> Maybe a)  -> Maybe ((index2 k zs) a)
+fromJsonTreeHead [] FZ _ _ _ impossible
+fromJsonTreeHead [] (FS y) _ _ _ impossible
+fromJsonTreeHead ((y, z) :: xs) FZ f json cont = f json cont
+fromJsonTreeHead ((y, z) :: xs) (FS w) f json cont = fromJsonTreeHead xs w f json cont
 
 export
-JsonSerializableTreeHeads ts => JsonSerializable (Tree ts) where
-  toJson (N s x {p}) = toJsonTreeHeads {ts=ts} s p x toJson
+treeFromJson : {zs : Vect n (String, Type -> Type)} -> {auto 0 prf : So (UniqueKeys zs)} ->
+                 Record (TreeHeadsFromJson zs (Tree zs)) -> JSON -> Maybe (Tree zs)
+treeFromJson x (JObject y) =
+  do
+    JString s <- lookup "k" y | _ => Nothing
+    k <- findKey s zs
+    v <- lookup "v" y
+    let w = valueIndex k x
+    MkTree k <$> fromJsonTreeHead zs k w v (treeFromJson {zs = zs} {prf = prf} x)
+treeFromJson x _ = Nothing
 
-  fromJson x = 
-    do
-      (k ** (p ** x)) <- fromJsonTreeHeads {ts=ts} x fromJson
-      pure $ N k x {p=p}
+toPartsTree :(zs : Vect n (String, Type -> Type)) -> Record (mapValues JsonSerializable1 zs) -> Record (TreeHeadsToJson zs a)
+toPartsTree [] x = []
+toPartsTree ((y, z) :: xs) ((MkEntry y x) :: w) = MkEntry y toJson1 :: toPartsTree xs w
+
+fromPartsTree :(zs : Vect n (String, Type -> Type)) -> Record (mapValues JsonSerializable1 zs) -> Record (TreeHeadsFromJson zs a)
+fromPartsTree [] x = []
+fromPartsTree ((y, z) :: xs) ((MkEntry y x) :: w) = MkEntry y fromJson1 :: fromPartsTree xs w
+
+export
+{zs : Vect n (String, Type -> Type)} -> (prf : So (UniqueKeys zs)) => 
+       (i : Record  (mapValues (JsonSerializable1) zs)) => 
+                JsonSerializable (Tree zs) where
+  toJson x = treeToJson {zs = zs} {prf = prf} (toPartsTree zs i) x
+
+  fromJson x = treeFromJson {zs = zs} {prf = prf} (fromPartsTree zs i) x
 
 export
 JsonSerializable (Tree ts) => JsonSerializable (Maybe (Tree ts)) where
@@ -240,11 +253,11 @@ JsonSerializable (Tree ts) => JsonSerializable (Maybe (Tree ts)) where
   fromJson JNull = Just Nothing
   fromJson o = Just <$> fromJson o
 
-testTree : Tree [("Record", UKeyList String), ("String", const ())]
+testTree : Tree [("Record", \w => List (String, w)), ("String", const ())]
 testTree = N "String" ()
 
-testJ : JSON
-testJ = toJson testTree
+testTreeJson : JSON
+testTreeJson  = toJson testTree
 
 %foreign "javascript:lambda: x => JSON.stringify(x)"
 export
@@ -361,10 +374,9 @@ ChangeTest : Type -> Type
 ChangeTest a = Record [("old_val", Maybe a), ("new_val", Maybe a)]
 
 TestTy : Type 
-TestTy = ChangeTest (Record [("spec", Tree [("stuff2", const ()), ("stuff", const ()), ("Record", UKeyList String), ("String", const ())])])
+TestTy = ChangeTest (Record [("spec", Tree [("stuff2", const ()), ("stuff", const ()), ("Record", \w => List (String, w)), ("String", const ())])])
 
--- takes to much time
---testInstanceRec : TestTy -> JSON
---testInstanceRec = toJson 
+testInstanceRec : TestTy -> JSON
+testInstanceRec = toJson 
 
 

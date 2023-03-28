@@ -3,7 +3,7 @@ module IfuiServer.Server
 import public IfuiServer.Promise
 import public IfuiServer.IOStream 
 import public Ifui.Services
-import Ifui.ExtensibleRecords
+import Ifui.ExtensibleTypes
 import Language.JSON
 import IfuiServer.WebSockets
 import IfuiServer.Http
@@ -16,14 +16,14 @@ public export
 data Service : ServiceKind -> Type where
   MkRPC : (JsonSerializable a, JsonSerializable b) => (a -> Promise b)  -> Service (RPC a b)
   MkStreamService : (JsonSerializable a, JsonSerializable b) => (a -> IOStream b) -> Service (StreamService a b)
-  MkGroupService : {xs : UKeyList String ServiceKind} ->  Record (mapValues Service xs) -> Service (GroupService xs)
+  MkGroupService : {xs : Vect n (String, ServiceKind)} -> {auto 0 prf : So (UniqueKeys xs)} ->  Record (mapValues Service xs) -> Service (GroupService xs)
   MkEmptyService : Service EmptyService
 
 public export
 data ServerWithAuth : (loginTy : Type) -> (roleTy : Type) -> (roleTy -> ServiceKind) -> Type where
   MkServerWithAuth : (loginTy -> Promise roleTy) -> ((r:roleTy) -> Service (sf r)) -> ServerWithAuth loginTy roleTy sf
 
-getServiceU: (n : String) -> (xs : UKeyList String ServiceKind) -> Record (mapValues Service xs) -> Maybe (k : ServiceKind ** Service k)
+getServiceU: (n : String) -> (xs : Vect m (String, ServiceKind)) -> Record (mapValues Service xs) -> Maybe (k : ServiceKind ** Service k)
 getServiceU n [] x = 
   Nothing
 getServiceU n ((y, z) :: l) ((MkEntry y x) :: w) =
