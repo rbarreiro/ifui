@@ -35,6 +35,10 @@ namespace List
   mapValues f [] = []
   mapValues f ((x, y) :: xs) = (x, f y) :: mapValues f xs
 
+ListToVect : (l : List a) -> Vect (List.length l) a
+ListToVect [] = []
+ListToVect (x :: xs) = x :: ListToVect xs
+
 namespace Vect
   public export
   data KElem : a -> Vect n (a, b) -> Type where
@@ -116,7 +120,7 @@ namespace Record
   
   public export
   Record' : List (String, Type) -> Type
-  Record' x = Record $ Vect.fromList x
+  Record' x = Record $ ListToVect x
 
   public export
   valueIndex : (k : Fin n) -> {0 ts : Vect n (String, Type)} -> Record ts -> Vect.index2 k ts
