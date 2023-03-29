@@ -30,6 +30,11 @@ namespace List
   UniqueKeys [] = True
   UniqueKeys ((x, y) :: xs) = not (HasKey x xs) && UniqueKeys xs
 
+  public export
+  mapValues : (a -> b) -> List (k, a) -> List (k, b)
+  mapValues f [] = []
+  mapValues f ((x, y) :: xs) = (x, f y) :: mapValues f xs
+
 namespace Vect
   public export
   data KElem : a -> Vect n (a, b) -> Type where

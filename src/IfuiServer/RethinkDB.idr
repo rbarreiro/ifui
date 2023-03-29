@@ -26,9 +26,12 @@ data Cursor : Type -> Type where
 export
 data Changes : Type -> Type where
 
+public export
+ServerSpec : Type
+ServerSpec = List ((String, String), List (String, Type))
 
 public export
-data Query : List ((String, String), List (String, Type)) -> List (String, Type) -> Type -> Type where
+data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Var : (name : String) -> HasVar name t ctxt  -> Query db ctxt t
     Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
     App : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
@@ -67,7 +70,7 @@ KeyType String where
 public export
 data TableSchema : Type where
   MkTableSchema : (d : String) -> (n : String) -> (idTy : Type) -> 
-                          (ts : List (String, Type)) -> {auto 0  prf : So (UniqueKeys (("id", idTy) :: ts))}  -> 
+                          (ts : List (String, Type)) -> {auto 0  prf : So (UniqueKeys (("id", idTy) :: ts))} -> 
                               (KeyType idTy, JsonSerializable (Record' (("id", idTy) :: ts))) =>
                                      TableSchema
 
@@ -90,15 +93,15 @@ mutual
     (::) : TableSchema -> ServerSchema -> ServerSchema
 
   public export
-  ServerSchemaTy : ServerSchema -> List ((String, String), (List (String, Type)))
-  ServerSchemaTy [] = []
-  ServerSchemaTy (t :: s) = ((TableSchemaDB t, TableSchemaName t), TableSchemaFields t) :: (ServerSchemaTy s)
-  
+  ServerSchemaSpec : ServerSchema -> ServerSpec
+  ServerSchemaSpec [] = []
+  ServerSchemaSpec (t :: s) = ((TableSchemaDB t, TableSchemaName t), TableSchemaFields t) :: (ServerSchemaSpec s)
+ 
 test : ServerSchema
 test = [MkTableSchema "todoApp" "todoItem" Int [("desc", String)]]
 
 export
-data RethinkServer : List ((String, String), List (String, Type)) -> Type where
+data RethinkServer : ServerSpec -> Type where
   MkRethinkServer : AnyPtr -> RethinkServer a
 
 %foreign "node:lambda: (cursor, callback)  => cursor.toArray((err, res) => callback(err ? err + '' : '')(res)())"
@@ -195,7 +198,7 @@ doMigration s conn =
          Left err => pure $ Just err
 
 export
-connect :  String -> Int -> (s : ServerSchema) -> Promise (Either String (RethinkServer (ServerSchemaTy s)))
+connect :  String -> Int -> (s : ServerSchema) -> Promise (Either String (RethinkServer (ServerSchemaSpec s)))
 connect host port x = 
   MkPromise $ \w =>
     do
@@ -212,7 +215,7 @@ connect host port x =
       pure $ MkPromiseHandler (pure ())
 
 export
-connect' :  String -> Int -> (s : ServerSchema) -> Promise (RethinkServer (ServerSchemaTy s))
+connect' :  String -> Int -> (s : ServerSchema) -> Promise (RethinkServer (ServerSchemaSpec s))
 connect' host port x = onErrPrint $ connect host port x
 
 public export
