@@ -35,6 +35,7 @@ namespace List
   mapValues f [] = []
   mapValues f ((x, y) :: xs) = (x, f y) :: mapValues f xs
 
+public export
 ListToVect : (l : List a) -> Vect (List.length l) a
 ListToVect [] = []
 ListToVect (x :: xs) = x :: ListToVect xs
