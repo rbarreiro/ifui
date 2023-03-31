@@ -66,6 +66,8 @@ export
 KeyType Int where
 export
 KeyType String where
+export
+(KeyType a, KeyType b) => KeyType (a, b) where
 
 public export
 data TableSchema : Type where
