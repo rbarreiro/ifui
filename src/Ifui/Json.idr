@@ -68,6 +68,15 @@ JsonSerializable JSON where
   fromJson x = Just x
 
 export
+JsonSerializable (Maybe JSON) where
+  toJson (Just x) = JArray [x]
+  toJson Nothing = JNull
+
+  fromJson (JArray [x]) = Just (Just x)
+  fromJson JNull = Just Nothing
+  fromJson _ = Nothing
+
+export
 JsonSerializable () where
   toJson _ = JNull
   fromJson _ = Just ()
