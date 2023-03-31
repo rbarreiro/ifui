@@ -11,6 +11,14 @@ namespace Date
   export
   data Date = MkDate String
 
+  export
+  Show Date where
+    show (MkDate x) = x
+
+  export
+  readISODate : String -> Maybe Date
+  readISODate x = Just $ MkDate x
+
 namespace List
   public export
   data KElem : a -> List (a, b) -> Type where

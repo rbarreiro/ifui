@@ -81,6 +81,13 @@ JsonSerializable String where
   fromJson _ = Nothing
 
 export
+JsonSerializable Date where
+  toJson x = JString $ show x
+
+  fromJson (JString x) = readISODate x
+  fromJson _ = Nothing
+
+export
 JsonSerializable (Maybe String) where
   toJson (Just x) = JString x
   toJson Nothing = JNull
