@@ -72,18 +72,6 @@ JsonSerializable () where
   toJson _ = JNull
   fromJson _ = Just ()
 
-export
-(JsonSerializable a, JsonSerializable b) => JsonSerializable (a, b) where
-  toJson (x, y)  = 
-    JObject [("fst", toJson x), ("snd", toJson y)]
-
-  fromJson (JObject l) =
-     do
-       j1 <- lookup "fst" l
-       j2 <- lookup "snd" l
-       (,) <$> fromJson j1 <*> fromJson j2
-  fromJson _ = 
-    Nothing
 
 export
 JsonSerializable String where
@@ -114,6 +102,45 @@ JsonSerializable Bool where
 
   fromJson (JBoolean x) = Just x
   fromJson _ = Nothing
+
+export
+interface JTuple (0 a : Type) | a where
+  tupleToJson : a -> List JSON
+  tupleFromJson : List JSON -> Maybe a
+
+export
+JTuple String where
+  tupleToJson x = [toJson x]
+  
+  tupleFromJson [x] = fromJson x
+  tupleFromJson _ = Nothing
+
+export
+JTuple JSON where
+  tupleToJson x = [toJson x]
+  
+  tupleFromJson [x] = fromJson x
+  tupleFromJson _ = Nothing
+
+export
+(JTuple b, JsonSerializable a) => JTuple (a, b) where
+  tupleToJson (x, y) = 
+    toJson x :: tupleToJson y
+
+  tupleFromJson (x :: xs) =
+    (,) <$> fromJson x <*> tupleFromJson xs
+  tupleFromJson _ =
+    Nothing
+
+export
+JTuple (a, b) => JsonSerializable (a, b) where
+  toJson x = JArray $ tupleToJson x
+
+  fromJson (JArray x) = tupleFromJson x
+  fromJson _ = Nothing 
+
+testJTuple : JSON
+testJTuple = toJson ("a", "b", "c")
 
 export
 JsonSerializable b => JsonSerializable1 (const b) where
