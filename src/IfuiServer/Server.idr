@@ -135,3 +135,10 @@ serveStatic port path =
     listen s port
       
 
+%foreign "node:lambda: () => {const crypto=require('crypto'); return crypto.randomUUID()}"
+prim__randomUUID : () -> PrimIO String
+export
+randomUUID : IO String
+randomUUID = primIO $ prim__randomUUID ()
+
+
