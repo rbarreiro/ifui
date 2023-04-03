@@ -2,6 +2,7 @@ module Ifui.Json
 
 import public Language.JSON
 import public Ifui.ExtensibleTypes
+import Ifui.Date
 import Data.List
 
 total
