@@ -8,6 +8,7 @@ import public IfuiServer.Promise
 import public IfuiServer.IOStream
 import public Ifui.Services
 import public Ifui.Json
+import public Ifui.Date
 import Data.IORef
 import IfuiServer.Server
 
