@@ -114,6 +114,13 @@ JsonSerializable Int where
   fromJson _ = Nothing
 
 export
+JsonSerializable Integer where
+  toJson x = JNumber $ cast x
+
+  fromJson (JNumber x) = Just $ cast x
+  fromJson _ = Nothing
+
+export
 JsonSerializable Bool where
   toJson x = JBoolean x
 
@@ -121,7 +128,7 @@ JsonSerializable Bool where
   fromJson _ = Nothing
 
 export
-interface JTuple (0 a : Type) | a where
+interface JTuple (0 a : Type) where
   tupleToJson : a -> List JSON
   tupleFromJson : List JSON -> Maybe a
 

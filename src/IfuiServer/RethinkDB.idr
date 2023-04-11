@@ -11,7 +11,7 @@ import public Ifui.Json
 import public Ifui.Date
 import Data.IORef
 import IfuiServer.Server
-
+import Data.List.Elem
 
 public export
 data HasVar : String -> Type -> List (String, Type) -> Type where
@@ -32,12 +32,19 @@ ServerSpec : Type
 ServerSpec = List ((String, String), List (String, Type))
 
 public export
+interface HasParts (0 a : Type) (0 b : Type) where
+  replacePartsNulls : AnyPtr -> AnyPtr -> AnyPtr
+
+public export
 data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Var : (name : String) -> HasVar name t ctxt  -> Query db ctxt t
     Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
     App : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
     GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (lookup db p))
     ReadTable : Query db ctxt (Table ts) -> Query db ctxt (Cursor (Record' ts))
+    Between : HasParts a b => {default True leftBoundClosed : Bool} -> {default False rightBoundClosed : Bool} ->
+                   Query db ctxt (Table ts) -> {auto 0 p : Elem ("id", a) ts} -> 
+                     Query db ctxt b -> Query db ctxt b  -> Query db ctxt (Cursor (Record' ts))
     GetChanges : {default False includeInitial : Bool} -> (e : Query db ctxt (Cursor t)) -> Query db ctxt (Changes t)
     Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record' ts)) -> 
                  Query db ctxt (Record [("first_error", Maybe String)])
@@ -235,8 +242,8 @@ getVar (There x) (AddVar s_ y z) =
 fnToPtr : (AnyPtr -> AnyPtr) -> AnyPtr
 fnToPtr x = believe_me x
 
-%foreign "node:lambda: (r, f, x) => f(x)"
-prim__app : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr
+%foreign "node:lambda: (f, x) => f(x)"
+prim__app : AnyPtr -> AnyPtr -> AnyPtr
 
 %foreign "node:lambda: (r, d, t) => r.db(d).table(t)"
 prim__getTable : AnyPtr -> String -> String -> AnyPtr
@@ -259,6 +266,39 @@ prim__changes : AnyPtr -> AnyPtr -> AnyPtr
 %foreign "node:lambda: r => (f => (x => r.map(x, f)))"
 prim__rmap : AnyPtr -> AnyPtr
 
+%foreign "node:lambda: (r, tbl, left, right, options) => tbl.between(left, right, options)"
+prim__rbetween : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr 
+
+%foreign "node:lambda: (x, replacement) => x.default(replacement)"
+prim__rdefault : AnyPtr -> AnyPtr -> AnyPtr 
+
+%foreign "node:lambda: r => r.minval"
+prim__rminval : AnyPtr -> AnyPtr 
+
+%foreign "node:lambda: r => r.maxval"
+prim__rmaxval : AnyPtr -> AnyPtr
+
+%foreign "node:lambda: x => x.count()"
+prim__rcount : AnyPtr -> AnyPtr
+
+%foreign "node:lambda: (r, test, thenValue, elseValue) => r.branch(test, thenValue, elseValue)"
+prim__rifThenElse : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr 
+
+
+export
+HasParts String (Maybe String) where
+  replacePartsNulls replacement x = prim__rdefault x replacement
+
+%foreign "node:lambda (rfst, rsnd, x) => {const r = require('rethinkdb'); r.branch(x.count().eq(2), r.expr([]).prepend(rsnd(x[1])).prepend(rfst(x[0])), rsnd(x.slice(1)).prepend(rfst(x[0])))}"
+prim__replacePartsNullsTuple : (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr 
+
+export
+(HasParts a a', HasParts b b') => HasParts (a, b) (a', b') where
+  replacePartsNulls replacement x = 
+    prim__replacePartsNullsTuple 
+      (replacePartsNulls {a = a} {b = a'} replacement) 
+      (replacePartsNulls {a = b} {b = b'} replacement) 
+      x
 
 compileQuery : AnyPtr -> VarStack ctxt ->  Query db ctxt r -> AnyPtr 
 compileQuery r vars (Var name x) = 
@@ -266,12 +306,22 @@ compileQuery r vars (Var name x) =
 compileQuery r vars (Lambda arg a x) = 
   fnToPtr $ \w => compileQuery r (AddVar arg w vars) x
 compileQuery r vars (App f x) = 
-  prim__app r (compileQuery r vars f) (compileQuery r vars x)
+  prim__app (compileQuery r vars f) (compileQuery r vars x)
 compileQuery r vars (GetTable d t) = 
   prim__getTable r d t
 compileQuery r vars (ReadTable x) = 
   compileQuery r vars x
-compileQuery r vars (GetChanges x {includeInitial = includeInitial}) = 
+compileQuery r vars (Between {a} {b} {leftBoundClosed} {rightBoundClosed} tbl x y) = 
+  prim__rbetween
+    r
+    (compileQuery r vars tbl) 
+    (replacePartsNulls {a = a} {b = b} (prim__rminval r) $ compileQuery r vars x) 
+    (replacePartsNulls {a = a} {b = b} (prim__rmaxval r) $ compileQuery r vars y) 
+    (json2ptr $ JObject [("leftBound", JString $ if leftBoundClosed then "closed" else "open")
+                        , ("rightBound", JString $ if rightBoundClosed then "closed" else "open")
+                        ]
+    )
+compileQuery r vars (GetChanges x {includeInitial}) = 
   prim__changes (compileQuery r vars x) (json2ptr $ JObject [("includeInitial", JBoolean includeInitial)])
 compileQuery r vars (Insert t xs) = 
   prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
