@@ -54,6 +54,8 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     StrEq : Query db ctxt (String -> String -> Bool)
     GetField : (key : String) -> {auto p : Vect.KElem key fields} -> Query db ctxt (Record fields -> Vect.klookup fields p)
     MapCursor : Query db ctxt ((a -> b) -> Cursor a -> Cursor b)
+    GenerateUUID : Query db ctxt String
+    Now : Query db ctxt Date
 
 
 infixr 0 |>
@@ -284,6 +286,11 @@ prim__rcount : AnyPtr -> AnyPtr
 %foreign "node:lambda: (r, test, thenValue, elseValue) => r.branch(test, thenValue, elseValue)"
 prim__rifThenElse : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr 
 
+%foreign "node:lambda: r => r.uuid()"
+prim__ruuid : AnyPtr -> AnyPtr 
+
+%foreign "node:lambda: r => r.now()"
+prim__rnow : AnyPtr -> AnyPtr 
 
 export
 HasParts String (Maybe String) where
@@ -335,7 +342,10 @@ compileQuery r vars (GetField key) =
   prim__rget key
 compileQuery r vars MapCursor =
   prim__rmap r
-
+compileQuery r vars GenerateUUID =
+  prim__ruuid r
+compileQuery r vars Now =
+  prim__rnow r
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
