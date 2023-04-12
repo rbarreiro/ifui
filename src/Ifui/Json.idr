@@ -5,6 +5,10 @@ import public Ifui.ExtensibleTypes
 import Ifui.Date
 import Data.List
 
+public export
+ty : String
+ty = "$ty_d7a70054-d918-11ed-afa1-0242ac120002"
+
 total
 eqJson : JSON -> JSON -> Bool
 eqJson JNull JNull = 
@@ -92,9 +96,14 @@ JsonSerializable String where
 
 export
 JsonSerializable Date where
-  toJson x = JString $ show x
+  toJson x = JObject [(ty, JString "date"), ("value", JString $ show x)]  
 
-  fromJson (JString x) = readISODate x
+  fromJson (JObject x) =
+    do
+      JString "date" <- lookup ty x | _ => Nothing
+      JString d <- lookup "value" x | _ => Nothing
+      readISODate d
+
   fromJson _ = Nothing
 
 export
@@ -366,6 +375,9 @@ prim__arrayGet : AnyPtr -> Int -> AnyPtr
 %foreign "javascript:lambda: x => Array.isArray(x)+0 "
 prim__isArray : AnyPtr -> Int
 
+%foreign "javascript:lambda: x => (new Date(Date.parse(x)))"
+prim__readDate : String -> AnyPtr
+
 mkJsArray : List AnyPtr -> AnyPtr
 mkJsArray xs = foldl (\ptr, val => prim__arrayAppend val ptr) (prim__newArray ()) xs
 
@@ -382,10 +394,22 @@ json2ptr (JString str) =
 json2ptr (JArray jsons) = 
   mkJsArray $ map json2ptr jsons
 json2ptr (JObject xs) = 
-  mkJsObj $ map (\(k,v) => (k, json2ptr v)) xs
+  case lookup ty xs of
+       Just (JString "date") =>
+          fromMaybe (prim__null ()) $ do
+            JString d <- lookup "value" xs | _ => Nothing
+            pure $ prim__readDate d
+       _ =>
+          mkJsObj $ map (\(k,v) => (k, json2ptr v)) xs
 
 %foreign "javascript:lambda: x => (x === null || x === undefined)+0"
 prim__isNullOrUndefined : AnyPtr -> Int
+
+%foreign "javascript:lambda: x => x instanceof Date"
+prim__isDate : AnyPtr -> Int
+
+%foreign "javascript:lambda: x => x.toISOString()"
+prim__dateToISOString : AnyPtr -> String
 
 readList : AnyPtr -> List AnyPtr
 readList x =
@@ -407,8 +431,9 @@ ptr2json x =
          "boolean" =>
             Just $ JBoolean $ prim__readBool x > 0
          "object" =>
-            let keys = ptr2str <$> (readList $ prim__objectKeys x)
-            in JObject <$> sequence [(k,) <$>  (ptr2json $ prim__getItem x k) | k <- keys]
+            if prim__isDate x > 0 then Just $ JObject [(ty, JString "date"), ("value", JString $ prim__dateToISOString x)]
+                                  else let keys = ptr2str <$> (readList $ prim__objectKeys x)
+                                       in JObject <$> sequence [(k,) <$>  (ptr2json $ prim__getItem x k) | k <- keys]
          o => 
             Nothing
 

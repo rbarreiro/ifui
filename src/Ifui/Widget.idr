@@ -257,7 +257,7 @@ data SrvRef : ServiceKind -> Type where
 infixl 6 //
 
 export
-(//) : SrvRef (GroupService ts) -> {auto 0 prf : So (UniqueKeys ts)} -> (s : String) -> {auto p : KElem s ts} -> SrvRef (lookup ts p)
+(//) : SrvRef (GroupService ts) -> {auto 0 prf : So (UniqueKeys ts)} -> (s : String) -> {auto p : KElem s ts} -> SrvRef (klookup ts p)
 (//) g s = Sub s g
 
 serviceConnectionPathStr : SrvRef x -> String

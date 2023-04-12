@@ -14,9 +14,9 @@ namespace List
     KThere : KElem k xs -> KElem k (x::xs)
 
   public export
-  lookup : (ts : List (a, b)) -> KElem k ts -> b
-  lookup ((k, v) :: xs) KHere = v
-  lookup (x :: xs) (KThere y) = lookup xs y
+  klookup : (ts : List (a, b)) -> KElem k ts -> b
+  klookup ((k, v) :: xs) KHere = v
+  klookup (x :: xs) (KThere y) = klookup xs y
 
   public export
   HasKey : Eq a => a -> List (a, b) -> Bool
@@ -56,8 +56,8 @@ namespace Vect
   kElemToFin (KThere x) = FS $ kElemToFin x
 
   public export
-  lookup : (ts : Vect n (a, b)) -> KElem k ts -> b
-  lookup ts x = index2 (kElemToFin x)  ts
+  klookup : (ts : Vect n (a, b)) -> KElem k ts -> b
+  klookup ts x = index2 (kElemToFin x)  ts
 
   public export
   AllI : (f : b -> Type) -> Vect n (a, b) -> Type
@@ -131,7 +131,7 @@ namespace Record
 
   public export
   get : {0 ts : Vect n (String, Type)} -> {auto prf : So (UniqueKeys ts)} -> (s : String) -> 
-         {auto p : KElem s ts} -> Record ts -> lookup ts p
+         {auto p : KElem s ts} -> Record ts -> klookup ts p
   get s x = valueIndex (kElemToFin p) x
 
   export
@@ -155,7 +155,7 @@ namespace Tree
 
   public export
   N : {ts : Vect n (String, Type -> Type)} -> {auto 0 prf : So (UniqueKeys ts)} -> (s : String) -> 
-         {auto p : KElem s ts} -> (lookup ts p) (Tree ts) -> Tree ts
+         {auto p : KElem s ts} -> (klookup ts p) (Tree ts) -> Tree ts
   N {ts} s {p} x with (kElemToFin p)
     N {ts} s {p} x | i = MkTree i x
 

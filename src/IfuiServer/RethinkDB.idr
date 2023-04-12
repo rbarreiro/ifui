@@ -40,7 +40,7 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Var : (name : String) -> HasVar name t ctxt  -> Query db ctxt t
     Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
     App : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
-    GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (lookup db p))
+    GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (klookup db p))
     ReadTable : Query db ctxt (Table ts) -> Query db ctxt (Cursor (Record' ts))
     Between : HasParts a b => {default True leftBoundClosed : Bool} -> {default False rightBoundClosed : Bool} ->
                    Query db ctxt (Table ts) -> {auto 0 p : Elem ("id", a) ts} -> 
@@ -52,7 +52,7 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
                 Query db ctxt (List (Record' ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
     Lit : JsonSerializable a => a -> Query db ctxt a
     StrEq : Query db ctxt (String -> String -> Bool)
-    GetField : (key : String) -> {auto p : Vect.KElem key fields} -> Query db ctxt (Record fields -> Vect.lookup fields p)
+    GetField : (key : String) -> {auto p : Vect.KElem key fields} -> Query db ctxt (Record fields -> Vect.klookup fields p)
     MapCursor : Query db ctxt ((a -> b) -> Cursor a -> Cursor b)
 
 
