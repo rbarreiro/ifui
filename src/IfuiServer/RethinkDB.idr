@@ -56,6 +56,8 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     MapCursor : Query db ctxt ((a -> b) -> Cursor a -> Cursor b)
     GenerateUUID : Query db ctxt String
     Now : Query db ctxt Date
+    ListPrepend : Query db ctxt (a -> List a -> List a)
+    RecordPrependKey : (k : String) -> Query db ctxt a -> Query db ctxt (Record fields -> Record ((k, a) :: fields))
 
 
 infixr 0 |>
@@ -68,6 +70,30 @@ export
 export
 (|>) : Query db ctxt a -> Query db ctxt (a -> b) -> Query db ctxt b
 (|>) x f = App f x
+
+export
+FromString (Query db ctxt String) where
+  fromString = Lit
+
+namespace QueryList
+  public export
+  Nil : JsonSerializable a => Query db ctxt (List a)
+  Nil = Lit []
+  
+  public export
+  (::) : Query db ctxt a -> Query db ctxt (List a) -> Query db ctxt (List a)
+  (::) x y = ListPrepend <| x <| y
+
+namespace QueryRecord
+  public export
+  Nil : Query db ctxt (Record [])
+  Nil = Lit []
+
+  public export
+  (::) : Entry s (Query db ctxt a) -> Query db ctxt (Record ts) -> Query db ctxt (Record ((s, a) :: ts))
+
+testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
+testQueryList = [[("a" ^= "1"), ("b" ^= "2")]]
 
 public export
 interface KeyType a where
@@ -292,6 +318,12 @@ prim__ruuid : AnyPtr -> AnyPtr
 %foreign "node:lambda: r => r.now()"
 prim__rnow : AnyPtr -> AnyPtr 
 
+%foreign "node:lambda: () => (x => (y => y.prepend(x)))"
+prim__rprepend : () -> AnyPtr
+
+%foreign "node:lambda: (k, v) => (x => x.merge({[k]: v}))"
+prim__rmerge : String -> AnyPtr -> AnyPtr
+
 export
 HasParts String (Maybe String) where
   replacePartsNulls replacement x = prim__rdefault x replacement
@@ -346,6 +378,10 @@ compileQuery r vars GenerateUUID =
   prim__ruuid r
 compileQuery r vars Now =
   prim__rnow r
+compileQuery r vars ListPrepend =
+  prim__rprepend ()
+compileQuery r vars (RecordPrependKey k v) =
+  prim__rmerge k (compileQuery r vars v)
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
