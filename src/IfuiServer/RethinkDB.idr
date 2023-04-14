@@ -36,6 +36,10 @@ interface HasParts (0 a : Type) (0 b : Type) where
   replacePartsNulls : AnyPtr -> AnyPtr -> AnyPtr
 
 public export
+interface QueryTuple (0 a : Type) (0 b : Type) where
+  tcons : AnyPtr 
+
+public export
 data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Var : (name : String) -> HasVar name t ctxt  -> Query db ctxt t
     Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
@@ -58,10 +62,12 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Now : Query db ctxt Date
     ListPrepend : Query db ctxt (a -> List a -> List a)
     RecordPrependKey : (k : String) -> Query db ctxt a -> Query db ctxt (Record fields -> Record ((k, a) :: fields))
+    TCons : QueryTuple a b =>  Query db ctxt (a -> b -> (a, b))
 
+infixr 0 ^^ 
+infixr 1 |>
+infixl 2 <|
 
-infixr 0 |>
-infixl 1 <|
 
 export
 (<|) : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
@@ -70,6 +76,10 @@ export
 export
 (|>) : Query db ctxt a -> Query db ctxt (a -> b) -> Query db ctxt b
 (|>) x f = App f x
+
+public export
+(^^) : QueryTuple a b  => Query db ctxt a -> Query db ctxt b -> Query db ctxt (a, b)
+(^^) x y = TCons <| x <| y
 
 export
 FromString (Query db ctxt String) where
@@ -339,6 +349,13 @@ export
       (replacePartsNulls {a = b} {b = b'} replacement) 
       x
 
+%foreign "node:lambda r => (x => (y => r.expr([x,y]))) "
+prim__querytupleString : AnyPtr -> AnyPtr
+
+export
+QueryTuple a String where
+  tcons = prim__querytupleString (prim__r ())
+
 compileQuery : AnyPtr -> VarStack ctxt ->  Query db ctxt r -> AnyPtr 
 compileQuery r vars (Var name x) = 
   getVar x vars
@@ -382,6 +399,8 @@ compileQuery r vars ListPrepend =
   prim__rprepend ()
 compileQuery r vars (RecordPrependKey k v) =
   prim__rmerge k (compileQuery r vars v)
+compileQuery r vars (TCons {a} {b}) =
+  tcons {a} {b}
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
