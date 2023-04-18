@@ -61,14 +61,15 @@ interface QueryFiniteSequence (0 f : Type -> Type) where
 
 public export
 data Query : ServerSpec -> List (String, Type) -> Type -> Type where
-    Var : (name : String) -> {auto p : HasVar name t ctxt}  -> Query db ctxt t
+    Var : (name : String) -> {auto p : KElem  name ctxt}  -> Query db ctxt (klookup ctxt p)
     Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
     App : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
     GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (klookup db p))
     ReadTable : Query db ctxt (Table ts) -> Query db ctxt (Cursor (Record' ts))
-    Between : HasParts a b => {default True leftBoundClosed : Bool} -> {default False rightBoundClosed : Bool} ->
-                   Query db ctxt (Table ts) -> {auto 0 p : Elem ("id", a) ts} -> 
-                     Query db ctxt b -> Query db ctxt b  -> Query db ctxt (Cursor (Record' ts))
+    Between : HasParts a b => 
+                 {default True leftBoundClosed : Bool} -> {default False rightBoundClosed : Bool} ->
+                   Query db ctxt (Table (("id", a) :: ts)) ->  
+                     Query db ctxt b -> Query db ctxt b  -> Query db ctxt (Cursor (Record' (("id", a) :: ts)))
     GetChanges : {default False includeInitial : Bool} -> (e : Query db ctxt (Cursor t)) -> Query db ctxt (Changes t)
     Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record' ts)) -> 
                  Query db ctxt (Record [("first_error", Maybe String)])
@@ -315,11 +316,9 @@ data VarStack : List (String, Type) -> Type where
   Empty : VarStack []
   AddVar : {0 a : Type} -> (s : String) -> AnyPtr  -> VarStack ts -> VarStack ((s, a) :: ts)
 
-getVar : HasVar name a ctxt -> VarStack ctxt -> AnyPtr
-getVar Here (AddVar name x y) = 
-  x
-getVar (There x) (AddVar s_ y z) = 
-  getVar x z
+getVar : KElem name ctxt -> VarStack ctxt -> AnyPtr
+getVar KHere (AddVar name x y) = x
+getVar (KThere x) (AddVar s y z) = getVar x z
 
 fnToPtr : (AnyPtr -> AnyPtr) -> AnyPtr
 fnToPtr x = believe_me x
