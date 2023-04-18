@@ -54,6 +54,12 @@ interface QueryNum (0 a : Type) where
   rmul : AnyPtr
 
 public export
+interface QuerySequence (0 f : Type -> Type) where
+
+public export
+interface QueryFiniteSequence (0 f : Type -> Type) where
+
+public export
 data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Var : (name : String) -> HasVar name t ctxt  -> Query db ctxt t
     Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
@@ -71,8 +77,8 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Lit : JsonSerializable a => a -> Query db ctxt a
     Eq : QueryEq a => Query db ctxt (a -> a -> Bool)
     GetField : (key : String) -> {auto p : Vect.KElem key fields} -> Query db ctxt (Record fields -> Vect.klookup fields p)
-    MapCursor : Query db ctxt ((a -> b) -> Cursor a -> Cursor b)
-    ConcatMapCursor : Query db ctxt ((a -> List b) -> Cursor a -> Cursor b)
+    Map : QuerySequence f => Query db ctxt ((a -> b) -> f a -> f b)
+    ConcatMap : (QuerySequence f, QueryFiniteSequence g) => Query db ctxt ((a -> g b) -> f a -> f b)
     GenerateUUID : Query db ctxt String
     Now : Query db ctxt Date
     ListPrepend : Query db ctxt (a -> List a -> List a)
@@ -127,6 +133,13 @@ namespace QueryRecord
 
   public export
   (::) : Entry s (Query db ctxt a) -> Query db ctxt (Record ts) -> Query db ctxt (Record ((s, a) :: ts))
+
+QuerySequence Cursor where
+QuerySequence List where
+QuerySequence Changes where
+
+QueryFiniteSequence Cursor where
+QueryFiniteSequence List where
 
 testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
 testQueryList = [[("a" ^= "1"), ("b" ^= "2")]]
@@ -446,9 +459,9 @@ compileQuery r vars (Eq {a}) =
   req {a}
 compileQuery r vars (GetField key) = 
   prim__rget key
-compileQuery r vars MapCursor =
+compileQuery r vars Map =
   prim__rmap r
-compileQuery r vars ConcatMapCursor =
+compileQuery r vars ConcatMap =
   prim__rconcatmap r
 compileQuery r vars GenerateUUID =
   prim__ruuid r
