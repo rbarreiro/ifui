@@ -61,7 +61,7 @@ interface QueryFiniteSequence (0 f : Type -> Type) where
 
 public export
 data Query : ServerSpec -> List (String, Type) -> Type -> Type where
-    Var : (name : String) -> HasVar name t ctxt  -> Query db ctxt t
+    Var : (name : String) -> {auto p : HasVar name t ctxt}  -> Query db ctxt t
     Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
     App : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
     GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (klookup db p))
@@ -432,8 +432,8 @@ QueryMaybe (Maybe JSON) where
   unwrapJust = prim__rfst
 
 compileQuery : AnyPtr -> VarStack ctxt ->  Query db ctxt r -> AnyPtr 
-compileQuery r vars (Var name x) = 
-  getVar x vars
+compileQuery r vars (Var name {p}) = 
+  getVar p vars
 compileQuery r vars (Lambda arg a x) = 
   fnToPtr $ \w => compileQuery r (AddVar arg w vars) x
 compileQuery r vars (App f x) = 
