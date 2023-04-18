@@ -134,11 +134,16 @@ namespace QueryRecord
   public export
   (::) : Entry s (Query db ctxt a) -> Query db ctxt (Record ts) -> Query db ctxt (Record ((s, a) :: ts))
 
+export
 QuerySequence Cursor where
+export
 QuerySequence List where
+export
 QuerySequence Changes where
 
+export
 QueryFiniteSequence Cursor where
+export
 QueryFiniteSequence List where
 
 testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
