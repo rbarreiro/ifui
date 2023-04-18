@@ -156,6 +156,13 @@ JTuple JSON where
   tupleFromJson _ = Nothing
 
 export
+JsonSerializable (Maybe a) => JTuple (Maybe a) where
+  tupleToJson x = [toJson x]
+  
+  tupleFromJson [x] = fromJson x
+  tupleFromJson _ = Nothing
+
+export
 (JTuple b, JsonSerializable a) => JTuple (a, b) where
   tupleToJson (x, y) = 
     toJson x :: tupleToJson y
@@ -173,7 +180,7 @@ JTuple (a, b) => JsonSerializable (a, b) where
   fromJson _ = Nothing 
 
 testJTuple : JSON
-testJTuple = toJson ("a", "b", "c")
+testJTuple = toJson ("a", "b", Just "c")
 
 export
 JsonSerializable b => JsonSerializable1 (const b) where
