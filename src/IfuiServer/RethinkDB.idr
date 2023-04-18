@@ -40,6 +40,20 @@ interface QueryTuple (0 a : Type) (0 b : Type) where
   tcons : AnyPtr 
 
 public export
+interface QueryMaybe (0 a : Type) where
+  isNothing : AnyPtr -> AnyPtr
+  unwrapJust : AnyPtr -> AnyPtr
+
+public export
+interface QueryEq (0 a : Type) where
+  req : AnyPtr
+
+public export
+interface QueryNum (0 a : Type) where
+  radd : AnyPtr
+  rmul : AnyPtr
+
+public export
 data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Var : (name : String) -> HasVar name t ctxt  -> Query db ctxt t
     Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
@@ -55,14 +69,19 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Insert : Query db ctxt (Table (("id", String) :: ts)) -> 
                 Query db ctxt (List (Record' ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
     Lit : JsonSerializable a => a -> Query db ctxt a
-    StrEq : Query db ctxt (String -> String -> Bool)
+    Eq : QueryEq a => Query db ctxt (a -> a -> Bool)
     GetField : (key : String) -> {auto p : Vect.KElem key fields} -> Query db ctxt (Record fields -> Vect.klookup fields p)
     MapCursor : Query db ctxt ((a -> b) -> Cursor a -> Cursor b)
+    ConcatMapCursor : Query db ctxt ((a -> List b) -> Cursor a -> Cursor b)
     GenerateUUID : Query db ctxt String
     Now : Query db ctxt Date
     ListPrepend : Query db ctxt (a -> List a -> List a)
     RecordPrependKey : (k : String) -> Query db ctxt a -> Query db ctxt (Record fields -> Record ((k, a) :: fields))
     TCons : QueryTuple a b =>  Query db ctxt (a -> b -> (a, b))
+    Slice : Query db ctxt (Int-> Maybe Int -> List a -> List a)
+    Add : QueryNum a => Query db ctxt (a -> a -> a)
+    Mul : QueryNum a => Query db ctxt (a -> a -> a)
+    MatchMaybe : QueryMaybe a => Query db ctxt (Maybe a -> (b) -> (a -> b) -> b)
 
 infixr 0 ^^ 
 infixr 1 |>
@@ -84,6 +103,13 @@ public export
 export
 FromString (Query db ctxt String) where
   fromString = Lit
+
+export
+(QueryNum a, JsonSerializable a, Num a) => Num (Query db ctxt a) where
+  (+) x y = Add <| x <| y
+  (*) x y = Mul <|x <| y
+  fromInteger x = Lit $ fromInteger x
+
 
 namespace QueryList
   public export
@@ -304,6 +330,9 @@ prim__changes : AnyPtr -> AnyPtr -> AnyPtr
 %foreign "node:lambda: r => (f => (x => r.map(x, f)))"
 prim__rmap : AnyPtr -> AnyPtr
 
+%foreign "node:lambda: r => (f => (x => r.concatMap(x, f)))"
+prim__rconcatmap : AnyPtr -> AnyPtr
+
 %foreign "node:lambda: (r, tbl, left, right, options) => tbl.between(left, right, options)"
 prim__rbetween : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr 
 
@@ -334,11 +363,29 @@ prim__rprepend : () -> AnyPtr
 %foreign "node:lambda: (k, v) => (x => x.merge({[k]: v}))"
 prim__rmerge : String -> AnyPtr -> AnyPtr
 
+%foreign "node:lambda: r => (start => (end => (x => r.branch(end.eq(null), x.slice(start), x.slice(start,end)))))"
+prim__rslice : AnyPtr -> AnyPtr
+
+%foreign "node:lambda: r => (x => (y => r.add(x,y)))"
+prim__radd : AnyPtr -> AnyPtr
+
+%foreign "node:lambda: r => (x => (y => r.mul(x,y)))"
+prim__rmul : AnyPtr -> AnyPtr
+
+%foreign "node:lambda: (r, isNothing, unwrap) => (x => (ifNothing => (ifJust => r.branch(isNothing x, ifNothing, ifJust(unwrap x)))))"
+prim__rMatchMaybe : AnyPtr -> (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr
+
+%foreign "node:lambda: x => x.eq(null)"
+prim__risNull : AnyPtr -> AnyPtr 
+
+%foreign "node:lambda: x => x(0)"
+prim__rfst : AnyPtr -> AnyPtr 
+
 export
 HasParts String (Maybe String) where
   replacePartsNulls replacement x = prim__rdefault x replacement
 
-%foreign "node:lambda (rfst, rsnd, x) => {const r = require('rethinkdb'); r.branch(x.count().eq(2), r.expr([]).prepend(rsnd(x[1])).prepend(rfst(x[0])), rsnd(x.slice(1)).prepend(rfst(x[0])))}"
+%foreign "node:lambda (rfst, rsnd, x) => {const r = require('rethinkdb'); r.branch(x.count().eq(2), r.expr([]).prepend(rsnd(x(1))).prepend(rfst(x(0))), rsnd(x.slice(1)).prepend(rfst(x(0))))}"
 prim__replacePartsNullsTuple : (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr 
 
 export
@@ -349,12 +396,22 @@ export
       (replacePartsNulls {a = b} {b = b'} replacement) 
       x
 
-%foreign "node:lambda r => (x => (y => r.expr([x,y]))) "
+%foreign "node:lambda (r) => (x => (y => r.expr([x,y]))) "
 prim__querytupleString : AnyPtr -> AnyPtr
 
 export
 QueryTuple a String where
   tcons = prim__querytupleString (prim__r ())
+
+export
+QueryNum Int where
+  radd = prim__radd (prim__r ())
+  rmul = prim__rmul (prim__r ())
+
+export
+QueryMaybe (Maybe JSON) where
+  isNothing = prim__risNull
+  unwrapJust = prim__rfst
 
 compileQuery : AnyPtr -> VarStack ctxt ->  Query db ctxt r -> AnyPtr 
 compileQuery r vars (Var name x) = 
@@ -385,12 +442,14 @@ compileQuery r vars (Insert' t xs) =
   prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
 compileQuery r vars (Lit x) = 
   prim__expr r $ toPtr x
-compileQuery r vars StrEq = 
-  prim__req r 
+compileQuery r vars (Eq {a}) = 
+  req {a}
 compileQuery r vars (GetField key) = 
   prim__rget key
 compileQuery r vars MapCursor =
   prim__rmap r
+compileQuery r vars ConcatMapCursor =
+  prim__rconcatmap r
 compileQuery r vars GenerateUUID =
   prim__ruuid r
 compileQuery r vars Now =
@@ -401,6 +460,14 @@ compileQuery r vars (RecordPrependKey k v) =
   prim__rmerge k (compileQuery r vars v)
 compileQuery r vars (TCons {a} {b}) =
   tcons {a} {b}
+compileQuery r vars Slice =
+  prim__rslice r
+compileQuery r vars (Add {a}) =
+  radd {a}
+compileQuery r vars (Mul {a}) =
+  rmul {a}  
+compileQuery r vars (MatchMaybe {a}) =
+  prim__rMatchMaybe r (isNothing {a}) (unwrapJust {a})
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
