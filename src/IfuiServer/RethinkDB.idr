@@ -90,6 +90,7 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Mul : QueryNum a => Query db ctxt (a -> a -> a)
     MatchMaybe : QueryMaybe a => Query db ctxt (b -> (a -> b) -> Maybe a -> b)
     Relax : Query db ctxt a -> Query db ((k,b) :: ctxt) a
+    EmptyList : Query db ctxt (List a)
 
 
 infixl 0 ^^ 
@@ -132,8 +133,8 @@ export
 
 namespace QueryList
   public export
-  Nil : JsonSerializable a => Query db ctxt (List a)
-  Nil = Lit []
+  Nil : Query db ctxt (List a)
+  Nil = EmptyList
   
   public export
   (::) : Query db ctxt a -> Query db ctxt (List a) -> Query db ctxt (List a)
@@ -163,6 +164,10 @@ namespace Query
   export
   drop : Query db ctxt (Int -> List a -> List a)
   drop = Lambda "x" (Slice <| Var "x" <| Lit Nothing)
+
+  export
+  catMaybes : (QueryMaybe a, QuerySequence f) => Query db ctxt (f (Maybe a) -> f a)
+  catMaybes = ConcatMap {g = List} <| (MatchMaybe <| [] <| Lambda "x" [Var "x"])
 
 testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
 testQueryList = [[("a" ^= "1"), ("b" ^= "2")]]
@@ -415,6 +420,9 @@ prim__risNull : AnyPtr -> AnyPtr
 %foreign "node:lambda: x => x(0)"
 prim__rfst : AnyPtr -> AnyPtr 
 
+%foreign "node:lambda: r => r.expr([])"
+prim__remptyList : AnyPtr -> AnyPtr
+
 export
 HasParts String (Maybe String) where
   replacePartsNulls replacement x = prim__rdefault x replacement
@@ -504,6 +512,8 @@ compileQuery r vars (MatchMaybe {a}) =
   prim__rMatchMaybe r (isNothing {a}) (unwrapJust {a})
 compileQuery r (AddVar k y z) (Relax x) = 
   compileQuery r z x
+compileQuery r vars EmptyList =
+  prim__remptyList r
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
