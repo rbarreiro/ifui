@@ -451,7 +451,7 @@ QueryNum Int where
   rmul = prim__rmul (prim__r ())
 
 export
-QueryMaybe (Maybe JSON) where
+QueryMaybe JSON where
   isNothing = prim__risNull
   unwrapJust = prim__rfst
 
