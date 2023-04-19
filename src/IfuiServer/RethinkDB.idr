@@ -62,7 +62,7 @@ interface QueryFiniteSequence (0 f : Type -> Type) where
 public export
 data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Var : (name : String) -> {auto p : KElem  name ctxt}  -> Query db ctxt (klookup ctxt p)
-    Lambda : (arg : String) -> (a : Type)  -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
+    Lambda : (arg : String) -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
     App : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
     GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (klookup db p))
     ReadTable : Query db ctxt (Table ts) -> Query db ctxt (Cursor (Record' ts))
@@ -88,12 +88,16 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Slice : Query db ctxt (Int-> Maybe Int -> List a -> List a)
     Add : QueryNum a => Query db ctxt (a -> a -> a)
     Mul : QueryNum a => Query db ctxt (a -> a -> a)
-    MatchMaybe : QueryMaybe a => Query db ctxt (Maybe a -> (b) -> (a -> b) -> b)
+    MatchMaybe : QueryMaybe a => Query db ctxt (b -> (a -> b) -> Maybe a -> b)
+    Relax : Query db ctxt a -> Query db ((k,b) :: ctxt) a
 
-infixr 0 ^^ 
-infixr 1 |>
+
+infixl 0 ^^ 
+infixl 1 |>
 infixl 2 <|
 
+infixl 3 |.
+infixl 3 .|
 
 export
 (<|) : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
@@ -102,6 +106,14 @@ export
 export
 (|>) : Query db ctxt a -> Query db ctxt (a -> b) -> Query db ctxt b
 (|>) x f = App f x
+
+export
+(|.) : Query db ctxt (a -> b) -> Query db ctxt (b -> c)  -> Query db ctxt (a -> c)
+(|.) f g = Lambda "x" (Var "x" |> Relax f |> Relax g)
+
+export
+(.|) : Query db ctxt (b -> c)  -> Query db ctxt (a -> b)  -> Query db ctxt (a -> c)
+(.|) f g = g |. f
 
 public export
 (^^) : QueryTuple a b  => Query db ctxt a -> Query db ctxt b -> Query db ctxt (a, b)
@@ -146,6 +158,11 @@ export
 QueryFiniteSequence Cursor where
 export
 QueryFiniteSequence List where
+
+namespace Query
+  export
+  drop : Query db ctxt (Int -> List a -> List a)
+  drop = Lambda "x" (Slice <| Var "x" <| Lit Nothing)
 
 testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
 testQueryList = [[("a" ^= "1"), ("b" ^= "2")]]
@@ -302,7 +319,7 @@ connect host port x =
                                                                         _ <- (doMigration x conn).run $ \z => case z of
                                                                                                                    Nothing => w $ Right $ MkRethinkServer conn
                                                                                                                    Just y => w $ Left y
-                                                                        pure () --w $ Right $ MkRethinkServer conn
+                                                                        pure ()
                                                                  else w $ Left err
                                        )
       pure $ MkPromiseHandler (pure ())
@@ -389,7 +406,7 @@ prim__radd : AnyPtr -> AnyPtr
 %foreign "node:lambda: r => (x => (y => r.mul(x,y)))"
 prim__rmul : AnyPtr -> AnyPtr
 
-%foreign "node:lambda: (r, isNothing, unwrap) => (x => (ifNothing => (ifJust => r.branch(isNothing x, ifNothing, ifJust(unwrap x)))))"
+%foreign "node:lambda: (r, isNothing, unwrap) => (ifNothing => (ifJust => (x => r.branch(isNothing x, ifNothing, ifJust(unwrap x)))))"
 prim__rMatchMaybe : AnyPtr -> (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr
 
 %foreign "node:lambda: x => x.eq(null)"
@@ -433,7 +450,7 @@ QueryMaybe (Maybe JSON) where
 compileQuery : AnyPtr -> VarStack ctxt ->  Query db ctxt r -> AnyPtr 
 compileQuery r vars (Var name {p}) = 
   getVar p vars
-compileQuery r vars (Lambda arg a x) = 
+compileQuery r vars (Lambda arg x) = 
   fnToPtr $ \w => compileQuery r (AddVar arg w vars) x
 compileQuery r vars (App f x) = 
   prim__app (compileQuery r vars f) (compileQuery r vars x)
@@ -485,6 +502,8 @@ compileQuery r vars (Mul {a}) =
   rmul {a}  
 compileQuery r vars (MatchMaybe {a}) =
   prim__rMatchMaybe r (isNothing {a}) (unwrapJust {a})
+compileQuery r (AddVar k y z) (Relax x) = 
+  compileQuery r z x
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
