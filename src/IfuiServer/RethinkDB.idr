@@ -412,7 +412,7 @@ prim__radd : AnyPtr -> AnyPtr
 %foreign "node:lambda: r => (x => (y => r.mul(x,y)))"
 prim__rmul : AnyPtr -> AnyPtr
 
-%foreign "node:lambda: (r, isNothing, unwrap) => (ifNothing => (ifJust => (x => r.branch(isNothing x, ifNothing, ifJust(unwrap x)))))"
+%foreign "node:lambda: (r, isNothing, unwrap) => (ifNothing => (ifJust => (x => r.branch(isNothing x, ifNothing, ifJust(unwrap(x))))))"
 prim__rMatchMaybe : AnyPtr -> (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr
 
 %foreign "node:lambda: x => x.eq(null)"
