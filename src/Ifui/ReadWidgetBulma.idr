@@ -196,6 +196,9 @@ data KeyListReaderEvent a = ChangeKey String String
 
 
 fromAllJust : List (Maybe a) -> Maybe (List a)
+fromAllJust [] = Just []
+fromAllJust (Nothing :: xs) = Nothing
+fromAllJust ((Just x) :: xs) = [| (Just x) :: fromAllJust xs |]
 
 export
 ReadWidgetBulma1 (\w => List (String, w)) where
