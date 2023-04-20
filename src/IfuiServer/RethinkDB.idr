@@ -439,7 +439,7 @@ export
       (replacePartsNulls {a = b} {b = b'} replacement) 
       x
 
-%foreign "node:lambda (r) => (x => (y => r.expr([x,y]))) "
+%foreign "node:lambda: (r) => (x => (y => r.expr([x,y]))) "
 prim__querytupleString : AnyPtr -> AnyPtr
 
 export
