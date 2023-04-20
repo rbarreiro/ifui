@@ -272,7 +272,7 @@ toJsonTreeHead : (zs : Vect n (String, Type -> Type)) -> (k : Fin n) ->
                    index2 k (TreeHeadsToJson zs a) -> (index2 k zs) a -> (a -> JSON)  -> JSON
 toJsonTreeHead [] FZ _ _ _ impossible
 toJsonTreeHead [] (FS y) _ _ _ impossible
-toJsonTreeHead ((y, z) :: xs) FZ f x cont = f x cont
+toJsonTreeHead ((y, z) :: xs) FZ f x cont = JObject [("k", JString y), ("v", f x cont)]
 toJsonTreeHead ((y, w) :: xs) (FS z) f x cont = toJsonTreeHead xs z f x cont
 
 export
