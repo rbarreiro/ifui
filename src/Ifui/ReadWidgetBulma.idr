@@ -176,9 +176,9 @@ treeGetReaderBulma x y =
   in MkReader (\check => w start check) y
 
 getReaderPartsTree : (zs : Vect n (String, Type -> Type)) -> Record (mapValues (\f => ReadWidgetBulma1 f)  zs) -> 
-                         Record (TreeHeadsGetReader zs (Tree zs))
+                         Record (TreeHeadsGetReader zs a)
 getReaderPartsTree [] x = []
-getReaderPartsTree ((y, z) :: xs) ((MkEntry y x) :: w) = ?hhh -- :: getReaderPartsTree xs w
+getReaderPartsTree ((y, z) :: xs) ((MkEntry y x) :: w) =  (MkEntry y getReaderBulma1) :: getReaderPartsTree xs w
 
 export
 {zs : Vect n (String, Type -> Type)} ->
