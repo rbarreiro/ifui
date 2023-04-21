@@ -79,7 +79,6 @@ onMessageFn cancelHandles service wsc msg =
                pure ()
              (Just x) =>
                do
-                 putStrLn "canceling \{i}"
                  removeHandle i cancelHandles
                  x
        Just (JArray [JString "call", JString i, x]) => 
