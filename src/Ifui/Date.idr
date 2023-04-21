@@ -17,3 +17,9 @@ prim__currentDate : () -> PrimIO String
 export
 currentDate : IO Date
 currentDate = MkDate <$> (primIO $ prim__currentDate ())
+
+%foreign "javascript:lambda: () => Date.now()"
+prim__millisSinceEpoch : () -> PrimIO Int
+export
+millisSinceEpoch : IO Int
+millisSinceEpoch = primIO $ prim__millisSinceEpoch ()

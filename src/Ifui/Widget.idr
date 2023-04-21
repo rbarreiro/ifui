@@ -10,6 +10,7 @@ import Ifui.Json
 import Ifui.Patterns
 import Data.Maybe
 import Data.List
+import Ifui.Date
 
 public export
 data WidgetAttribute a = WidgetSimpleAttribute AttributeSpec | WidgetEventListener String  (DomEvent -> IO a)
@@ -330,7 +331,8 @@ streamAccumSetup path (MkConnectionInfo url socket counter handles) input output
    MarkupWidget $ \n, onEvt => 
        do
           let proc = \ptr => onEvt (believe_me ptr)
-          setNodePromise n ("streamServiceAccum/" ++ url ++ "/" ++ "?" ++ show input) proc  $ do
+          millis <- liftIO $ millisSinceEpoch
+          setNodePromise n ("streamServiceAccum/" ++ url ++ "/" ++ show millis  ++ "/"  ++ "?" ++ show input) proc  $ do
             h <- readIORef handles
             i <- readIORef counter
             isFinished <- newIORef False
