@@ -326,13 +326,12 @@ rpcSetup path (MkConnectionInfo url socket counter handles) input outputReader =
                                                      send socket (show $ JArray [JString "cancel", JString i_])
                                       pure $ MkPromiseNodeRef procResult cancel isFinished
 
-streamAccumSetup : String -> ConnectionInfo -> JSON -> (JSON -> Maybe a) -> c -> (a -> c -> c)  -> Widget c
-streamAccumSetup path (MkConnectionInfo url socket counter handles) input outputReader r0 acc = 
+streamAccumSetup : String -> String -> ConnectionInfo -> JSON -> (JSON -> Maybe a) -> c -> (a -> c -> c) -> Widget c
+streamAccumSetup callId path (MkConnectionInfo url socket counter handles) input outputReader r0 acc = 
    MarkupWidget $ \n, onEvt => 
        do
           let proc = \ptr => onEvt (believe_me ptr)
-          millis <- liftIO $ millisSinceEpoch
-          setNodePromise n ("streamServiceAccum/" ++ url ++ "/" ++ show millis  ++ "/"  ++ "?" ++ show input) proc  $ do
+          setNodePromise n ("streamServiceAccum/" ++ url ++ "/" ++ callId  ++ "/" ++ "?" ++ show input) proc  $ do
             h <- readIORef handles
             i <- readIORef counter
             isFinished <- newIORef False
@@ -383,13 +382,13 @@ export
 callStreamAccum : (JsonSerializable a, JsonSerializable b) => 
                SrvRef (StreamService a b) -> a -> c -> (b -> c -> c) -> (c -> Widget d) -> Widget d
 callStreamAccum sc y r0 acc w = 
-  let stream : Widget c
-      stream = streamAccumSetup (serviceConnectionPathStr sc) (getConnectionInfo sc) (addServicePathToInput sc $ toJson y) fromJson r0 acc
-
-      w_ : Maybe c -> Widget d
+  let w_ : Maybe c -> Widget d
       w_ Nothing = neutral
       w_ (Just x) = w x
-  in loopState Nothing (\x => ((Left . Just) <$> stream)  <+> (Right <$> w_ x))
+  in do
+    millis <- liftIO millisSinceEpoch
+    let stream = streamAccumSetup (show millis) (serviceConnectionPathStr sc) (getConnectionInfo sc) (addServicePathToInput sc $ toJson y) fromJson r0 acc
+    loopState Nothing (\x => ((Left . Just) <$> stream)  <+> (Right <$> w_ x))
 
 accList : (JsonSerializable t) => Change t -> List t -> List t
 accList x xs = 
