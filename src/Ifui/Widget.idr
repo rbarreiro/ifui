@@ -221,7 +221,7 @@ serverConnectWithAuth' url login  =
                   let login_ = toJson login
                   let proc = the (AnyPtr  -> IO ()) $ \ptr => 
                               onEvt (believe_me ptr)
-                  setNodePromise True n ("conect/" ++ url ++ "/" ++ show login_) proc $ do
+                  setNodePromise n ("conect/" ++ url ++ "/" ++ show login_) proc $ do
                     procResult <- newIORef $  the (AnyPtr -> IO ()) $ \w => pure () 
                     isFinished <- newIORef False
                     ws <- createWebSocket url
@@ -288,7 +288,7 @@ streamSetup path (MkConnectionInfo url socket counter handles) input outputReade
         let proc = \ptr => do
           let j = ptr2json_ ptr
           fromMaybe (putStrLn $ "invalid json in service \{path}")  (onEvt <$> outputReader j)
-        setNodePromise True n ("streamService/" ++ url ++ "/" ++ "?" ++ show input) proc  $ do
+        setNodePromise n ("streamService/" ++ url ++ "/" ++ "?" ++ show input) proc  $ do
           h <- readIORef handles
           i <- readIORef counter
           isFinished <- newIORef False
@@ -307,7 +307,7 @@ rpcSetup path (MkConnectionInfo url socket counter handles) input outputReader =
                                     let proc = \ptr => do
                                       let j = ptr2json_ ptr
                                       fromMaybe (putStrLn $ "invalid json in service \{path}")  (onEvt <$> outputReader j)
-                                    setNodePromise True n ("rpc/" ++ url ++ "/" ++ "?" ++ show input) proc  $ do
+                                    setNodePromise n ("rpc/" ++ url ++ "/" ++ "?" ++ show input) proc  $ do
                                       h <- readIORef handles
                                       i <- readIORef counter
                                       isFinished <- newIORef False
@@ -330,7 +330,7 @@ streamAccumSetup path (MkConnectionInfo url socket counter handles) input output
    MarkupWidget $ \n, onEvt => 
        do
           let proc = \ptr => onEvt (believe_me ptr)
-          setNodePromise False n ("streamServiceAccum/" ++ url ++ "/" ++ "?" ++ show input) proc  $ do
+          setNodePromise n ("streamServiceAccum/" ++ url ++ "/" ++ "?" ++ show input) proc  $ do
             h <- readIORef handles
             i <- readIORef counter
             isFinished <- newIORef False

@@ -153,8 +153,8 @@ setNodeTag node y =
 
 
 export
-setNodePromise : Bool -> VNode -> String -> (AnyPtr -> IO ()) -> IO PromiseNodeRef -> IO ()
-setNodePromise keep node id onEvt start = 
+setNodePromise : VNode -> String -> (AnyPtr -> IO ()) -> IO PromiseNodeRef -> IO ()
+setNodePromise node id onEvt start = 
   do
     rep <- readIORef node.rep
     case rep of
@@ -163,7 +163,7 @@ setNodePromise keep node id onEvt start =
          (VNodeNode w ys) => 
               createNewNodePromise
          (VNodePromise oldId oldR) => 
-              if oldId == id && keep then do
+              if oldId == id then do
                                done <- readIORef oldR.isFinished
                                if done then replacePromise 
                                        else writeIORef oldR.callback onEvt
