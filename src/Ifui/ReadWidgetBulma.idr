@@ -245,10 +245,10 @@ export
       f x = fieldsSection s [x]
 
 export
-getFormBulma : ReadWidgetBulma a => {default Nothing startVal : Maybe a} -> Widget (Maybe a)
-getFormBulma = 
+readerForm : {default Nothing startVal : Maybe a} -> (Maybe a -> Reader a)  -> Widget (Maybe a)
+readerForm reader = 
   loopState 
-    (False, getReaderBulma startVal)
+    (False, reader startVal)
     (\(check, x) => do
              res <- formBulma (\z => getWidget z check) x
              case res of
@@ -259,6 +259,11 @@ getFormBulma =
                           Nothing => pure $ Left (True ,r)
                           Just v =>  pure $ Right $ Just v
     )
+
+export
+getFormBulma : ReadWidgetBulma a => {default Nothing startVal : Maybe a} -> Widget (Maybe a)
+getFormBulma = 
+  readerForm getReaderBulma 
 
 test : Widget (Maybe (Tree [("Record", \w => List (String, w)), ("String", const ())]))
 test = getFormBulma
