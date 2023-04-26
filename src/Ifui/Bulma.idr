@@ -145,6 +145,14 @@ fieldsSection x xs =
   ]
 
 export
+labeled : String -> Widget a -> Widget a
+labeled str x = 
+  node "div" [] [
+    node "label" [class__ "label"] [text str],
+    x
+  ]
+
+export
 formBulma : (a -> Widget a) -> a -> Widget (Maybe a)
 formBulma f v0 = 
   loopState
