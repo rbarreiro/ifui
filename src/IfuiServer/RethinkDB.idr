@@ -43,6 +43,8 @@ public export
 interface QueryMaybe (0 a : Type) where
   isNothing : AnyPtr -> AnyPtr
   unwrapJust : AnyPtr -> AnyPtr
+  nothing : AnyPtr
+  wrap : AnyPtr -> AnyPtr
 
 public export
 interface QueryEq (0 a : Type) where
@@ -79,7 +81,7 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Eq : QueryEq a => Query db ctxt (a -> a -> Bool)
     GetField : (key : String) -> {auto p : Vect.KElem key fields} -> Query db ctxt (Record fields -> Vect.klookup fields p)
     Map : QuerySequence f => Query db ctxt ((a -> b) -> f a -> f b)
-    ConcatMap : (QuerySequence f, QueryFiniteSequence g) => Query db ctxt ((a -> g b) -> f a -> f b)
+    ConcatMapList : QueryFiniteSequence g => Query db ctxt ((a -> g b) -> List a -> List b)
     GenerateUUID : Query db ctxt String
     Now : Query db ctxt Date
     ListPrepend : Query db ctxt (a -> List a -> List a)
@@ -91,6 +93,9 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     MatchMaybe : QueryMaybe a => Query db ctxt (b -> (a -> b) -> Maybe a -> b)
     Relax : Query db ctxt a -> Query db ((k,b) :: ctxt) a
     EmptyList : Query db ctxt (List a)
+    Nth : QueryMaybe a => QueryFiniteSequence f => Query db ctxt (Int -> f a -> Maybe a)
+    CatMaybes : (QueryMaybe a, QuerySequence f) => Query db ctxt (f (Maybe a) -> f a)
+
 
 
 infixl 0 ^^ 
@@ -165,10 +170,6 @@ namespace Query
   export
   drop : Query db ctxt (Int -> List a -> List a)
   drop = Lambda "x" (Slice <| Var "x" <| Lit Nothing)
-
-  export
-  catMaybes : (QueryMaybe a, QuerySequence f) => Query db ctxt (f (Maybe a) -> f a)
-  catMaybes = ConcatMap {g = List} <| (MatchMaybe <| [] <| Lambda "x" [Var "x"])
 
 testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
 testQueryList = [[("a" ^= "1"), ("b" ^= "2")]]
@@ -418,11 +419,26 @@ prim__rMatchMaybe : AnyPtr -> (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr
 %foreign "node:lambda: x => x.eq(null)"
 prim__risNull : AnyPtr -> AnyPtr 
 
+%foreign "node:lambda: () => r.expr(null)"
+prim__rnull : () -> AnyPtr 
+
+%foreign "node:lambda: (r, x) => r.expr([x])"
+prim__rsingletonList : AnyPtr -> AnyPtr -> AnyPtr 
+
 %foreign "node:lambda: x => x(0)"
 prim__rfst : AnyPtr -> AnyPtr 
 
 %foreign "node:lambda: r => r.expr([])"
 prim__remptyList : AnyPtr -> AnyPtr
+
+%foreign "node:lambda: (r, nothing, wrap) => (k => (lst => r.branch( x.count().gt(r.branch(k.gt(0), k, k.mul(-1))), wrap(lst(k)), nothing )  ))"
+prim__rnth : AnyPtr -> AnyPtr -> (AnyPtr -> AnyPtr) -> AnyPtr
+
+%foreign "node:lambda: (isNothing, unwrap) => (k => (lst => lst.filter(x => ! isNothing(x)).map(unwrap) ))"
+prim__rcatMaybes : (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr
+
+%foreign "node:lambda: x => x"
+prim__rid : AnyPtr -> AnyPtr 
 
 export
 HasParts String (Maybe String) where
@@ -455,6 +471,23 @@ export
 QueryMaybe JSON where
   isNothing = prim__risNull
   unwrapJust = prim__rfst
+  nothing = prim__rnull ()
+  wrap = prim__rsingletonList (prim__r ())
+
+export
+QueryMaybe Int where
+  isNothing = prim__risNull
+  unwrapJust = prim__rid
+  nothing = prim__rnull ()
+  wrap = prim__rid
+
+export
+QueryMaybe (Record rs) where
+  isNothing = prim__risNull
+  unwrapJust = prim__rid
+  nothing = prim__rnull ()
+  wrap = prim__rid
+
 
 compileQuery : AnyPtr -> VarStack ctxt ->  Query db ctxt r -> AnyPtr 
 compileQuery r vars (Var name {p}) = 
@@ -491,7 +524,7 @@ compileQuery r vars (GetField key) =
   prim__rget key
 compileQuery r vars Map =
   prim__rmap r
-compileQuery r vars ConcatMap =
+compileQuery r vars ConcatMapList =
   prim__rconcatMap ()
 compileQuery r vars GenerateUUID =
   prim__ruuid r
@@ -515,6 +548,10 @@ compileQuery r (AddVar k y z) (Relax x) =
   compileQuery r z x
 compileQuery r vars EmptyList =
   prim__remptyList r
+compileQuery r vars (Nth {a}) =
+  prim__rnth r (nothing {a}) (wrap {a})
+compileQuery r vars (CatMaybes {a}) =
+  prim__rcatMaybes (isNothing {a}) (unwrapJust {a})
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
