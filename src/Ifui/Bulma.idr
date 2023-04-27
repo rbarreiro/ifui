@@ -4,6 +4,7 @@ import Data.Vect
 import Ifui.Widget
 import Ifui.Patterns
 import Data.List
+import Ifui.JSUtils
 
 class__ : String -> WidgetAttribute b
 class__ x = WidgetSimpleAttribute $ CSSClassAttr x

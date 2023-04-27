@@ -332,7 +332,7 @@ connect host port x =
 
 export
 connect' :  String -> Int -> (s : ServerSchema) -> Promise (RethinkServer (ServerSchemaSpec s))
-connect' host port x = onErrPrint $ connect host port x
+connect' host port x = onErrThrow $ connect host port x
 
 public export
 data VarStack : List (String, Type) -> Type where

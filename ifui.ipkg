@@ -6,7 +6,8 @@ sourcedir = "src"
 
 depends = contrib
 
-modules = Ifui.Dom,
+modules = Ifui.JSUtils,
+          Ifui.Dom,
           Ifui.OneOf,
           Ifui.Widget,
           Ifui.VirtualDom,

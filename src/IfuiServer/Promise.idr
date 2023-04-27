@@ -1,6 +1,7 @@
 module IfuiServer.Promise
 
 import Data.IORef
+import Ifui.JSUtils
 
 public export
 record PromiseHandler where
@@ -22,6 +23,14 @@ onErrPrint x =
   MkPromise $ \w =>
     x.run $ \z => case z of 
                        (Left y) => putStrLn y
+                       (Right y) => w y
+
+export
+onErrThrow : Promise (Either String a) -> Promise a
+onErrThrow x =
+  MkPromise $ \w =>
+    x.run $ \z => case z of 
+                       (Left y) => throw y
                        (Right y) => w y
 
 export
