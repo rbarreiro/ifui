@@ -370,8 +370,8 @@ prim__changes : AnyPtr -> AnyPtr -> AnyPtr
 %foreign "node:lambda: r => (f => (x => r.map(x, f)))"
 prim__rmap : AnyPtr -> AnyPtr
 
-%foreign "node:lambda: r => (f => (x => r.concatMap(x, f)))"
-prim__rconcatmap : AnyPtr -> AnyPtr
+%foreign "node:lambda: () => (f => (x => x.concatMap(f)))"
+prim__rconcatMap : () -> AnyPtr
 
 %foreign "node:lambda: (r, tbl, left, right, options) => tbl.between(left, right, options)"
 prim__rbetween : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr 
@@ -492,7 +492,7 @@ compileQuery r vars (GetField key) =
 compileQuery r vars Map =
   prim__rmap r
 compileQuery r vars ConcatMap =
-  prim__rconcatmap r
+  prim__rconcatMap ()
 compileQuery r vars GenerateUUID =
   prim__ruuid r
 compileQuery r vars Now =
