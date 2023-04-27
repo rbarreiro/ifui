@@ -484,6 +484,13 @@ QueryMaybe JSON where
   wrap = prim__rsingletonList (prim__r ())
 
 export
+QueryMaybe a => QueryMaybe (Maybe a) where
+  isNothing = prim__risNull
+  unwrapJust = prim__rfst
+  nothing = prim__rnull ()
+  wrap = prim__rsingletonList (prim__r ())
+
+export
 QueryMaybe Int where
   isNothing = prim__risNull
   unwrapJust = prim__rid

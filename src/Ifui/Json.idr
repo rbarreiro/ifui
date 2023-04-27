@@ -82,6 +82,14 @@ JsonSerializable (Maybe JSON) where
   fromJson _ = Nothing
 
 export
+JsonSerializable (Maybe a) => JsonSerializable (Maybe (Maybe a)) where
+  toJson Nothing = JNull
+  toJson (Just x) = toJson x
+
+  fromJson JNull = Just Nothing
+  fromJson o = Just <$> fromJson o
+
+export
 JsonSerializable () where
   toJson _ = JNull
   fromJson _ = Just ()
