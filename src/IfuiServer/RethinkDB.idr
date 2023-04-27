@@ -91,6 +91,8 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Add : QueryNum a => Query db ctxt (a -> a -> a)
     Mul : QueryNum a => Query db ctxt (a -> a -> a)
     MatchMaybe : QueryMaybe a => Query db ctxt (b -> (a -> b) -> Maybe a -> b)
+    Nothing : QueryMaybe a => Query db ctxt (Maybe a)
+    Just : QueryMaybe a => Query db ctxt (a -> Maybe a)
     Relax : Query db ctxt a -> Query db ((k,b) :: ctxt) a
     EmptyList : Query db ctxt (List a)
     Nth : QueryMaybe a => QueryFiniteSequence f => Query db ctxt (Int -> f a -> Maybe a)
@@ -170,6 +172,10 @@ namespace Query
   export
   drop : Query db ctxt (Int -> List a -> List a)
   drop = Lambda "x" (Slice <| Var "x" <| Lit Nothing)
+
+  export
+  mapMaybe : QueryMaybe a => Query db ctxt ((a -> b) -> Maybe a -> Maybe b)
+  mapMaybe = Lambda "f" (Lambda "x" (MatchMaybe <| ?h1 <| ?h2 <| Var "x"))
 
 testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
 testQueryList = [[("a" ^= "1"), ("b" ^= "2")]]
@@ -440,6 +446,9 @@ prim__rcatMaybes : (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr
 %foreign "node:lambda: x => x"
 prim__rid : AnyPtr -> AnyPtr 
 
+%foreign "node:lambda: f => f "
+prim__fnToPtr : (AnyPtr -> AnyPtr) -> AnyPtr
+
 export
 HasParts String (Maybe String) where
   replacePartsNulls replacement x = prim__rdefault x replacement
@@ -544,6 +553,10 @@ compileQuery r vars (Mul {a}) =
   rmul {a}  
 compileQuery r vars (MatchMaybe {a}) =
   prim__rMatchMaybe r (isNothing {a}) (unwrapJust {a})
+compileQuery r vars (Nothing {a}) =
+  (nothing {a})
+compileQuery r vars (Just {a}) =
+  prim__fnToPtr $ (wrap {a})
 compileQuery r (AddVar k y z) (Relax x) = 
   compileQuery r z x
 compileQuery r vars EmptyList =
