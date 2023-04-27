@@ -174,8 +174,8 @@ namespace Query
   drop = Lambda "x" (Slice <| Var "x" <| Lit Nothing)
 
   export
-  mapMaybe : QueryMaybe a => Query db ctxt ((a -> b) -> Maybe a -> Maybe b)
-  mapMaybe = Lambda "f" (Lambda "x" (MatchMaybe <| ?h1 <| ?h2 <| Var "x"))
+  mapMaybe : QueryMaybe a => QueryMaybe b => Query db ctxt ((a -> b) -> Maybe a -> Maybe b)
+  mapMaybe = Lambda "f" (Lambda "x" (MatchMaybe <| Nothing <| (Var "f" |. Just) <| Var "x"))
 
 testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
 testQueryList = [[("a" ^= "1"), ("b" ^= "2")]]
