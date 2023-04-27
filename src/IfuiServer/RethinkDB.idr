@@ -425,8 +425,8 @@ prim__rMatchMaybe : AnyPtr -> (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr
 %foreign "node:lambda: x => x.eq(null)"
 prim__risNull : AnyPtr -> AnyPtr 
 
-%foreign "node:lambda: () => r.expr(null)"
-prim__rnull : () -> AnyPtr 
+%foreign "node:lambda: r => r.expr(null)"
+prim__rnull : AnyPtr -> AnyPtr 
 
 %foreign "node:lambda: (r, x) => r.expr([x])"
 prim__rsingletonList : AnyPtr -> AnyPtr -> AnyPtr 
@@ -480,28 +480,28 @@ export
 QueryMaybe JSON where
   isNothing = prim__risNull
   unwrapJust = prim__rfst
-  nothing = prim__rnull ()
+  nothing = prim__rnull (prim__r ())
   wrap = prim__rsingletonList (prim__r ())
 
 export
 QueryMaybe a => QueryMaybe (Maybe a) where
   isNothing = prim__risNull
   unwrapJust = prim__rfst
-  nothing = prim__rnull ()
+  nothing = prim__rnull (prim__r ())
   wrap = prim__rsingletonList (prim__r ())
 
 export
 QueryMaybe Int where
   isNothing = prim__risNull
   unwrapJust = prim__rid
-  nothing = prim__rnull ()
+  nothing = prim__rnull (prim__r ())
   wrap = prim__rid
 
 export
 QueryMaybe (Record rs) where
   isNothing = prim__risNull
   unwrapJust = prim__rid
-  nothing = prim__rnull ()
+  nothing = prim__rnull (prim__r ())
   wrap = prim__rid
 
 
