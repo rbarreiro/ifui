@@ -623,7 +623,7 @@ prim__each : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 %foreign "node:lambda: (cursor, callback)  => cursor.close((err) => callback(err ? err + '' : '')())"
 prim__close : AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
 
-%foreign "javascript:lambda: (wrap, nothing, x) => ({new_val: ['remove', 'uninitial'].includes(x['type']) ? nothing : wrap(x['new_val']), old_val: ['add', 'initial'].includes(x['type']) ? nothing : wrap(x['old_val'])})"
+%foreign "javascript:lambda: (wrap, nothing, x) => ({extra: 'ola', new_val: ['remove', 'uninitial'].includes(x['type']) ? nothing : wrap(x['new_val']), old_val: ['add', 'initial'].includes(x['type']) ? nothing : wrap(x['old_val'])})"
 prim__adaptChanges : (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr -> AnyPtr
 
 
