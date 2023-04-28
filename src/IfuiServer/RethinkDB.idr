@@ -72,7 +72,7 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
                  {default True leftBoundClosed : Bool} -> {default False rightBoundClosed : Bool} ->
                    Query db ctxt (Table (("id", a) :: ts)) ->  
                      Query db ctxt b -> Query db ctxt b  -> Query db ctxt (Cursor (Record' (("id", a) :: ts)))
-    GetChanges : Bool -> (e : Query db ctxt (Cursor t)) -> Query db ctxt (Changes t)
+    GetChanges : QueryMaybe a  => Bool -> Query db ctxt (Cursor a) -> Query db ctxt (Changes a)
     Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record' ts)) -> 
                  Query db ctxt (Record [("first_error", Maybe String)])
     Insert : Query db ctxt (Table (("id", String) :: ts)) -> 
@@ -371,8 +371,8 @@ prim__expr : AnyPtr -> AnyPtr -> AnyPtr
 %foreign "node:lambda: (r, t, xs) => t.insert(xs).do(x => x.merge(r.expr({'first_error': x('first_error').default(null)})))"
 prim__insert : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr
 
-%foreign "node:lambda: (t, options) => t.changes(options)"
-prim__changes : AnyPtr -> AnyPtr -> AnyPtr
+%foreign "node:lambda: (r, nothing, wrap, t, options) => t.changes(options).map(x => r.expr({type: x('type'), old_val: r.branch(x('type').eq('add').or(x('type').eq('initial')),nothing, wrap(x('old_val'))), new_val: r.branch(x('type').eq('remove').or(x('type').eq('uninitial')),nothing, wrap(x('new_val'))) }))"
+prim__changes : AnyPtr -> AnyPtr -> (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr -> AnyPtr
 
 %foreign "node:lambda: r => (f => (x => r.map(x, f)))"
 prim__rmap : AnyPtr -> AnyPtr
@@ -527,8 +527,13 @@ compileQuery r vars (Between {a} {b} {leftBoundClosed} {rightBoundClosed} tbl x 
                         , ("rightBound", JString $ if rightBoundClosed then "closed" else "open")
                         ]
     )
-compileQuery r vars (GetChanges includeInitial x ) = 
-  prim__changes (compileQuery r vars x) (json2ptr $ JObject [("includeInitial", JBoolean includeInitial), ("includeTypes", JBoolean True)])
+compileQuery r vars (GetChanges {a} includeInitial x ) = 
+  prim__changes 
+    r 
+    (nothing {a})  
+    (wrap {a})
+    (compileQuery r vars x) 
+    (json2ptr $ JObject [("includeInitial", JBoolean includeInitial), ("includeTypes", JBoolean True)])
 compileQuery r vars (Insert t xs) = 
   prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
 compileQuery r vars (Insert' t xs) = 
@@ -623,12 +628,12 @@ prim__each : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 %foreign "node:lambda: (cursor, callback)  => cursor.close((err) => callback(err ? err + '' : '')())"
 prim__close : AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
 
-%foreign "javascript:lambda: (wrap, nothing, x) => ({new_val: ['remove', 'uninitial'].includes(x['type']) ? nothing : wrap(x['new_val']), old_val: ['add', 'initial'].includes(x['type']) ? null : wrap(x['old_val'])})"
+-- %foreign "javascript:lambda: (wrap, nothing, x) => "
 prim__adaptChanges : (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr -> AnyPtr
 
 
 export
-getChanges : JsonSerializable (Change a) => QueryMaybe a => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Either String (Change a))
+getChanges : JsonSerializable (Change a) => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Either String (Change a))
 getChanges (MkRethinkServer debug conn) e =
    MkIOStream $ \w => do
     let r = prim__r ()
@@ -643,7 +648,7 @@ getChanges (MkRethinkServer debug conn) e =
                                                 else primIO $ prim__each result $ \err_, r => 
                                                    if err_ == "" then toPrim $ w $ readResultPtr 
                                                                                      "getChanges \{debugShowQuery e}" 
-                                                                                     (prim__adaptChanges (wrap {a = a}) (nothing {a = a}) r)
+                                                                                     r
                                                                  else toPrim $ w $ Left err
                                              else w $ Left err
     pure $ MkStreamHandler $ do 
@@ -653,7 +658,7 @@ getChanges (MkRethinkServer debug conn) e =
            Just c => primIO $ prim__close c (\x => toPrim $ pure ())           
 
 export
-getChanges' : JsonSerializable (Change a) => QueryMaybe a => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Change a)
+getChanges' : JsonSerializable (Change a) => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Change a)
 getChanges' s e = onErrPrint $ getChanges s e
 
 export
