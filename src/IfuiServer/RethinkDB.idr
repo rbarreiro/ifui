@@ -225,7 +225,7 @@ test = [MkTableSchema "todoApp" "todoItem" Int [("desc", String)]]
 
 export
 data RethinkServer : ServerSpec -> Type where
-  MkRethinkServer : AnyPtr -> RethinkServer a
+  MkRethinkServer : Bool -> AnyPtr -> RethinkServer a
 
 %foreign "node:lambda: (cursor, callback)  => cursor.toArray((err, res) => callback(err ? err + '' : '')(res)())"
 prim__toArray : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
@@ -321,7 +321,7 @@ doMigration s conn =
          Left err => pure $ Just err
 
 export
-connect :  String -> Int -> (s : ServerSchema) -> Promise (Either String (RethinkServer (ServerSchemaSpec s)))
+connect : {default False debug : Bool} -> String -> Int -> (s : ServerSchema) -> Promise (Either String (RethinkServer (ServerSchemaSpec s)))
 connect host port x = 
   MkPromise $ \w =>
     do
@@ -330,7 +330,7 @@ connect host port x =
                                                     let err = prim__errToStr e 
                                                     if err == "" then do 
                                                                         _ <- (doMigration x conn).run $ \z => case z of
-                                                                                                                   Nothing => w $ Right $ MkRethinkServer conn
+                                                                                                                   Nothing => w $ Right $ MkRethinkServer debug conn
                                                                                                                    Just y => w $ Left y
                                                                         pure ()
                                                                  else w $ Left err
@@ -338,8 +338,8 @@ connect host port x =
       pure $ MkPromiseHandler (pure ())
 
 export
-connect' :  String -> Int -> (s : ServerSchema) -> Promise (RethinkServer (ServerSchemaSpec s))
-connect' host port x = onErrThrow $ connect host port x
+connect' : {default False debug : Bool} -> String -> Int -> (s : ServerSchema) -> Promise (RethinkServer (ServerSchemaSpec s))
+connect' host port x = onErrThrow $ connect {debug = debug} host port x
 
 public export
 data VarStack : List (String, Type) -> Type where
@@ -585,14 +585,17 @@ debugShowQuery x =
 
 export
 run : JsonSerializable a => RethinkServer ts -> Query ts [] a -> Promise (Either String a)
-run (MkRethinkServer s) e = 
+run (MkRethinkServer debug s) e = 
   do
     let r = prim__r ()
     let query = compileQuery r Empty e
     z <- runPtr query s
     case z of 
-         Left err => pure $ Left err
-         Right ptr => pure $ readResultPtr "run \{debugShowQuery e}"  ptr
+         Left err => 
+           pure $ Left err
+         Right ptr => do
+           if debug then putStrLn "Debug: run \{debugShowQuery e}" else pure ()
+           pure $ readResultPtr "run \{debugShowQuery e}"  ptr
 
 export
 run' : JsonSerializable a => RethinkServer ts -> Query ts [] a -> Promise a
@@ -600,12 +603,13 @@ run' x y = onErrPrint $ run x y
 
 export
 toArray : JsonSerializable a => RethinkServer ts -> Query ts [] (Cursor a) -> Promise (Either String (List a))
-toArray (MkRethinkServer s) e = 
+toArray (MkRethinkServer debug s) e = 
   do
     let r = prim__r ()
     let query = compileQuery r Empty e
     Right z <- runPtr query s | Left e => pure $ Left e
     Right res <- toArrayPtr z | Left e => pure $ Left e
+    if debug then putStrLn "Debug: toArray \{debugShowQuery e}" else pure ()
     pure $ readResultPtr "toArray \{debugShowQuery e}" res
 
 export
@@ -624,12 +628,13 @@ prim__add_null_key : String -> AnyPtr -> AnyPtr
 
 export
 getChanges : JsonSerializable (Change a) => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Either String (Change a))
-getChanges (MkRethinkServer conn) e =
+getChanges (MkRethinkServer debug conn) e =
    MkIOStream $ \w => do
     let r = prim__r ()
     cursor <- newIORef $ the (Maybe AnyPtr) Nothing
     canceled <- newIORef False
     let query = compileQuery r Empty e
+    if debug then putStrLn "Debug: getChanges \{debugShowQuery e}" else pure ()
     primIO $ prim__run query conn $ 
       \err, result => toPrim $ if err == "" then 
                                              if !(readIORef canceled) 

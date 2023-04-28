@@ -315,9 +315,10 @@ rpcSetup path (MkConnectionInfo url socket counter handles) input outputReader =
                                       let i_ = show i
                                       send socket (show $ JArray [JString "call", JString i_, input])
                                       procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
-                                      writeIORef handles ((i_, \j => !(readIORef procResult) (json2ptr_ j) >> 
-                                                                       removeHandle i_ handles >> 
-                                                                        writeIORef isFinished True
+                                      writeIORef handles ((i_, \j => writeIORef isFinished True >>
+                                                                     removeHandle i_ handles >> 
+                                                                     !(readIORef procResult) (json2ptr_ j)
+                                                                        
                                                           )  :: h
                                                          ) 
                                       writeIORef counter (i+1)
