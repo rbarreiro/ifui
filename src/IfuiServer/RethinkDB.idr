@@ -72,7 +72,7 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
                  {default True leftBoundClosed : Bool} -> {default False rightBoundClosed : Bool} ->
                    Query db ctxt (Table (("id", a) :: ts)) ->  
                      Query db ctxt b -> Query db ctxt b  -> Query db ctxt (Cursor (Record' (("id", a) :: ts)))
-    GetChanges : {default False includeInitial : Bool} -> (e : Query db ctxt (Cursor t)) -> Query db ctxt (Changes t)
+    GetChanges : Bool -> (e : Query db ctxt (Cursor t)) -> Query db ctxt (Changes t)
     Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record' ts)) -> 
                  Query db ctxt (Record [("first_error", Maybe String)])
     Insert : Query db ctxt (Table (("id", String) :: ts)) -> 
@@ -526,7 +526,7 @@ compileQuery r vars (Between {a} {b} {leftBoundClosed} {rightBoundClosed} tbl x 
                         , ("rightBound", JString $ if rightBoundClosed then "closed" else "open")
                         ]
     )
-compileQuery r vars (GetChanges x {includeInitial}) = 
+compileQuery r vars (GetChanges includeInitial x ) = 
   prim__changes (compileQuery r vars x) (json2ptr $ JObject [("includeInitial", JBoolean includeInitial)])
 compileQuery r vars (Insert t xs) = 
   prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
