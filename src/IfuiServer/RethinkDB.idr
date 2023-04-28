@@ -440,7 +440,7 @@ prim__remptyList : AnyPtr -> AnyPtr
 %foreign "node:lambda: (r, nothing, wrap) => (k => (lst => r.branch( lst.count().gt(r.branch(k.ge(0), k, k.mul(-1).add(-1))), wrap(lst(k)), nothing )  ))"
 prim__rnth : AnyPtr -> AnyPtr -> (AnyPtr -> AnyPtr) -> AnyPtr
 
-%foreign "node:lambda: (isNothing, unwrap) => (lst => lst.filter(x => ! isNothing(x)).map(unwrap) )"
+%foreign "node:lambda: (isNothing, unwrap) => (lst => lst.filter(x => isNothing(x).not()).map(unwrap) )"
 prim__rcatMaybes : (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr
 
 %foreign "node:lambda: x => x"
