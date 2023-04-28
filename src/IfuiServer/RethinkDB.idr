@@ -453,13 +453,14 @@ export
 HasParts String (Maybe String) where
   replacePartsNulls replacement x = prim__rdefault x replacement
 
-%foreign "node:lambda: (rfst, rsnd, x) => {const r = require('rethinkdb'); return r.branch(x.count().eq(2), r.expr([]).prepend(rsnd(x(1))).prepend(rfst(x(0))), rsnd(x.slice(1)).prepend(rfst(x(0))))}"
-prim__replacePartsNullsTuple : (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr 
+%foreign "node:lambda: (r, rfst, rsnd, x) => r.branch(x.count().eq(2), r.expr([rfst(x(0)), rsnd(x(1))]), rsnd(x.slice(1)).prepend(rfst(x(0))))"
+prim__replacePartsNullsTuple : AnyPtr -> (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr 
 
 export
 (HasParts a a', HasParts b b') => HasParts (a, b) (a', b') where
   replacePartsNulls replacement x = 
     prim__replacePartsNullsTuple 
+      (prim__r ())
       (replacePartsNulls {a = a} {b = a'} replacement) 
       (replacePartsNulls {a = b} {b = b'} replacement) 
       x
