@@ -528,7 +528,7 @@ compileQuery r vars (Between {a} {b} {leftBoundClosed} {rightBoundClosed} tbl x 
                         ]
     )
 compileQuery r vars (GetChanges includeInitial x ) = 
-  prim__changes (compileQuery r vars x) (json2ptr $ JObject [("includeInitial", JBoolean includeInitial)])
+  prim__changes (compileQuery r vars x) (json2ptr $ JObject [("includeInitial", JBoolean includeInitial), ("includeTypes", JBoolean True)])
 compileQuery r vars (Insert t xs) = 
   prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
 compileQuery r vars (Insert' t xs) = 
@@ -623,12 +623,12 @@ prim__each : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 %foreign "node:lambda: (cursor, callback)  => cursor.close((err) => callback(err ? err + '' : '')())"
 prim__close : AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
 
-%foreign "javascript:lambda: (k,x) => {if(x.hasOwnProperty(k)){return x} else {const res = {...x}; res[k]=null; return res}} "
-prim__add_null_key : String -> AnyPtr -> AnyPtr
+%foreign "javascript:lambda: (wrap, nothing, x) => ({new_val: ['remove', 'uninitial'].includes(x['type']) ? nothing : wrap(x['new_val']), old_val: ['add', 'initial'].includes(x['type']) ? nothing : wrap(x['old_val'])})"
+prim__adaptChanges : (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr -> AnyPtr
 
 
 export
-getChanges : JsonSerializable (Change a) => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Either String (Change a))
+getChanges : JsonSerializable (Change a) => QueryMaybe a => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Either String (Change a))
 getChanges (MkRethinkServer debug conn) e =
    MkIOStream $ \w => do
     let r = prim__r ()
@@ -641,7 +641,9 @@ getChanges (MkRethinkServer debug conn) e =
                                              if !(readIORef canceled) 
                                                 then primIO $ prim__close result (\x => toPrim $ pure ())
                                                 else primIO $ prim__each result $ \err_, r => 
-                                                   if err_ == "" then toPrim $ w $ readResultPtr "getChanges \{debugShowQuery e}" (prim__add_null_key "old_val" r)
+                                                   if err_ == "" then toPrim $ w $ readResultPtr 
+                                                                                     "getChanges \{debugShowQuery e}" 
+                                                                                     (prim__adaptChanges (wrap {a = a}) (nothing {a = a}) r)
                                                                  else toPrim $ w $ Left err
                                              else w $ Left err
     pure $ MkStreamHandler $ do 
@@ -651,7 +653,7 @@ getChanges (MkRethinkServer debug conn) e =
            Just c => primIO $ prim__close c (\x => toPrim $ pure ())           
 
 export
-getChanges' : JsonSerializable (Change a) => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Change a)
+getChanges' : JsonSerializable (Change a) => QueryMaybe a => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Change a)
 getChanges' s e = onErrPrint $ getChanges s e
 
 export
