@@ -100,7 +100,7 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
 
 
 
-infixl 0 ^^ 
+infixr 0 ^^ 
 infixl 1 |>
 infixl 2 <|
 
