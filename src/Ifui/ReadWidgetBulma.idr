@@ -337,6 +337,14 @@ mutual
         aux (PTree xs) = (6, PTree <$> stringValuePairsReaderCompact (getReaderBulma {a = TreeNodeKind}) (Just xs))
 
 export
+{s : String } -> ReadWidgetBulma (Entry s PTy) where
+  getReaderBulma x = 
+    MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
+    where
+      f : Widget a -> Widget a
+      f x = fieldsSection s [x]
+
+export
 readerForm : {default Nothing startVal : Maybe a} -> (Maybe a -> Reader a)  -> Widget (Maybe a)
 readerForm reader = 
   loopState 
@@ -360,3 +368,5 @@ getFormBulma =
 test : Widget (Maybe (Tree [("Record", \w => List (String, w)), ("String", const ())]))
 test = getFormBulma
 
+test2 : Widget (Maybe (Record [("id", String),("spec", PTy)]))
+test2 = getFormBulma
