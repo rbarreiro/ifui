@@ -5,6 +5,7 @@ import Data.Maybe
 import Data.Vect
 import public Ifui.ExtensibleTypes
 import public Ifui.Bulma
+import Ifui.PureExpressions
 
 export
 data Reader a = MkReader (Bool -> Widget (Reader a)) (Maybe a)
@@ -213,12 +214,12 @@ ReadWidgetBulma1 (\w => List (String, w)) where
         w : List (String, Reader a) -> Bool -> Widget (Reader (List (String, a)))
         w itemsReaders check = 
           do
-            res <- div ( add :: (map (renderItem check) itemsReaders)) 
+            res <- div ((map (renderItem check) itemsReaders) ++ [add]) 
             let newReaders = the (List (String, Reader a)) $  case res of 
                                ChangeKey sold snew => 
                                   map (\(k,v) => if k == sold then (snew, v) else (k,v)) itemsReaders
                                AddEmptyKey =>
-                                  ("", cont Nothing) :: itemsReaders
+                                  itemsReaders ++ [("", cont Nothing)]
                                ChangeValue s valnew => 
                                   map (\(k,v) => if k == s then (k, valnew) else (k,v)) itemsReaders
             pure $ MkReader (w newReaders) (fromAllJust $ map (\(k,v) => (k,)  <$> getValue v) newReaders)
@@ -243,6 +244,97 @@ export
     where
       f : Widget a -> Widget a
       f x = fieldsSection s [x]
+
+optionsReaderCompact : (a -> (Fin n, Reader a)) -> Vect n (String, Reader a) -> Maybe a -> Reader a
+optionsReaderCompact init options s0 =
+  let w : Maybe (Fin n, Reader a) -> Bool -> Widget (Reader a)
+      w Nothing check = 
+         do
+           let warn = if check then warning "Missing"
+                               else neutral
+           k <- div [selectBulma (map fst options) Nothing, warn]
+           let (o, ar) = index k options
+           pure $ MkReader (w $ Just (k, ar)) (getValue ar)
+      w (Just (opt, reader)) check = 
+         do
+           let or = selectBulma (map fst options) (Just opt)
+           res <- (Left <$> or) <+> (Right <$> getWidget reader check)
+           case res of 
+                Left k => 
+                   let (o, ar) = index k options
+                   in pure $ MkReader (w $ Just (k, ar)) (getValue ar)
+                Right y => 
+                   pure $ MkReader (w $ Just (opt, y)) (getValue y)
+
+      start : Maybe (Fin n, Reader a)
+      start = case s0 of
+                   Nothing => 
+                      Nothing
+                   (Just i) => 
+                      Just $ init i
+      
+  in MkReader (\check => w start check) s0
+
+stringValuePairsReaderCompact : (Maybe a -> Reader a)  -> Maybe (List (String, a)) -> Reader (List (String, a))
+stringValuePairsReaderCompact cont x =
+  let add : Widget (KeyListReaderEvent a)
+      add = fasIcon {onclick = (Just AddEmptyKey)} "plus"
+
+      renderItem : Bool -> (String, Reader a) -> Widget (KeyListReaderEvent a)
+      renderItem check (s, r) =
+        div [ChangeKey s <$> textInputBulma {label = Just "Entry Key"} s ,ChangeValue s <$> getWidget r check]
+
+      w : List (String, Reader a) -> Bool -> Widget (Reader (List (String, a)))
+      w itemsReaders check = 
+        do
+          res <- div ((map (renderItem check) itemsReaders) ++ [add]) 
+          let newReaders = the (List (String, Reader a)) $  case res of 
+                             ChangeKey sold snew => 
+                                map (\(k,v) => if k == sold then (snew, v) else (k,v)) itemsReaders
+                             AddEmptyKey =>
+                                itemsReaders ++ [("", cont Nothing)]
+                             ChangeValue s valnew => 
+                                map (\(k,v) => if k == s then (k, valnew) else (k,v)) itemsReaders
+          pure $ MkReader (w newReaders) (fromAllJust $ map (\(k,v) => (k,)  <$> getValue v) newReaders)
+      startReaders : List (String, Reader a)
+      startReaders = case x of
+                Nothing => []
+                Just x => map (\(k,v) => (k, cont (Just v))) x
+  in MkReader (w startReaders) x
+
+mutual
+  export 
+  ReadWidgetBulma TreeNodeKind where
+    getReaderBulma x = 
+      optionsReaderCompact aux [("NamedSubTrees", pure NamedSubTrees), ("Leaf", Leaf <$> getReaderBulma {a = PTy} Nothing)] x
+      where
+        aux : TreeNodeKind -> (Fin 2, Reader TreeNodeKind)
+        aux NamedSubTrees = (0, pure NamedSubTrees)
+        aux (Leaf x) = (1, Leaf <$> getReaderBulma (Just x))
+
+  export 
+  ReadWidgetBulma PTy where
+    getReaderBulma x = 
+      optionsReaderCompact 
+        aux 
+        [ ("PString", pure PString)
+        , ("PBool", pure PBool)
+        , ("PUnit", pure PUnit)
+        , ("PInt", pure PInt)
+        , ("PFun", PFun <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
+        , ("PRecord", PRecord <$> stringValuePairsReaderCompact (getReaderBulma {a = PTy}) Nothing)
+        , ("PTree", PTree <$> stringValuePairsReaderCompact (getReaderBulma {a = TreeNodeKind}) Nothing)
+        ] 
+        x
+      where
+        aux : PTy -> (Fin 7, Reader PTy)
+        aux PString = (0, pure PString)
+        aux PBool = (1, pure PBool)
+        aux PUnit = (2, pure PUnit)
+        aux PInt = (3, pure PInt)
+        aux (PFun y z) = (4, PFun <$> getReaderBulma (Just y)  <*> getReaderBulma (Just z))
+        aux (PRecord xs) = (5, PRecord <$> stringValuePairsReaderCompact (getReaderBulma {a = PTy}) (Just xs))
+        aux (PTree xs) = (6, PTree <$> stringValuePairsReaderCompact (getReaderBulma {a = TreeNodeKind}) (Just xs))
 
 export
 readerForm : {default Nothing startVal : Maybe a} -> (Maybe a -> Reader a)  -> Widget (Maybe a)

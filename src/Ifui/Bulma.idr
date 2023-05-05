@@ -27,6 +27,14 @@ data Column a = MkColumn (Widget a)
 export
 data BulmaStyleOption = MkBulmaStyleOption String
 
+public export
+data DivSpan = Div | Span
+
+export
+Show DivSpan where
+  show Div = "div"
+  show Span = "span"
+
 export 
 ml : Fin 7 -> BulmaStyleOption
 ml z = MkBulmaStyleOption $ "ml-" ++ show z
@@ -49,6 +57,7 @@ div xs = node "div" ((optionsToAttributes styleOptions) ++ (catMaybes [onClick_ 
 export
 span : {default Nothing onclick : Maybe a} -> {default [] styleOptions : List BulmaStyleOption} -> List (Widget a) -> Widget a
 span xs = node "span" ((optionsToAttributes styleOptions) ++ (catMaybes [onClick_ <$> onclick])) xs
+
 
 export
 data BulmaButtonStyleOption = MkBulmaButtonStyleOption String
