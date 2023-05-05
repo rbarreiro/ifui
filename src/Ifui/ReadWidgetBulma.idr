@@ -86,6 +86,25 @@ ReadWidgetBulma Double where
         pure $ MkReader (w s_) s_
 
 export
+ReadWidgetBulma Bool where
+  getReaderBulma x = 
+    MkReader (w x) x
+    where
+      f2b : Fin 2 -> Bool
+      f2b 0 = False
+      f2b 1 = True
+
+      b2f : Bool -> Fin 2
+      b2f False = 0
+      b2f True = 1
+
+      w : Maybe Bool -> Bool -> Widget (Reader Bool)
+      w s check = do
+        k <- selectBulma ["False", "True"] (b2f <$> s)
+        let s_ = Just $ f2b k
+        pure $ MkReader (w s_) s_
+
+export
 {s : String} -> ReadWidgetBulma (Entry s String) where
   getReaderBulma x = 
     MkReader (w (isJust x) $ fromMaybe "" (value <$>x)) x
@@ -107,6 +126,14 @@ export
       w z check = do
         z_ <- numberInputBulma {label = Just s} z
         pure $ MkReader (w z_) (MkEntry s <$> z_)
+
+export
+{s : String } -> ReadWidgetBulma (Entry s Bool) where
+  getReaderBulma x = 
+    MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
+    where
+      f : Widget a -> Widget a
+      f x = fieldsSection s [x]
 
 export
 recordGetReaderBulma : {zs : Vect n (String, Type)} -> 
