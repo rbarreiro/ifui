@@ -2,10 +2,12 @@ module Ifui.ReadWidgetBulma
 
 import Ifui
 import Data.Maybe
+import Data.List
 import Data.Vect
 import public Ifui.ExtensibleTypes
 import public Ifui.Bulma
 import Ifui.PureExpressions
+import Decidable.Equality
 
 export
 data Reader a = MkReader (Bool -> Widget (Reader a)) (Maybe a)
@@ -272,8 +274,8 @@ export
       f : Widget a -> Widget a
       f x = fieldsSection s [x]
 
-optionsReaderCompact : (a -> (Fin n, Reader a)) -> Vect n (String, Reader a) -> Maybe a -> Reader a
-optionsReaderCompact init options s0 =
+optionsReader : {default False compact : Bool} -> (a -> (Fin n, Reader a)) -> Vect n (String, Reader a) -> Maybe a -> Reader a
+optionsReader init options s0 =
   let w : Maybe (Fin n, Reader a) -> Bool -> Widget (Reader a)
       w Nothing check = 
          do
@@ -301,6 +303,7 @@ optionsReaderCompact init options s0 =
                       Just $ init i
       
   in MkReader (\check => w start check) s0
+
 
 stringValuePairsReaderCompact : (Maybe a -> Reader a)  -> Maybe (List (String, a)) -> Reader (List (String, a))
 stringValuePairsReaderCompact cont x =
@@ -333,7 +336,7 @@ mutual
   export 
   ReadWidgetBulma TreeNodeKind where
     getReaderBulma x = 
-      optionsReaderCompact aux [("NamedSubTrees", pure NamedSubTrees), ("Leaf", Leaf <$> getReaderBulma {a = PTy} Nothing)] x
+      optionsReader {compact = True} aux [("NamedSubTrees", pure NamedSubTrees), ("Leaf", Leaf <$> getReaderBulma {a = PTy} Nothing)] x
       where
         aux : TreeNodeKind -> (Fin 2, Reader TreeNodeKind)
         aux NamedSubTrees = (0, pure NamedSubTrees)
@@ -342,15 +345,15 @@ mutual
   export 
   ReadWidgetBulma PTy where
     getReaderBulma x = 
-      optionsReaderCompact 
+      optionsReader {compact = True}
         aux 
-        [ ("PString", pure PString)
-        , ("PBool", pure PBool)
-        , ("PUnit", pure PUnit)
-        , ("PInt", pure PInt)
-        , ("PFun", PFun <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
-        , ("PRecord", PRecord <$> stringValuePairsReaderCompact (getReaderBulma {a = PTy}) Nothing)
-        , ("PTree", PTree <$> stringValuePairsReaderCompact (getReaderBulma {a = TreeNodeKind}) Nothing)
+        [ ("String", pure PString)
+        , ("Bool", pure PBool)
+        , ("Unit", pure PUnit)
+        , ("Int", pure PInt)
+        , ("Fun", PFun <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
+        , ("Record", PRecord <$> stringValuePairsReaderCompact (getReaderBulma {a = PTy}) Nothing)
+        , ("Tree", PTree <$> stringValuePairsReaderCompact (getReaderBulma {a = TreeNodeKind}) Nothing)
         ] 
         x
       where
@@ -363,6 +366,85 @@ mutual
         aux (PRecord xs) = (5, PRecord <$> stringValuePairsReaderCompact (getReaderBulma {a = PTy}) (Just xs))
         aux (PTree xs) = (6, PTree <$> stringValuePairsReaderCompact (getReaderBulma {a = TreeNodeKind}) (Just xs))
 
+
+varExprs_ : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (k : String ** p : KElem k ctxt ** t = klookup ctxt p))
+varExprs_ [] t = (0 ** [])
+varExprs_ ((z, w) :: xs) t = 
+  let (n ** ys) = varExprs_ xs t
+      ys_ = [ (k ** KThere p ** pEq) | (k ** p ** pEq) <- ys]
+  in case decEq t w of
+          No _ => (n ** ys_)
+          Yes prf => (S n ** (z ** KHere ** prf) :: ys_)
+
+varExprs : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, Pexp ctxt t))
+varExprs ctxt t = 
+  let (n ** xs) = varExprs_ ctxt t
+  in (n ** [(rewrite pEq in (k, Var k {p = p})) | (k ** p **  pEq) <- xs] )
+
+varAndPrimExprs : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, Pexp ctxt t))
+varAndPrimExprs ctxt t = 
+  varExprs ctxt t
+
+getVarReader : String -> Vect n (String, Reader (Pexp ctxt t)) -> Maybe (Fin n, Reader (Pexp ctxt t))
+getVarReader str xs = 
+  case findIndex ((str==) . fst) xs of
+     Nothing => Nothing  
+     Just i => Just (i, snd $ index i xs)
+
+mutual
+
+  varAndPrimReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, Reader (Pexp ctxt t)))
+
+  pexpW : Vect n (String, Reader (Pexp ctxt t)) ->
+                  Maybe (Fin n, Reader (Pexp ctxt t)) -> 
+                    Bool -> Widget (Reader (Pexp ctxt t))
+  pexpW options x check = 
+    case x of
+         Nothing => do
+           let warn = if check then warning "Missing"
+                               else neutral
+           k <- div [selectBulma (map fst options) Nothing, warn]
+           let (o, ar) = index k options
+           pure $ MkReader (pexpW options $ Just (k, ar)) (getValue ar)
+         Just (opt, reader) =>
+           do
+             let or = selectBulma (map fst options) (Just opt)
+             res <- (Left <$> or) <+> (Right <$> getWidget reader check)
+             case res of 
+                  Left k => 
+                     let (o, ar) = index k options
+                     in pure $ MkReader (pexpW options $ Just (k, ar)) (getValue ar)
+                  Right y => 
+                     pure $ MkReader (pexpW options $ Just (opt, y)) (getValue y)
+
+  getReaderBulma_Pexp : (ctxt : List (String, PTy)) -> (t : PTy) -> Maybe (Pexp ctxt t) -> Reader (Pexp ctxt t)
+  getReaderBulma_Pexp ctxt t Nothing = 
+      let (n ** zs) = varAndPrimReaders ctxt t
+      in MkReader (pexpW zs Nothing) Nothing
+  getReaderBulma_Pexp ctxt (klookup ctxt p) (Just (Var name)) =
+      let (n ** zs) = varAndPrimReaders ctxt (klookup ctxt p)
+      in case getVarReader name zs of
+              Just (i, r) => MkReader (pexpW zs (Just (i, r))) (getValue r)
+              Nothing => MkReader (pexpW zs Nothing) Nothing
+  getReaderBulma_Pexp ctxt (PFun a b) (Just (Lambda arg x)) = ?getReaderBulma__rhs_3
+  getReaderBulma_Pexp ctxt t (Just (App x y)) = ?getReaderBulma__rhs_4
+  getReaderBulma_Pexp ctxt PString (Just (StringLit str)) = ?getReaderBulma__rhs_5
+  getReaderBulma_Pexp ctxt PBool (Just (BoolLit x)) = ?getReaderBulma__rhs_6
+  getReaderBulma_Pexp ctxt t (Just (Prim x)) = ?getReaderBulma__rhs_7
+
+
+public export
+hasDuplicates : List String -> Bool
+hasDuplicates xs = length xs /= length (nub xs)
+
+public export
+ValidCtxt : List (String, PTy) -> Type
+ValidCtxt ctxt = So (hasDuplicates (["StringLit"] ++ (map fst ctxt)))
+
+export
+{ctxt : List (String, PTy)} -> {a : PTy} -> {prfUniq : ValidCtxt ctxt} -> ReadWidgetBulma (Pexp ctxt a) where
+  getReaderBulma = getReaderBulma_Pexp ctxt a
+    
 export
 {s : String } -> ReadWidgetBulma (Entry s PTy) where
   getReaderBulma x = 

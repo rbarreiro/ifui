@@ -35,6 +35,17 @@ mutual
   PTyType PUnit = ()
   PTyType PInt = Int
 
+
+infixr 0 .> 
+
+public export
+(.>) : PTy -> PTy -> PTy
+(.>) = PFun
+
+public export
+data PrimFn : PTy -> Type where
+ StringEq : PrimFn (PString .> PString .> PBool)
+
 public export
 data Pexp : List (String, PTy) -> PTy -> Type where
     Var : (name : String) -> {auto p : KElem  name ctxt} -> Pexp ctxt (klookup ctxt p)
@@ -42,6 +53,7 @@ data Pexp : List (String, PTy) -> PTy -> Type where
     App : {a: PTy} -> Pexp ctxt (PFun a b) -> Pexp ctxt a -> Pexp ctxt b
     StringLit : String -> Pexp ctxt PString
     BoolLit : Bool -> Pexp ctxt PBool
+    Prim : PrimFn a -> Pexp ctxt a
 
 export
 Uninhabited (PString = PBool) where
@@ -297,12 +309,24 @@ mutual
       Just PInt
     fromJson _ = Nothing 
 
+{a : PTy} -> JsonSerializable (PrimFn a) where
+  toJson StringEq = 
+    JString "StringEq"
+
+  fromJson (JString "StringEq") =
+    case decEq a (PString .> PString .> PBool) of
+         Yes prf => Just $ rewrite prf in StringEq
+         No _ => Nothing
+        
+
+  fromJson _ = 
+    Nothing
 
 elemToVar : (ctxt : List (String, PTy)) ->  Elem (n,a) ctxt -> (p : KElem n ctxt ** a = klookup ctxt p)
 elemToVar ((n, a) :: xs) Here = (KHere ** Refl)
 elemToVar ((y, z) :: xs) (There x) = let (g ** h) = elemToVar xs x in (KThere g ** h)
 
-toJson_ : Pexp ctxt a -> JSON
+toJson_ : {a : PTy} -> Pexp ctxt a -> JSON
 toJson_ (Var name) = 
   JArray [JString "Var", JString name]
 toJson_ (Lambda arg x) = 
@@ -313,6 +337,7 @@ toJson_ (StringLit str) =
   JArray [JString "StringLit", JString str]
 toJson_ (BoolLit x) = 
   JArray [JString "BoolLit", JBoolean x]
+toJson_ (Prim x) = JArray [JString "Prim", toJson x]
 
 fromJson_ : (ctxt : List (String, PTy)) -> (a : PTy) -> JSON -> Maybe (Pexp ctxt a)
 fromJson_ ctxt a (JArray [JString "Var", JString name]) = 
@@ -333,6 +358,8 @@ fromJson_ ctxt PString (JArray [JString "StringLit", JString s]) =
   Just $ StringLit s
 fromJson_ ctxt PBool (JArray [JString "BoolLit", JBoolean b]) =
   Just $ BoolLit b
+fromJson_ ctxt a (JArray [JString "Prim", x]) =
+  Prim <$> fromJson x
 fromJson_ _ _ _ = 
   Nothing
 
