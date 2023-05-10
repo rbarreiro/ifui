@@ -274,7 +274,7 @@ export
       f : Widget a -> Widget a
       f x = fieldsSection s [x]
 
-optionsReader : {default False compact : Bool} -> (a -> (Fin n, Reader a)) -> Vect n (String, Reader a) -> Maybe a -> Reader a
+optionsReader : {default False compact : Bool} -> (a -> (Fin n, Reader a)) -> Vect n (String, () -> Reader a) -> Maybe a -> Reader a
 optionsReader init options s0 =
   let w : Maybe (Fin n, Reader a) -> Bool -> Widget (Reader a)
       w Nothing check = 
@@ -282,7 +282,8 @@ optionsReader init options s0 =
            let warn = if check then warning "Missing"
                                else neutral
            k <- div [selectBulma (map fst options) Nothing, warn]
-           let (o, ar) = index k options
+           let (o, ar_) = index k options
+           let ar = ar_ ()
            pure $ MkReader (w $ Just (k, ar)) (getValue ar)
       w (Just (opt, reader)) check = 
          do
@@ -290,7 +291,8 @@ optionsReader init options s0 =
            res <- (Left <$> or) <+> (Right <$> getWidget reader check)
            case res of 
                 Left k => 
-                   let (o, ar) = index k options
+                   let (o, ar_) = index k options
+                       ar = ar_ ()
                    in pure $ MkReader (w $ Just (k, ar)) (getValue ar)
                 Right y => 
                    pure $ MkReader (w $ Just (opt, y)) (getValue y)
@@ -336,7 +338,12 @@ mutual
   export 
   ReadWidgetBulma TreeNodeKind where
     getReaderBulma x = 
-      optionsReader {compact = True} aux [("NamedSubTrees", pure NamedSubTrees), ("Leaf", Leaf <$> getReaderBulma {a = PTy} Nothing)] x
+      optionsReader {compact = True} 
+        aux 
+        [ ("NamedSubTrees", \() => pure NamedSubTrees)
+        , ("Leaf", \() => Leaf <$> getReaderBulma {a = PTy} Nothing)
+        ]
+        x
       where
         aux : TreeNodeKind -> (Fin 2, Reader TreeNodeKind)
         aux NamedSubTrees = (0, pure NamedSubTrees)
@@ -347,13 +354,13 @@ mutual
     getReaderBulma x = 
       optionsReader {compact = True}
         aux 
-        [ ("String", pure PString)
-        , ("Bool", pure PBool)
-        , ("Unit", pure PUnit)
-        , ("Int", pure PInt)
-        , ("Fun", PFun <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
-        , ("Record", PRecord <$> stringValuePairsReaderCompact (getReaderBulma {a = PTy}) Nothing)
-        , ("Tree", PTree <$> stringValuePairsReaderCompact (getReaderBulma {a = TreeNodeKind}) Nothing)
+        [ ("String", \() => pure PString)
+        , ("Bool", \() => pure PBool)
+        , ("Unit", \() => pure PUnit)
+        , ("Int", \() => pure PInt)
+        , ("Fun", \() => PFun <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
+        , ("Record", \() => PRecord <$> stringValuePairsReaderCompact (getReaderBulma {a = PTy}) Nothing)
+        , ("Tree", \() => PTree <$> stringValuePairsReaderCompact (getReaderBulma {a = TreeNodeKind}) Nothing)
         ] 
         x
       where
@@ -432,17 +439,8 @@ mutual
   getReaderBulma_Pexp ctxt PBool (Just (BoolLit x)) = ?getReaderBulma__rhs_6
   getReaderBulma_Pexp ctxt t (Just (Prim x)) = ?getReaderBulma__rhs_7
 
-
-public export
-hasDuplicates : List String -> Bool
-hasDuplicates xs = length xs /= length (nub xs)
-
-public export
-ValidCtxt : List (String, PTy) -> Type
-ValidCtxt ctxt = So (hasDuplicates (["StringLit"] ++ (map fst ctxt)))
-
 export
-{ctxt : List (String, PTy)} -> {a : PTy} -> {prfUniq : ValidCtxt ctxt} -> ReadWidgetBulma (Pexp ctxt a) where
+{ctxt : List (String, PTy)} -> {a : PTy} -> ReadWidgetBulma (Pexp ctxt a) where
   getReaderBulma = getReaderBulma_Pexp ctxt a
     
 export
