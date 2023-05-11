@@ -19,22 +19,6 @@ mutual
            | PRecord (List (String, PTy))
            | PTree (List (String, TreeNodeKind))
 
-mutual
-  public export
-  TreeNodeKindType : TreeNodeKind -> Type -> Type
-  TreeNodeKindType NamedSubTrees = \t => List (String, t)
-  TreeNodeKindType (Leaf t) = const (PTyType t)
-
-  public export
-  PTyType : PTy -> Type
-  PTyType PString = String
-  PTyType PBool = Bool
-  PTyType (PFun x y) = PTyType x -> PTyType y
-  PTyType (PRecord xs) = Record (mapValues PTyType (Vect.fromList xs))
-  PTyType (PTree xs) = Tree (mapValues TreeNodeKindType (Vect.fromList xs))
-  PTyType PUnit = ()
-  PTyType PInt = Int
-
 
 infixr 0 .> 
 
@@ -54,6 +38,22 @@ data Pexp : List (String, PTy) -> PTy -> Type where
     StringLit : String -> Pexp ctxt PString
     BoolLit : Bool -> Pexp ctxt PBool
     Prim : PrimFn a -> Pexp ctxt a
+
+mutual
+  public export
+  TreeNodeKindType : TreeNodeKind -> Type -> Type
+  TreeNodeKindType NamedSubTrees = \t => List (String, t)
+  TreeNodeKindType (Leaf t) = const (PTyType t)
+
+  public export
+  PTyType : PTy -> Type
+  PTyType PString = String
+  PTyType PBool = Bool
+  PTyType (PFun x y) = Pexp [] (PFun x y)
+  PTyType (PRecord xs) = Record (mapValues PTyType (Vect.fromList xs))
+  PTyType (PTree xs) = Tree (mapValues TreeNodeKindType (Vect.fromList xs))
+  PTyType PUnit = ()
+  PTyType PInt = Int
 
 export
 Uninhabited (PString = PBool) where

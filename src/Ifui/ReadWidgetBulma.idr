@@ -137,9 +137,13 @@ export
       f : Widget a -> Widget a
       f x = fieldsSection s [x]
 
+public export
+RecordEntryGetReader : Vect n (String, Type) -> Vect n (String, Type)
+RecordEntryGetReader zs = mapValuesWithKey (\s,t => Maybe (Entry s t) -> Reader (Entry s t)) zs
+
 export
 recordGetReaderBulma : {zs : Vect n (String, Type)} -> 
-                         Record (mapValuesWithKey (\s,t => Maybe (Entry s t) -> Reader (Entry s t)) zs) -> 
+                         Record (RecordEntryGetReader zs) -> 
                            Maybe (Record zs) -> Reader (Record zs)
 recordGetReaderBulma {zs = []} x y = 
   pure []
@@ -149,7 +153,7 @@ recordGetReaderBulma {zs = ((z, w) :: xs)} ((MkEntry z x) :: v) (Just (y :: s)) 
   (::) <$> x (Just y) <*> recordGetReaderBulma {zs = xs} v (Just s)
 
 getReaderPartsRecord :(zs : Vect n (String, Type)) -> Record (mapValuesWithKey (\s, t => ReadWidgetBulma (Entry s t))  zs) -> 
-                         Record (mapValuesWithKey (\s,t => Maybe (Entry s t) -> Reader (Entry s t)) zs)
+                         Record (RecordEntryGetReader zs)
 getReaderPartsRecord [] x = []
 getReaderPartsRecord ((y, z) :: xs) ((MkEntry y x) :: w) = MkEntry y getReaderBulma :: getReaderPartsRecord xs w
 
@@ -392,8 +396,8 @@ varAndPrimExprs : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n
 varAndPrimExprs ctxt t = 
   varExprs ctxt t
 
-getVarReader : String -> Vect n (String, Reader (Pexp ctxt t)) -> Maybe (Fin n, Reader (Pexp ctxt t))
-getVarReader str xs = 
+getReaderByName : String -> Vect n (String, Reader (Pexp ctxt t)) -> Maybe (Fin n, Reader (Pexp ctxt t))
+getReaderByName str xs = 
   case findIndex ((str==) . fst) xs of
      Nothing => Nothing  
      Just i => Just (i, snd $ index i xs)
@@ -426,14 +430,16 @@ mutual
 
   getReaderBulma_Pexp : (ctxt : List (String, PTy)) -> (t : PTy) -> Maybe (Pexp ctxt t) -> Reader (Pexp ctxt t)
   getReaderBulma_Pexp ctxt t Nothing = 
-      let (n ** zs) = varAndPrimReaders ctxt t
-      in MkReader (pexpW zs Nothing) Nothing
+    let (n ** zs) = varAndPrimReaders ctxt t
+    in MkReader (pexpW zs Nothing) Nothing
   getReaderBulma_Pexp ctxt (klookup ctxt p) (Just (Var name)) =
-      let (n ** zs) = varAndPrimReaders ctxt (klookup ctxt p)
-      in case getVarReader name zs of
-              Just (i, r) => MkReader (pexpW zs (Just (i, r))) (getValue r)
-              Nothing => MkReader (pexpW zs Nothing) Nothing
-  getReaderBulma_Pexp ctxt (PFun a b) (Just (Lambda arg x)) = ?getReaderBulma__rhs_3
+    let (n ** zs) = varAndPrimReaders ctxt (klookup ctxt p)
+    in case getReaderByName name zs of
+            Just (i, r) => MkReader (pexpW zs (Just (i, r))) (getValue r)
+            Nothing => MkReader (pexpW zs Nothing) Nothing
+  getReaderBulma_Pexp ctxt (PFun a b) (Just (Lambda arg x)) = 
+    let (n ** zs) = varAndPrimReaders ctxt (PFun a b)
+    in ?getReaderBulma__rhs_3
   getReaderBulma_Pexp ctxt t (Just (App x y)) = ?getReaderBulma__rhs_4
   getReaderBulma_Pexp ctxt PString (Just (StringLit str)) = ?getReaderBulma__rhs_5
   getReaderBulma_Pexp ctxt PBool (Just (BoolLit x)) = ?getReaderBulma__rhs_6
@@ -450,6 +456,26 @@ export
     where
       f : Widget a -> Widget a
       f x = fieldsSection s [x]
+
+
+mutual
+  recReaders : (xs : Vect n (String, PTy)) -> Record (RecordEntryGetReader (mapValues PTyType xs))
+  recReaders [] = []
+  recReaders ((x, y) :: xs) =
+    let z : Maybe (Entry x (PTyType y)) -> Reader (Entry x (PTyType y))
+        z Nothing = MkEntry x <$> pTyTypeReader y Nothing
+        z (Just v) = MkEntry x <$> pTyTypeReader y (Just $ value v)
+    in (MkEntry x z) :: recReaders xs
+
+  export
+  pTyTypeReader : (t : PTy) -> Maybe (PTyType t) -> Reader (PTyType t)
+  pTyTypeReader PString = getReaderBulma 
+  pTyTypeReader PBool = getReaderBulma
+  pTyTypeReader PUnit = getReaderBulma
+  pTyTypeReader PInt = ?pTyTypeReader_rhs_3
+  pTyTypeReader (PFun x y) = getReaderBulma
+  pTyTypeReader (PRecord xs) = recordGetReaderBulma (recReaders $ Vect.fromList xs)
+  pTyTypeReader (PTree xs) = ?pTyTypeReader_rhs_6
 
 export
 readerForm : {default Nothing startVal : Maybe a} -> (Maybe a -> Reader a)  -> Widget (Maybe a)
