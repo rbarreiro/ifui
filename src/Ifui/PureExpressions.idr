@@ -368,3 +368,34 @@ export
   toJson = toJson
   fromJson = fromJson_ ctxt a
 
+mutual
+  recPTypeTypeToJson : (xs : Vect n (String, PTy)) -> Record ((mapValues (\t => t -> JSON)) (mapValues PTyType xs))
+  recPTypeTypeToJson [] = []
+  recPTypeTypeToJson ((x, y) :: xs) = (MkEntry x (pTyTypeToJson y)) :: recPTypeTypeToJson xs
+
+  export
+  pTyTypeToJson : (t : PTy) -> (PTyType t) -> JSON
+  pTyTypeToJson PString = toJson 
+  pTyTypeToJson PBool = toJson
+  pTyTypeToJson PUnit = toJson
+  pTyTypeToJson PInt = toJson
+  pTyTypeToJson (PFun x y) = toJson
+  pTyTypeToJson (PRecord xs) = \y => JObject $ recordToJson (recPTypeTypeToJson $ Vect.fromList xs) y
+  pTyTypeToJson (PTree xs) = ?tTyTypeToJson_rhs_6
+
+mutual
+  recPTypeTypeFromJson : (xs : Vect n (String, PTy)) -> Record ((mapValues (\t => JSON -> Maybe t)) (mapValues PTyType xs))
+  recPTypeTypeFromJson [] = []
+  recPTypeTypeFromJson ((x, y) :: xs) = (MkEntry x (pTyTypeFromJson y)) :: recPTypeTypeFromJson xs
+
+  export
+  pTyTypeFromJson : (t : PTy) -> JSON -> (Maybe (PTyType t))
+  pTyTypeFromJson PString = fromJson
+  pTyTypeFromJson PBool = fromJson
+  pTyTypeFromJson PUnit = fromJson
+  pTyTypeFromJson PInt = fromJson
+  pTyTypeFromJson (PFun x y) = fromJson
+  pTyTypeFromJson (PRecord xs) = \y => case y of
+                                            JObject ys => recordFromJson (recPTypeTypeFromJson $ Vect.fromList xs) ys
+                                            _ => Nothing
+  pTyTypeFromJson (PTree (xs)) = ?tTyTypeFromJson_rhs_6

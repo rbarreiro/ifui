@@ -218,23 +218,30 @@ JsonSerializable a => JsonSerializable1 (\t => List (a, t)) where
   fromJson1 (JArray x) g = sequence $ map (\j => do (z, w) <- fromJson {a = (a, JSON)} j; (z,) <$> g w) x
   fromJson1 _ _ = Nothing
 
+genUniqueName : String -> List String -> String
+genUniqueName x xs = if elem x xs then genUniqueName (x ++ "_") xs
+                                  else x
+
+genUniqueName' : String -> Vect n (String, Type) -> String
+genUniqueName' x xs = genUniqueName x (toList $ map fst xs)
+
 export
-recordToJson : {zs : Vect n (String, Type)} -> {auto 0  prf : So (UniqueKeys zs)} ->
+recordToJson : {zs : Vect n (String, Type)} -> 
                  Record (Vect.mapValues (\t => (t -> JSON)) zs) -> Record zs  -> List (String, JSON)
 recordToJson {zs = []} x y = 
   []
 recordToJson {zs = ((z, w) :: xs)} ((MkEntry z x) :: s) ((MkEntry z y) :: v) = 
-  ((z, x y) :: recordToJson {zs = xs} {prf = soAnd2 prf} s v)
+  ((genUniqueName' z xs, x y) :: recordToJson {zs = xs} s v)
 
 export
-recordFromJson : {zs : Vect n (String, Type)} -> {auto 0 prf : So (UniqueKeys zs)} -> 
+recordFromJson : {zs : Vect n (String, Type)} -> 
                     Record (Vect.mapValues (\t => (JSON -> Maybe t)) zs) -> List (String, JSON) -> Maybe (Record zs)
 recordFromJson {zs = []} x xs = Just 
   []
 recordFromJson {zs = ((y, z) :: ys)} ((MkEntry y x) :: w) xs = 
   do
-    ws <- recordFromJson {zs = ys} {prf = soAnd2 prf} w xs
-    j <- lookup y xs
+    ws <- recordFromJson {zs = ys} w xs
+    j <- lookup (genUniqueName' y ys) xs
     w <- x j
     pure $ MkEntry y w :: ws
 
@@ -247,13 +254,13 @@ fromPartsRecord [] x = []
 fromPartsRecord ((y, z) :: xs) ((MkEntry y x) :: w) = MkEntry y fromJson :: fromPartsRecord xs w
 
 export
-{zs : Vect n (String, Type)} -> (prf : So (UniqueKeys zs)) => 
+{zs : Vect n (String, Type)} -> 
        (i : Record  (mapValues (JsonSerializable) zs)) => 
                 JsonSerializable (Record zs) where
   toJson x =
-    JObject $ recordToJson {zs = zs} {prf = prf} (toPartsRecord zs i) x 
+    JObject $ recordToJson {zs = zs} (toPartsRecord zs i) x 
 
-  fromJson (JObject x) = recordFromJson {zs = zs} {prf = prf} (fromPartsRecord zs i) x
+  fromJson (JObject x) = recordFromJson {zs = zs} (fromPartsRecord zs i) x
   fromJson _ = Nothing
 
 
