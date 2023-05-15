@@ -462,9 +462,11 @@ mutual
   recReaders : (xs : Vect n (String, PTy)) -> Record (RecordEntryGetReader (mapValues PTyType xs))
   recReaders [] = []
   recReaders ((x, y) :: xs) =
-    let z : Maybe (Entry x (PTyType y)) -> Reader (Entry x (PTyType y))
-        z Nothing = MkEntry x <$> pTyTypeReader y Nothing
-        z (Just v) = MkEntry x <$> pTyTypeReader y (Just $ value v)
+    let f = transformReader (\w => fieldsSection x [w])
+        
+        z : Maybe (Entry x (PTyType y)) -> Reader (Entry x (PTyType y))
+        z Nothing = MkEntry x <$> (f $ pTyTypeReader y Nothing)
+        z (Just v) = MkEntry x <$> (f $ pTyTypeReader y (Just $ value v))
     in (MkEntry x z) :: recReaders xs
 
   export
