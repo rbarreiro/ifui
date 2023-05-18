@@ -9,6 +9,8 @@ mutual
   public export
   data TreeNodeKind = NamedSubTrees
                     | Leaf PTy
+                    | OneChild
+                    | ValueAndOneChild PTy
 
   public export
   data PTy = PString
@@ -42,8 +44,10 @@ data Pexp : List (String, PTy) -> PTy -> Type where
 mutual
   public export
   TreeNodeKindType : TreeNodeKind -> Type -> Type
-  TreeNodeKindType NamedSubTrees = \t => List (String, t)
+  TreeNodeKindType NamedSubTrees = \x => List (String, x)
   TreeNodeKindType (Leaf t) = const (PTyType t)
+  TreeNodeKindType OneChild = \x => x
+  TreeNodeKindType (ValueAndOneChild t) = \x => (PTyType t, x)
 
   public export
   PTyType : PTy -> Type
@@ -187,6 +191,36 @@ Uninhabited (PInt = PRecord x) where
 export
 Uninhabited (PInt = PTree x) where
   uninhabited Refl impossible
+export
+Uninhabited (NamedSubTrees = OneChild) where
+  uninhabited Refl impossible
+export
+Uninhabited (NamedSubTrees = ValueAndOneChild x) where
+  uninhabited Refl impossible
+export
+Uninhabited (Leaf y = ValueAndOneChild x) where
+  uninhabited Refl impossible
+export
+Uninhabited (Leaf y = OneChild) where
+  uninhabited Refl impossible
+export
+Uninhabited (OneChild = NamedSubTrees) where
+  uninhabited Refl impossible
+export
+Uninhabited (OneChild = Leaf x) where
+  uninhabited Refl impossible
+export
+Uninhabited (OneChild = ValueAndOneChild x) where
+  uninhabited Refl impossible
+export
+Uninhabited (ValueAndOneChild x = NamedSubTrees) where
+  uninhabited Refl impossible
+export
+Uninhabited (ValueAndOneChild x = Leaf y) where
+  uninhabited Refl impossible
+export
+Uninhabited (ValueAndOneChild x = OneChild) where
+  uninhabited Refl impossible
 
 
 export
@@ -205,6 +239,10 @@ export
 Injective Leaf where
   injective Refl = Refl
 
+export
+Injective ValueAndOneChild where
+  injective Refl = Refl
+
 mutual
   export
   DecEq TreeNodeKind where
@@ -212,6 +250,18 @@ mutual
     decEq NamedSubTrees (Leaf x) = No absurd
     decEq (Leaf _) NamedSubTrees = No absurd
     decEq (Leaf x) (Leaf y) = decEqCong (decEq x y)
+    decEq NamedSubTrees OneChild = No absurd
+    decEq NamedSubTrees (ValueAndOneChild _) = No absurd
+    decEq (Leaf _) OneChild = No absurd
+    decEq (Leaf _) (ValueAndOneChild _) = No absurd
+    decEq OneChild NamedSubTrees = No absurd
+    decEq OneChild (Leaf x) = No absurd
+    decEq OneChild OneChild = Yes Refl
+    decEq OneChild (ValueAndOneChild x) = No absurd
+    decEq (ValueAndOneChild _) NamedSubTrees = No absurd
+    decEq (ValueAndOneChild _) (Leaf x) = No absurd
+    decEq (ValueAndOneChild _) OneChild = No absurd
+    decEq (ValueAndOneChild x) (ValueAndOneChild y) = decEqCong (decEq x y)
 
 
   export
@@ -272,9 +322,14 @@ mutual
   JsonSerializable TreeNodeKind where
     toJson NamedSubTrees = JString "NamedSubTrees"
     toJson (Leaf x) = JArray [JString "Leaf", toJson x]
+    toJson OneChild = JString "OneChild"
+    toJson (ValueAndOneChild x) = JArray [JString "ValueAndOneChild", toJson x] 
+
     
     fromJson (JString "NamedSubTrees") = Just NamedSubTrees 
     fromJson (JArray [JString "Leaf", x]) = Leaf <$> fromJson x
+    fromJson (JString "OneChild") = Just OneChild
+    fromJson (JArray [JString "ValueAndOneChild", x]) = ValueAndOneChild <$> fromJson x
     fromJson _ = Nothing
 
   export

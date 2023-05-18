@@ -346,12 +346,16 @@ mutual
         aux 
         [ ("NamedSubTrees", \() => pure NamedSubTrees)
         , ("Leaf", \() => Leaf <$> getReaderBulma {a = PTy} Nothing)
+        , ("OneChild", \() => pure OneChild)
+        , ("ValueAndOneChild", \() => ValueAndOneChild <$> getReaderBulma {a = PTy} Nothing)
         ]
         x
       where
-        aux : TreeNodeKind -> (Fin 2, Reader TreeNodeKind)
+        aux : TreeNodeKind -> (Fin 4, Reader TreeNodeKind)
         aux NamedSubTrees = (0, pure NamedSubTrees)
         aux (Leaf x) = (1, Leaf <$> getReaderBulma (Just x))
+        aux OneChild = (2, pure OneChild)
+        aux (ValueAndOneChild x) = (3, ValueAndOneChild <$> getReaderBulma (Just x))
 
   export 
   ReadWidgetBulma PTy where
