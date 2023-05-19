@@ -17,6 +17,11 @@ mutual
            | PBool
            | PUnit
            | PInt
+           | PList PTy
+           | PNat
+           | PDouble
+           | PTensor (List Nat) PTy
+           | PTuple PTy PTy
            | PFun PTy PTy
            | PRecord (List (String, PTy))
            | PTree (List (String, TreeNodeKind))
@@ -58,6 +63,11 @@ mutual
   PTyType (PTree xs) = Tree (mapValues TreeNodeKindType (Vect.fromList xs))
   PTyType PUnit = ()
   PTyType PInt = Int
+  PTyType (PList t) = List (PTyType t)
+  PTyType PNat = Nat
+  PTyType PDouble = Double
+  PTyType (PTensor dim t) = ?h
+  PTyType (PTuple t1 t2) = (PTyType t1, PTyType t2)
 
 export
 Uninhabited (PString = PBool) where
@@ -221,13 +231,290 @@ Uninhabited (ValueAndOneChild x = Leaf y) where
 export
 Uninhabited (ValueAndOneChild x = OneChild) where
   uninhabited Refl impossible
-
+export
+Uninhabited (PString = PList x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PString = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PString = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PString = PTensor x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PString = PTuple x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PBool = PList x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PBool = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PBool = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PBool = PTensor x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PBool = PTuple x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PFun x y = PList z) where
+  uninhabited Refl impossible
+export
+Uninhabited (PFun x y = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PFun x y = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PFun x y = PTensor z w) where
+  uninhabited Refl impossible
+export
+Uninhabited (PFun x y = PTuple z w) where
+  uninhabited Refl impossible
+export
+Uninhabited (PRecord x = PList y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PRecord x = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PRecord x = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PRecord x = PTensor y z) where
+  uninhabited Refl impossible
+export
+Uninhabited (PRecord x = PTuple y z) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTree x = PList y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTree x = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTree x = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTree x = PTensor y z) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTree x = PTuple y z) where
+  uninhabited Refl impossible
+export
+Uninhabited (PUnit = PList x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PUnit = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PUnit = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PUnit = PTensor x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PUnit = PTuple x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PInt = PList x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PInt = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PInt = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PInt = PTensor x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PInt = PTuple x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PString) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PBool) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PUnit) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PInt) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PTensor ks x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PTuple x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PFun x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PRecord xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PTree xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PString) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PBool) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PUnit) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PInt) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PList x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PTensor ks x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PTuple x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PFun x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PRecord xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PTree xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PString) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PBool) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PUnit) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PInt) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PList x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PTensor ks x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PTuple x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PFun x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PRecord xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PTree xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PString) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PBool) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PUnit) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PInt) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PList x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PTuple x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PFun x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PRecord xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PTree xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PString) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PBool) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PUnit) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PInt) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PList x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PTensor ks x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PFun x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PRecord xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PTree xs) where
+  uninhabited Refl impossible
 
 export
 Biinjective PFun where
   biinjective Refl = (Refl, Refl)
 
 export
+Biinjective PTensor where
+  biinjective Refl = (Refl, Refl)
+
+export
+Biinjective PTuple where
+  biinjective Refl = (Refl, Refl)
+export
+
 Injective PRecord where
   injective Refl = Refl
 
@@ -237,6 +524,10 @@ Injective PTree where
 
 export
 Injective Leaf where
+  injective Refl = Refl
+
+export
+Injective PList where
   injective Refl = Refl
 
 export
@@ -315,7 +606,101 @@ mutual
     decEq PInt (PFun x y) = No absurd
     decEq PInt (PRecord xs) = No absurd
     decEq PInt (PTree xs) = No absurd
-
+    decEq PString (PList _) = No absurd
+    decEq PString PNat = No absurd
+    decEq PString PDouble = No absurd
+    decEq PString (PTensor _ _) = No absurd
+    decEq PString (PTuple _ _) = No absurd
+    decEq PBool (PList _) = No absurd
+    decEq PBool PNat = No absurd
+    decEq PBool PDouble = No absurd
+    decEq PBool (PTensor _ _) = No absurd
+    decEq PBool (PTuple _ _) = No absurd
+    decEq (PFun _ _) (PList _) = No absurd
+    decEq (PFun _ _) PNat = No absurd
+    decEq (PFun _ _) PDouble = No absurd
+    decEq (PFun _ _) (PTensor _ _) = No absurd
+    decEq (PFun _ _) (PTuple _ _) = No absurd
+    decEq (PRecord _) (PList _) = No absurd
+    decEq (PRecord _) PNat = No absurd
+    decEq (PRecord _) PDouble = No absurd
+    decEq (PRecord _) (PTensor _ _) = No absurd
+    decEq (PRecord _) (PTuple _ _) = No absurd
+    decEq (PTree _) (PList _) = No absurd
+    decEq (PTree _) PNat = No absurd
+    decEq (PTree _) PDouble = No absurd
+    decEq (PTree _) (PTensor _ _) = No absurd
+    decEq (PTree _) (PTuple _ _) = No absurd
+    decEq PUnit (PList _) = No absurd
+    decEq PUnit PNat = No absurd
+    decEq PUnit PDouble = No absurd
+    decEq PUnit (PTensor _ _) = No absurd
+    decEq PUnit (PTuple _ _) = No absurd
+    decEq PInt (PList _) = No absurd
+    decEq PInt PNat = No absurd
+    decEq PInt PDouble = No absurd
+    decEq PInt (PTensor _ _) = No absurd
+    decEq PInt (PTuple _ _) = No absurd
+    decEq (PList _) PString  = No absurd
+    decEq (PList _) PBool  = No absurd
+    decEq (PList _) PUnit  = No absurd
+    decEq (PList _) PInt  = No absurd
+    decEq (PList x) (PList y)  = decEqCong (decEq x y)
+    decEq (PList _) PNat  = No absurd
+    decEq (PList _) PDouble  = No absurd
+    decEq (PList _) (PTensor ks x)  = No absurd
+    decEq (PList _) (PTuple x y)  = No absurd
+    decEq (PList _) (PFun x y)  = No absurd
+    decEq (PList _) (PRecord xs)  = No absurd
+    decEq (PList _) (PTree xs)  = No absurd
+    decEq PNat PString  = No absurd
+    decEq PNat PBool  = No absurd
+    decEq PNat PUnit  = No absurd
+    decEq PNat PInt  = No absurd
+    decEq PNat (PList x)  = No absurd
+    decEq PNat PNat  = Yes Refl
+    decEq PNat PDouble  = No absurd
+    decEq PNat (PTensor ks x)  = No absurd
+    decEq PNat (PTuple x y)  = No absurd
+    decEq PNat (PFun x y)  = No absurd
+    decEq PNat (PRecord xs)  = No absurd
+    decEq PNat (PTree xs)  = No absurd
+    decEq PDouble PString  = No absurd
+    decEq PDouble PBool  = No absurd
+    decEq PDouble PUnit  = No absurd
+    decEq PDouble PInt  = No absurd
+    decEq PDouble (PList x)  = No absurd
+    decEq PDouble PNat  = No absurd
+    decEq PDouble PDouble  = Yes Refl
+    decEq PDouble (PTensor ks x)  = No absurd
+    decEq PDouble (PTuple x y)  = No absurd
+    decEq PDouble (PFun x y)  = No absurd
+    decEq PDouble (PRecord xs)  = No absurd
+    decEq PDouble (PTree xs)  = No absurd
+    decEq (PTensor _ _) PString  = No absurd
+    decEq (PTensor _ _) PBool  = No absurd
+    decEq (PTensor _ _) PUnit  = No absurd
+    decEq (PTensor _ _) PInt  = No absurd
+    decEq (PTensor _ _) (PList x)  = No absurd
+    decEq (PTensor _ _) PNat  = No absurd
+    decEq (PTensor _ _) PDouble  = No absurd
+    decEq (PTensor x y) (PTensor xx yy)  = decEqCong2 (decEq x xx) (decEq y yy)
+    decEq (PTensor _ _) (PTuple x y)  = No absurd
+    decEq (PTensor _ _) (PFun x y)  = No absurd
+    decEq (PTensor _ _) (PRecord xs)  = No absurd
+    decEq (PTensor _ _) (PTree xs)  = No absurd
+    decEq (PTuple _ _) PString  = No absurd
+    decEq (PTuple _ _) PBool  = No absurd
+    decEq (PTuple _ _) PUnit  = No absurd
+    decEq (PTuple _ _) PInt  = No absurd
+    decEq (PTuple _ _) (PList x)  = No absurd
+    decEq (PTuple _ _) PNat  = No absurd
+    decEq (PTuple _ _) PDouble  = No absurd
+    decEq (PTuple _ _) (PTensor ks x)  = No absurd
+    decEq (PTuple xx yy) (PTuple x y)  = decEqCong2 (decEq xx x) (decEq yy y)
+    decEq (PTuple _ _) (PFun x y)  = No absurd
+    decEq (PTuple _ _) (PRecord xs)  = No absurd
+    decEq (PTuple _ _) (PTree xs)  = No absurd
 
 mutual
   export
@@ -341,6 +726,12 @@ mutual
     toJson (PTree xs) = JArray [JString "PTree", toJson (mapValues toJson xs)]
     toJson PUnit = JString "PUnit"
     toJson PInt = JString "PInt"
+    toJson (PList x) = JArray [JString "PList", toJson x]
+    toJson PNat = JString "PNat"
+    toJson PDouble = JString "PDouble"
+    toJson (PTensor x y) = JArray [JString "PTensor", toJson x, toJson y]
+    toJson (PTuple x y) = JArray [JString "PTuple", toJson x, toJson y]
+
 
     fromJson (JString "PString") = 
       Just PString
@@ -362,6 +753,16 @@ mutual
       Just PUnit
     fromJson (JString "PInt") = 
       Just PInt
+    fromJson (JArray [JString "PList", x]) = 
+      Just $ PList !(fromJson x)
+    fromJson (JString "PNat") = 
+      Just PString
+    fromJson (JString "PDouble") = 
+      Just PBool
+    fromJson (JArray [JString "PTensor", x, y]) = 
+      Just $ PTensor !(fromJson x) !(fromJson y)
+    fromJson (JArray [JString "PTuple", x, y]) = 
+      Just $ PTuple !(fromJson x) !(fromJson y)
     fromJson _ = Nothing 
 
 {a : PTy} -> JsonSerializable (PrimFn a) where
@@ -437,6 +838,11 @@ mutual
   pTyTypeToJson (PFun x y) = toJson
   pTyTypeToJson (PRecord xs) = \y => JObject $ recordToJson (recPTypeTypeToJson $ Vect.fromList xs) y
   pTyTypeToJson (PTree xs) = ?tTyTypeToJson_rhs_6
+  pTyTypeToJson (PList x) = \w => JArray $ map (pTyTypeToJson x) w
+  pTyTypeToJson PNat = ?harst
+  pTyTypeToJson PDouble = ?hrstd
+  pTyTypeToJson (PTensor _ _) = ?yuarlst
+  pTyTypeToJson (PTuple _ _) = ?ysrdtulr
 
 mutual
   recPTypeTypeFromJson : (xs : Vect n (String, PTy)) -> Record ((mapValues (\t => JSON -> Maybe t)) (mapValues PTyType xs))
@@ -454,3 +860,9 @@ mutual
                                             JObject ys => recordFromJson (recPTypeTypeFromJson $ Vect.fromList xs) ys
                                             _ => Nothing
   pTyTypeFromJson (PTree (xs)) = ?tTyTypeFromJson_rhs_6
+  pTyTypeFromJson (PList _) = ?arst
+  pTyTypeFromJson PNat = ?stdyul
+  pTyTypeFromJson PDouble = ?stid
+  pTyTypeFromJson (PTensor _ _) = ?irtsuack
+  pTyTypeFromJson (PTuple _ _) = ?cxnwu
+
