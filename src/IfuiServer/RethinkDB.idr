@@ -499,6 +499,13 @@ QueryMaybe Int where
   wrap = prim__rid
 
 export
+QueryMaybe String where
+  isNothing = prim__risNull
+  unwrapJust = prim__rid
+  nothing = prim__rnull (prim__r ())
+  wrap = prim__rid
+
+export
 QueryMaybe (Record rs) where
   isNothing = prim__risNull
   unwrapJust = prim__rid

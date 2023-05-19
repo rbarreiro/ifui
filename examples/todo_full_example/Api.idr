@@ -19,9 +19,9 @@ logedInTodoApi : RethinkServer DBTy -> Service ApiServices
 logedInTodoApi r =
   let todoItem = GetTable "todoApp" "todoItem"
       descsQuery : Query DBTy [] (Cursor String)
-      descsQuery = ReadTable todoItem |> MapCursor <| GetField "desc"
+      descsQuery = ReadTable todoItem |> Map <| GetField "desc"
       descList : IOStream (Change String)
-      descList= getChanges' r $ GetChanges {includeInitial=True} descsQuery
+      descList= getChanges' r $ GetChanges True descsQuery
       in MkGroupService  [ "todoList" ^= MkStreamService (\() => descList )
                          , "createTodo" ^= MkRPC (\x => do _ <- run' r (Insert todoItem (Lit [["desc" ^= x]])); pure ())
                          ]
