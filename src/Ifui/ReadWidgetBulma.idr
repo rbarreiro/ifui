@@ -57,6 +57,10 @@ interface ReadWidgetBulma1 (0 f : Type -> Type) where
   getReaderBulma1 : (Maybe a -> Reader a) -> Maybe (f a) -> Reader (f a)
 
 export
+ReadWidgetBulma a => ReadWidgetBulma1 f => ReadWidgetBulma (f a) where
+  getReaderBulma x = getReaderBulma1 {f = f} getReaderBulma x
+
+export
 ReadWidgetBulma () where
   getReaderBulma x = 
     MkReader (const neutral) (Just ())
@@ -85,6 +89,16 @@ ReadWidgetBulma Double where
       w : Maybe Double -> Bool -> Widget (Reader Double)
       w s check = do
         s_ <- numberInputBulma s
+        pure $ MkReader (w s_) s_
+
+export
+ReadWidgetBulma Nat where
+  getReaderBulma x = 
+    MkReader (w x) x
+    where
+      w : Maybe Nat -> Bool -> Widget (Reader Nat)
+      w s check = do
+        s_ <- (\w => cast <$> w) <$> numberInputBulma (cast <$> s)
         pure $ MkReader (w s_) s_
 
 export
@@ -235,6 +249,10 @@ fromAllJust (Nothing :: xs) = Nothing
 fromAllJust ((Just x) :: xs) = [| (Just x) :: fromAllJust xs |]
 
 export
+ReadWidgetBulma1 List where
+  getReaderBulma1 cont x = ?stdul
+
+export
 ReadWidgetBulma1 (\w => List (String, w)) where
   getReaderBulma1 cont x =
     let add : Widget (KeyListReaderEvent a)
@@ -369,10 +387,15 @@ mutual
         , ("Fun", \() => PFun <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
         , ("Record", \() => PRecord <$> stringValuePairsReaderCompact (getReaderBulma {a = PTy}) Nothing)
         , ("Tree", \() => PTree <$> stringValuePairsReaderCompact (getReaderBulma {a = TreeNodeKind}) Nothing)
+        , ("List", \() => PList <$> getReaderBulma Nothing)
+        , ("Nat", \() => pure PNat)
+        , ("Double", \() => pure PDouble)
+        , ("Tensor", \() => PTensor <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
+        , ("Tuple", \() => PTuple <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
         ] 
         x
       where
-        aux : PTy -> (Fin 7, Reader PTy)
+        aux : PTy -> (Fin 12, Reader PTy)
         aux PString = (0, pure PString)
         aux PBool = (1, pure PBool)
         aux PUnit = (2, pure PUnit)
@@ -380,6 +403,11 @@ mutual
         aux (PFun y z) = (4, PFun <$> getReaderBulma (Just y)  <*> getReaderBulma (Just z))
         aux (PRecord xs) = (5, PRecord <$> stringValuePairsReaderCompact (getReaderBulma {a = PTy}) (Just xs))
         aux (PTree xs) = (6, PTree <$> stringValuePairsReaderCompact (getReaderBulma {a = TreeNodeKind}) (Just xs))
+        aux (PList x) = (7, PList <$> getReaderBulma (Just x))
+        aux PNat = (8, pure PNat)
+        aux PDouble = (9, pure PDouble)
+        aux (PTensor y z) = (10, PTensor <$> getReaderBulma (Just y)  <*> getReaderBulma (Just z))
+        aux (PTuple y z) = (11, PTuple <$> getReaderBulma (Just y)  <*> getReaderBulma (Just z))
 
 
 varExprs_ : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (k : String ** p : KElem k ctxt ** t = klookup ctxt p))
@@ -482,6 +510,12 @@ mutual
   pTyTypeReader (PFun x y) = getReaderBulma
   pTyTypeReader (PRecord xs) = recordGetReaderBulma (recReaders $ Vect.fromList xs)
   pTyTypeReader (PTree xs) = ?pTyTypeReader_rhs_6
+  pTyTypeReader (PList _) = ?sytdul
+  pTyTypeReader PNat = ?stydustnd
+  pTyTypeReader PDouble = ?yulrst
+  pTyTypeReader (PTensor _ _) = ?uyaw
+  pTyTypeReader (PTuple _ _) = ?yrsutyruj
+
 
 export
 readerForm : {default Nothing startVal : Maybe a} -> (Maybe a -> Reader a)  -> Widget (Maybe a)
