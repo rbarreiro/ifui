@@ -42,6 +42,33 @@ Applicative Reader where
         (w x y)
         (getValue x <*> getValue y)
 
+export
+Monad Reader where
+  x >>= f = 
+    let w : Reader a -> Maybe (Reader b) -> Bool -> Widget (Reader b)
+        w xx Nothing filled = 
+          do
+            res <- getWidget xx filled
+            case getValue res of
+                 Nothing =>
+                   assert_total $ pure $ MkReader (w res Nothing)  Nothing
+                 Just v =>
+                   let fr = f v
+                   in assert_total $ pure $ MkReader (w res (Just fr)) (getValue fr)
+        w xx (Just ff) filled = 
+          do
+            res <- (Left <$> getWidget xx filled) <+> (Right <$> getWidget ff filled)
+            case res of
+                 Left z =>
+                    case getValue z of
+                         Nothing =>
+                           assert_total $ pure $ MkReader (w z Nothing)  Nothing
+                         Just v =>
+                           let fr = f v
+                           in assert_total $ pure $ MkReader (w z (Just fr)) (getValue fr)
+                 Right z =>
+                    assert_total $ pure $ MkReader (w xx (Just z)) (getValue z)
+    in MkReader (w x (f <$> getValue x)) (join $ (getValue . f) <$> getValue x)
 
 export
 transformReader : (Widget (Reader a) -> Widget (Reader a)) -> Reader a -> Reader a
@@ -296,7 +323,9 @@ export
       f : Widget a -> Widget a
       f x = fieldsSection s [x]
 
-optionsReader : {default False compact : Bool} -> (a -> (Fin n, Reader a)) -> Vect n (String, () -> Reader a) -> Maybe a -> Reader a
+
+optionsReader : {default False compact : Bool} -> 
+                   (a -> (Fin n, Reader a)) -> Vect n (String, () -> Reader a) -> Maybe a -> Reader a
 optionsReader init options s0 =
   let w : Maybe (Fin n, Reader a) -> Bool -> Widget (Reader a)
       w Nothing check = 

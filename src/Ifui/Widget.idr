@@ -72,11 +72,11 @@ Functor WidgetAttribute where
   map f (WidgetSimpleAttribute x) = WidgetSimpleAttribute x
   map f (WidgetEventListener x g) = WidgetEventListener x (\e => f <$> g e)
 
-export
+public export
 Functor Widget where
   map g (WidgetPure x) = WidgetPure $ g x
   map g (MarkupWidget start) = MarkupWidget $ \n, onEvt => start n (\w => onEvt (g w))
-  map g (WidgetGroup xs) = WidgetGroup $ (map g)  <$> xs
+  map g (WidgetGroup xs) = assert_total $ WidgetGroup $ (map g) <$> xs
 
 
 contOnEvt : VNode -> (b -> IO ()) -> (a -> Widget b) -> a -> IO ()
@@ -118,20 +118,19 @@ widgetBind (MarkupWidget start) f =
      start n (contOnEvt n onEvt f)
              
 
-
-
+total
 widgetLoopState :  s -> (s -> Widget (Either s a)) -> Widget a
 widgetLoopState x f = 
   widgetBind 
     (f x)  
     (\z =>
           case z of
-               (Left y) => widgetLoopState y f
+               (Left y) => assert_total $ widgetLoopState y f
                (Right y) => WidgetPure y
     )
 
 
-
+total
 widgetAp : Widget (a -> b) -> Widget a -> Widget b
 widgetAp x (WidgetPure y) =
   (\z => z y) <$> x
@@ -146,18 +145,18 @@ widgetAp x y =
     step (Just f, Nothing) = 
       widgetBind  
         y
-        (\z => step (Just f, Just z))
+        (\z => WidgetPure $ Left (Just f, Just z))
     step (Nothing, Just w) = 
       widgetBind  
         x
-        (\z => step (Just z, Just w))
+        (\z => WidgetPure $ Left (Just z, Just w))
     step (Nothing, Nothing) = 
       widgetBind  
         ((Left <$> x) <+> (Right <$> y))
         (\z =>
               case z of
-                   (Left y) => step (Just y, Nothing)
-                   (Right y) => step (Nothing, Just y)
+                   (Left y) => WidgetPure $ Left (Just y, Nothing)
+                   (Right y) => WidgetPure $ Left (Nothing, Just y)
         )
 
 export
