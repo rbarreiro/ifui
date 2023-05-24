@@ -271,9 +271,6 @@ export
 ReadWidgetBulma b => ReadWidgetBulma1 (const b) where
   getReaderBulma1 cont x = getReaderBulma x
 
-data KeyListReaderEvent a = ChangeKey String String
-                          | AddEmptyKey
-                          | ChangeValue String (Reader a)
 
 
 fromAllJust : List (Maybe a) -> Maybe (List a)
@@ -281,10 +278,43 @@ fromAllJust [] = Just []
 fromAllJust (Nothing :: xs) = Nothing
 fromAllJust ((Just x) :: xs) = [| (Just x) :: fromAllJust xs |]
 
+mapIndexed : (Nat -> a -> b) -> List a -> List b
+mapIndexed f xs =
+  case length xs of
+       0 => []
+       S k => zipWith f [0..k] xs
+
+data ListReaderEvent a = AddValue
+                       | ChangeValueList Nat (Reader a)
 export
 ReadWidgetBulma1 List where
-  getReaderBulma1 cont x = ?stdul
+  getReaderBulma1 cont x =
+    let add : Widget (ListReaderEvent a)
+        add = fasIconText {onclick = (Just AddValue)} "plus" "Add"
 
+        renderItem : Bool -> Nat -> Reader a -> Widget (ListReaderEvent a)
+        renderItem check i r =
+          ChangeValueList i <$> getWidget r check
+
+        w : List (Reader a) -> Bool -> Widget (Reader (List a))
+        w itemsReaders check = 
+          do
+            res <- div ((mapIndexed (renderItem check) itemsReaders) ++ [add]) 
+            let newReaders = the (List (Reader a)) $  case res of 
+                               AddValue =>
+                                  itemsReaders ++ [cont Nothing]
+                               ChangeValueList i valnew => 
+                                  take i itemsReaders ++ [valnew] ++ drop (i+1) itemsReaders
+            pure $ MkReader (w newReaders) (fromAllJust $ map  getValue newReaders)
+        startReaders : List  (Reader a)
+        startReaders = case x of
+                  Nothing => []
+                  Just x => map (\v => cont (Just v)) x
+    in MkReader (w startReaders) x
+
+data KeyListReaderEvent a = ChangeKey String String
+                          | AddEmptyKey
+                          | ChangeValueKeyList String (Reader a)
 export
 ReadWidgetBulma1 (\w => List (String, w)) where
   getReaderBulma1 cont x =
@@ -293,7 +323,7 @@ ReadWidgetBulma1 (\w => List (String, w)) where
 
         renderItem : Bool -> (String, Reader a) -> Widget (KeyListReaderEvent a)
         renderItem check (s, r) =
-          div [ChangeKey s <$> textInputBulma {label = Just "Entry Key"} s ,ChangeValue s <$> getWidget r check]
+          div [ChangeKey s <$> textInputBulma {label = Just "Entry Key"} s ,ChangeValueKeyList s <$> getWidget r check]
 
         w : List (String, Reader a) -> Bool -> Widget (Reader (List (String, a)))
         w itemsReaders check = 
@@ -304,7 +334,7 @@ ReadWidgetBulma1 (\w => List (String, w)) where
                                   map (\(k,v) => if k == sold then (snew, v) else (k,v)) itemsReaders
                                AddEmptyKey =>
                                   itemsReaders ++ [("", cont Nothing)]
-                               ChangeValue s valnew => 
+                               ChangeValueKeyList s valnew => 
                                   map (\(k,v) => if k == s then (k, valnew) else (k,v)) itemsReaders
             pure $ MkReader (w newReaders) (fromAllJust $ map (\(k,v) => (k,)  <$> getValue v) newReaders)
         startReaders : List (String, Reader a)
@@ -371,7 +401,7 @@ stringValuePairsReaderCompact cont x =
 
       renderItem : Bool -> (String, Reader a) -> Widget (KeyListReaderEvent a)
       renderItem check (s, r) =
-        div [ChangeKey s <$> textInputBulma {label = Just "Entry Key"} s ,ChangeValue s <$> getWidget r check]
+        div [ChangeKey s <$> textInputBulma {label = Just "Entry Key"} s ,ChangeValueKeyList s <$> getWidget r check]
 
       w : List (String, Reader a) -> Bool -> Widget (Reader (List (String, a)))
       w itemsReaders check = 
@@ -382,7 +412,7 @@ stringValuePairsReaderCompact cont x =
                                 map (\(k,v) => if k == sold then (snew, v) else (k,v)) itemsReaders
                              AddEmptyKey =>
                                 itemsReaders ++ [("", cont Nothing)]
-                             ChangeValue s valnew => 
+                             ChangeValueKeyList s valnew => 
                                 map (\(k,v) => if k == s then (k, valnew) else (k,v)) itemsReaders
           pure $ MkReader (w newReaders) (fromAllJust $ map (\(k,v) => (k,)  <$> getValue v) newReaders)
       startReaders : List (String, Reader a)
