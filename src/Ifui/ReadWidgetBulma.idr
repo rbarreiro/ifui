@@ -502,22 +502,35 @@ getReaderByName str xs =
      Nothing => Nothing  
      Just i => Just (i, snd $ index i xs)
 
-mutual
+isSomeReturnType : PTy -> PTy -> Bool
+isSomeReturnType x y = 
+  case decEq x y of
+       Yes _ => True
+       No _ => case y of
+                    PFun z w => isSomeReturnType x y
+                    _ => False
 
-  readerFromExp : (ctxt : List (String, PTy)) -> (t : PTy) -> (te : PTy) -> String -> (Pexp ctxt te) -> Maybe (() -> Reader (Pexp ctxt t))
-  readerFromExp ctxt t te n z = 
+mutual
+  readerFromExp_ : (ctxt : List (String, PTy)) -> (t : PTy) -> (te : PTy) -> String -> (Pexp ctxt te) -> Maybe (() -> Reader (Pexp ctxt t))
+  readerFromExp_ ctxt t te n z = 
     case decEq t te of
          No _ => 
             case te of
                  PFun x y => 
                      do
                        let argReader = getReaderBulma_Pexp ctxt x Nothing
-                       fnReader <- readerFromExp ctxt (x .> t) te n z
+                       fnReader <- readerFromExp_ ctxt (x .> t) te n z
                        pure $ ?hrst -- \() => App <$> fnReader () <*> argReader
                  _ => 
                      Nothing
          Yes prf => 
             Just $ \() => transformReader (\x => text n) (pure $ rewrite prf in z)
+
+
+  readerFromExp : (ctxt : List (String, PTy)) -> (t : PTy) -> (te : PTy) -> String -> (Pexp ctxt te) -> Maybe (() -> Reader (Pexp ctxt t))
+  readerFromExp ctxt t te n x = 
+    if isSomeReturnType t te then readerFromExp_ ctxt t te n x
+                             else Nothing
 
   varAndPrimReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, () ->  Reader (Pexp ctxt t)))
   varAndPrimReaders ctxt t =
