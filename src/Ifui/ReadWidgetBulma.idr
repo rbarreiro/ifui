@@ -507,7 +507,7 @@ isSomeReturnType x y =
   case decEq x y of
        Yes _ => True
        No _ => case y of
-                    PFun z w => isSomeReturnType x y
+                    PFun z w => isSomeReturnType x w
                     _ => False
 
 mutual
