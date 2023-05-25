@@ -475,23 +475,26 @@ mutual
         aux (PTuple y z) = (11, PTuple <$> getReaderBulma (Just y)  <*> getReaderBulma (Just z))
 
 
-varExprs_ : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (k : String ** p : KElem k ctxt ** t = klookup ctxt p))
-varExprs_ [] t = (0 ** [])
-varExprs_ ((z, w) :: xs) t = 
-  let (n ** ys) = varExprs_ xs t
-      ys_ = [ (k ** KThere p ** pEq) | (k ** p ** pEq) <- ys]
-  in case decEq t w of
-          No _ => (n ** ys_)
-          Yes prf => (S n ** (z ** KHere ** prf) :: ys_)
+varExprs_ : (ctxt : List (String, PTy)) -> List (t : PTy ** (k : String ** p : KElem k ctxt ** t = klookup ctxt p))
+varExprs_ [] = []
+varExprs_ ((z, w) :: xs) = 
+  let ys = varExprs_ xs
+      ys_ = [ (t ** k ** KThere p ** pEq) | ( t ** k ** p ** pEq) <- ys]
+  in (w ** z ** KHere ** Refl) :: ys_ 
 
-varExprs : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, Pexp ctxt t))
-varExprs ctxt t = 
-  let (n ** xs) = varExprs_ ctxt t
-  in (n ** [(rewrite pEq in (k, Var k {p = p})) | (k ** p **  pEq) <- xs] )
+varExprs : (ctxt : List (String, PTy)) -> List (String, (t : PTy ** Pexp ctxt t))
+varExprs ctxt = 
+  let xs = varExprs_ ctxt
+  in [ (k, (t ** (rewrite pEq in Var k {p=p}))) | ( t ** k ** p ** pEq) <- xs]
 
-varAndPrimExprs : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, Pexp ctxt t))
-varAndPrimExprs ctxt t = 
-  varExprs ctxt t
+primExprs : List (String, (t : PTy ** Pexp ctxt t))
+primExprs = 
+  [
+    ("StringEq", ((PString .> PString .> PBool) ** Prim StringEq))
+  ]
+
+baseExprs : (ctxt : List (String, PTy)) -> List (String, (t : PTy ** Pexp ctxt t))
+baseExprs ctxt = varExprs ctxt ++ primExprs
 
 getReaderByName : String -> Vect n (String, Reader (Pexp ctxt t)) -> Maybe (Fin n, Reader (Pexp ctxt t))
 getReaderByName str xs = 
@@ -501,7 +504,26 @@ getReaderByName str xs =
 
 mutual
 
+  readerFromExp : (ctxt : List (String, PTy)) -> (t : PTy) -> (te : PTy) -> String -> (Pexp ctxt te) -> Maybe (Reader (Pexp ctxt t))
+  readerFromExp ctxt t te n z = 
+    case decEq t te of
+         No _ => 
+            case te of
+                 PFun x y => 
+                     do
+                       let argReader = getReaderBulma_Pexp ctxt x Nothing
+                       fnReader <- readerFromExp ctxt (x .> t) te n z
+                       pure $ App <$> fnReader <*> argReader
+                 _ => 
+                     Nothing
+         Yes prf => 
+            Just $ transformReader (\x => text n) (pure $ rewrite prf in z)
+
   varAndPrimReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, Reader (Pexp ctxt t)))
+  varAndPrimReaders ctxt t =
+    let base = baseExprs ctxt
+        valid = catMaybes (map (\(n,(te ** e)) => (n,) <$> readerFromExp ctxt t te n e)  base)
+    in (length valid ** fromList valid)
 
   pexpW : Vect n (String, Reader (Pexp ctxt t)) ->
                   Maybe (Fin n, Reader (Pexp ctxt t)) -> 
