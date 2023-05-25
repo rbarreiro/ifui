@@ -496,7 +496,7 @@ primExprs =
 baseExprs : (ctxt : List (String, PTy)) -> List (String, (t : PTy ** Pexp ctxt t))
 baseExprs ctxt = varExprs ctxt ++ primExprs
 
-getReaderByName : String -> Vect n (String, Reader (Pexp ctxt t)) -> Maybe (Fin n, Reader (Pexp ctxt t))
+getReaderByName : String -> Vect n (String, () -> Reader (Pexp ctxt t)) -> Maybe (Fin n, () -> Reader (Pexp ctxt t))
 getReaderByName str xs = 
   case findIndex ((str==) . fst) xs of
      Nothing => Nothing  
@@ -504,7 +504,7 @@ getReaderByName str xs =
 
 mutual
 
-  readerFromExp : (ctxt : List (String, PTy)) -> (t : PTy) -> (te : PTy) -> String -> (Pexp ctxt te) -> Maybe (Reader (Pexp ctxt t))
+  readerFromExp : (ctxt : List (String, PTy)) -> (t : PTy) -> (te : PTy) -> String -> (Pexp ctxt te) -> Maybe (() -> Reader (Pexp ctxt t))
   readerFromExp ctxt t te n z = 
     case decEq t te of
          No _ => 
@@ -513,19 +513,19 @@ mutual
                      do
                        let argReader = getReaderBulma_Pexp ctxt x Nothing
                        fnReader <- readerFromExp ctxt (x .> t) te n z
-                       pure $ App <$> fnReader <*> argReader
+                       pure $ ?hrst -- \() => App <$> fnReader () <*> argReader
                  _ => 
                      Nothing
          Yes prf => 
-            Just $ transformReader (\x => text n) (pure $ rewrite prf in z)
+            Just $ \() => transformReader (\x => text n) (pure $ rewrite prf in z)
 
-  varAndPrimReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, Reader (Pexp ctxt t)))
+  varAndPrimReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, () ->  Reader (Pexp ctxt t)))
   varAndPrimReaders ctxt t =
     let base = baseExprs ctxt
         valid = catMaybes (map (\(n,(te ** e)) => (n,) <$> readerFromExp ctxt t te n e)  base)
     in (length valid ** fromList valid)
 
-  pexpW : Vect n (String, Reader (Pexp ctxt t)) ->
+  pexpW : Vect n (String, () -> Reader (Pexp ctxt t)) ->
                   Maybe (Fin n, Reader (Pexp ctxt t)) -> 
                     Bool -> Widget (Reader (Pexp ctxt t))
   pexpW options x check = 
@@ -535,7 +535,8 @@ mutual
                                else neutral
            k <- div [selectBulma (map fst options) Nothing, warn]
            let (o, ar) = index k options
-           pure $ MkReader (pexpW options $ Just (k, ar)) (getValue ar)
+           let ar_ = ar ()
+           pure $ MkReader (pexpW options $ Just (k, ar_)) (getValue ar_)
          Just (opt, reader) =>
            do
              let or = selectBulma (map fst options) (Just opt)
@@ -543,7 +544,8 @@ mutual
              case res of 
                   Left k => 
                      let (o, ar) = index k options
-                     in pure $ MkReader (pexpW options $ Just (k, ar)) (getValue ar)
+                         ar_ = ar ()
+                     in pure $ MkReader (pexpW options $ Just (k, ar_)) (getValue ar_)
                   Right y => 
                      pure $ MkReader (pexpW options $ Just (opt, y)) (getValue y)
 
@@ -554,7 +556,7 @@ mutual
   getReaderBulma_Pexp ctxt (klookup ctxt p) (Just (Var name)) =
     let (n ** zs) = varAndPrimReaders ctxt (klookup ctxt p)
     in case getReaderByName name zs of
-            Just (i, r) => MkReader (pexpW zs (Just (i, r))) (getValue r)
+            Just (i, r) => let r_ = r () in MkReader (pexpW zs (Just (i, r_))) (getValue r_)
             Nothing => MkReader (pexpW zs Nothing) Nothing
   getReaderBulma_Pexp ctxt (PFun a b) (Just (Lambda arg x)) = 
     let (n ** zs) = varAndPrimReaders ctxt (PFun a b)
