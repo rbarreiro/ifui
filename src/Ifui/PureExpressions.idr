@@ -13,6 +13,10 @@ mutual
                     | ValueAndOneChild PTy
 
   public export
+  data PPTy = PPList
+            | PPFun PPTy PPTy
+  
+  public export
   data PTy = PString
            | PBool
            | PUnit
@@ -25,6 +29,7 @@ mutual
            | PFun PTy PTy
            | PRecord (List (String, PTy))
            | PTree (List (String, TreeNodeKind))
+           | PForall PPTy
 
 
 infixr 0 .> 
@@ -36,6 +41,7 @@ public export
 public export
 data PrimFn : PTy -> Type where
  StringEq : PrimFn (PString .> PString .> PBool)
+ ListNil : PrimFn (PForall PPList)
 
 public export
 data Pexp : List (String, PTy) -> PTy -> Type where
@@ -68,6 +74,7 @@ mutual
   PTyType PDouble = Double
   PTyType (PTensor dim t) = ?h
   PTyType (PTuple t1 t2) = (PTyType t1, PTyType t2)
+  PTyType (PForall pt) = Pexp [] (PForall pt)
 
 export
 Uninhabited (PString = PBool) where
@@ -501,6 +508,84 @@ Uninhabited (PTuple xx yy = PRecord xs) where
 export
 Uninhabited (PTuple xx yy = PTree xs) where
   uninhabited Refl impossible
+export
+Uninhabited (PString = PForall xx) where
+  uninhabited Refl impossible
+export
+Uninhabited (PBool = PForall xx) where
+  uninhabited Refl impossible
+export
+Uninhabited (PFun xx yy = PForall zz) where
+  uninhabited Refl impossible
+export
+Uninhabited (PRecord xx = PForall yy) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTree xx = PForall yy) where
+  uninhabited Refl impossible
+export
+Uninhabited (PUnit = PForall xx) where
+  uninhabited Refl impossible
+export
+Uninhabited (PInt = PForall xx) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PForall yy) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PForall xx) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PForall xx) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PForall zz) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PForall zz) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PString) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PBool) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PUnit) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PInt) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PList x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PTensor ks x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PTuple x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PFun x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PRecord xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PTree xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPList = PPFun x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPFun x z = PPList) where
+  uninhabited Refl impossible
 
 export
 Biinjective PFun where
@@ -513,8 +598,8 @@ Biinjective PTensor where
 export
 Biinjective PTuple where
   biinjective Refl = (Refl, Refl)
-export
 
+export
 Injective PRecord where
   injective Refl = Refl
 
@@ -533,6 +618,21 @@ Injective PList where
 export
 Injective ValueAndOneChild where
   injective Refl = Refl
+
+export
+Injective PForall where
+  injective Refl = Refl
+
+export
+Biinjective PPFun where
+  biinjective Refl = (Refl, Refl)
+
+export
+DecEq PPTy where
+  decEq PPList PPList  = Yes Refl
+  decEq PPList (PPFun x y)  = No absurd
+  decEq (PPFun x z) PPList  = No absurd
+  decEq (PPFun x z) (PPFun y w) = decEqCong2 (decEq x y) (decEq z w)
 
 mutual
   export
@@ -701,6 +801,31 @@ mutual
     decEq (PTuple _ _) (PFun x y)  = No absurd
     decEq (PTuple _ _) (PRecord xs)  = No absurd
     decEq (PTuple _ _) (PTree xs)  = No absurd
+    decEq PString (PForall _) = No absurd
+    decEq PBool (PForall _) = No absurd
+    decEq (PFun _ _) (PForall _) = No absurd
+    decEq (PRecord _) (PForall _) = No absurd
+    decEq (PTree _) (PForall _) = No absurd
+    decEq PUnit (PForall _) = No absurd
+    decEq PInt (PForall _) = No absurd
+    decEq (PList _) (PForall _) = No absurd
+    decEq PNat (PForall _) = No absurd
+    decEq PDouble (PForall _) = No absurd
+    decEq (PTensor _ _) (PForall _) = No absurd
+    decEq (PTuple _ _) (PForall _) = No absurd
+    decEq (PForall _) PString  = No absurd
+    decEq (PForall _) PBool  = No absurd
+    decEq (PForall _) PUnit  = No absurd
+    decEq (PForall _) PInt  = No absurd
+    decEq (PForall _) (PList x)  = No absurd
+    decEq (PForall _) PNat  = No absurd
+    decEq (PForall _) PDouble  = No absurd
+    decEq (PForall _) (PTensor ks x)  = No absurd
+    decEq (PForall _) (PTuple x y)  = No absurd
+    decEq (PForall _) (PFun x y)  = No absurd
+    decEq (PForall _) (PRecord xs)  = No absurd
+    decEq (PForall _) (PTree xs)  = No absurd
+    decEq (PForall x) (PForall y) = decEqCong (decEq x y)
 
 mutual
   export
@@ -731,6 +856,7 @@ mutual
     toJson PDouble = JString "PDouble"
     toJson (PTensor x y) = JArray [JString "PTensor", toJson x, toJson y]
     toJson (PTuple x y) = JArray [JString "PTuple", toJson x, toJson y]
+    toJson (PForall t) = ?hrtd
 
 
     fromJson (JString "PString") = 
@@ -768,13 +894,17 @@ mutual
 {a : PTy} -> JsonSerializable (PrimFn a) where
   toJson StringEq = 
     JString "StringEq"
+  toJson ListNil = 
+    JString "ListNil"
 
   fromJson (JString "StringEq") =
     case decEq a (PString .> PString .> PBool) of
          Yes prf => Just $ rewrite prf in StringEq
          No _ => Nothing
-        
-
+  fromJson (JString "ListNil") =
+    case decEq a (PForall PPList) of
+         Yes prf => Just $ rewrite prf in ListNil
+         No _ => Nothing
   fromJson _ = 
     Nothing
 
@@ -843,6 +973,7 @@ mutual
   pTyTypeToJson PDouble = ?hrstd
   pTyTypeToJson (PTensor _ _) = ?yuarlst
   pTyTypeToJson (PTuple _ _) = ?ysrdtulr
+  pTyTypeToJson (PForall _) = ?ysrdtulrarst
 
 mutual
   recPTypeTypeFromJson : (xs : Vect n (String, PTy)) -> Record ((mapValues (\t => JSON -> Maybe t)) (mapValues PTyType xs))
@@ -865,4 +996,5 @@ mutual
   pTyTypeFromJson PDouble = ?stid
   pTyTypeFromJson (PTensor _ _) = ?irtsuack
   pTyTypeFromJson (PTuple _ _) = ?cxnwu
+  pTyTypeFromJson (PForall _) = ?cxnwuarst
 
