@@ -954,6 +954,13 @@ export
   toJson = toJson
   fromJson = fromJson_ ctxt a
 
+export
+{ctxt : List (String, PTy)} -> {a : PTy} -> JTuple (Pexp ctxt a) where
+  tupleToJson x = [toJson x]
+  
+  tupleFromJson [x] = fromJson x
+  tupleFromJson _ = Nothing
+
 mutual
   recPTypeTypeToJson : (xs : Vect n (String, PTy)) -> Record ((mapValues (\t => t -> JSON)) (mapValues PTyType xs))
   recPTypeTypeToJson [] = []

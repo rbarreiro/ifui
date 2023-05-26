@@ -160,7 +160,7 @@ JsonSerializable Bool where
   fromJson (JBoolean x) = Just x
   fromJson _ = Nothing
 
-export
+public export
 interface JTuple (0 a : Type) where
   tupleToJson : a -> List JSON
   tupleFromJson : List JSON -> Maybe a
