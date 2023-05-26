@@ -457,10 +457,11 @@ mutual
         , ("Double", \() => pure PDouble)
         , ("Tensor", \() => PTensor <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
         , ("Tuple", \() => PTuple <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
+        , ?rstdyurl
         ] 
         x
       where
-        aux : PTy -> (Fin 12, Reader PTy)
+        aux : PTy -> (Fin 13, Reader PTy)
         aux PString = (0, pure PString)
         aux PBool = (1, pure PBool)
         aux PUnit = (2, pure PUnit)
@@ -473,6 +474,7 @@ mutual
         aux PDouble = (9, pure PDouble)
         aux (PTensor y z) = (10, PTensor <$> getReaderBulma (Just y)  <*> getReaderBulma (Just z))
         aux (PTuple y z) = (11, PTuple <$> getReaderBulma (Just y)  <*> getReaderBulma (Just z))
+        aux (PForall x) = ?arstuyl
 
 
 varExprs_ : (ctxt : List (String, PTy)) -> List (t : PTy ** (k : String ** p : KElem k ctxt ** t = klookup ctxt p))
@@ -617,6 +619,7 @@ mutual
   pTyTypeReader PDouble = ?yulrst
   pTyTypeReader (PTensor _ _) = ?uyaw
   pTyTypeReader (PTuple _ _) = ?yrsutyruj
+  pTyTypeReader (PForall _) = ?yrsutyrujarst
 
 
 export
