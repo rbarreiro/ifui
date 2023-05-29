@@ -14,6 +14,22 @@ namespace List
     KThere : KElem k xs -> KElem k (x::xs)
 
   public export
+  kElemToNat : KElem x xs -> Nat
+  kElemToNat KHere = Z
+  kElemToNat (KThere y) = S (kElemToNat y)
+
+  public export
+  kElemToFin : KElem x xs -> Fin (length xs)
+  kElemToFin KHere = FZ
+  kElemToFin (KThere y) = FS $ kElemToFin y
+
+  public export
+  indexKElem : Nat -> (xs : List (a, b)) -> Maybe (x ** KElem x xs)
+  indexKElem k [] = Nothing 
+  indexKElem Z ((x, y) :: xs) = Just (x ** KHere)
+  indexKElem (S k) (_ :: xs) = (\(x ** p) => (x ** KThere p)) <$> indexKElem k xs
+
+  public export
   klookup : (ts : List (a, b)) -> KElem k ts -> b
   klookup ((k, v) :: xs) KHere = v
   klookup (x :: xs) (KThere y) = klookup xs y
@@ -35,10 +51,16 @@ namespace List
   mapValues f [] = []
   mapValues f ((x, y) :: xs) = (x, f y) :: mapValues f xs
 
-public export
-ListToVect : (l : List a) -> Vect (List.length l) a
-ListToVect [] = []
-ListToVect (x :: xs) = x :: ListToVect xs
+  public export
+  kElemVect : (xs : List (k, a)) -> Vect (length xs) (i : k ** KElem i xs)
+
+
+--   withKeyProofs [] = 
+--     []
+--   withKeyProofs ((x, y) :: xs) = 
+--     let aux = withKeyProofs xs
+--     in ((x ** KHere), y)  :: ((\((x**y), w) => ((x ** KThere y), w)) <$> aux)
+
 
 namespace Vect
   public export
@@ -121,7 +143,7 @@ namespace Record
   
   public export
   Record' : List (String, Type) -> Type
-  Record' x = Record $ ListToVect x
+  Record' x = Record $ Vect.fromList x
 
   public export
   valueIndex : (k : Fin n) -> {0 ts : Vect n (String, Type)} -> Record ts -> Vect.index2 k ts

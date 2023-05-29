@@ -12,6 +12,7 @@ mutual
                     | OneChild
                     | ValueAndOneChild PTy
 
+
   public export
   data PPTy = PPList
             | PPFun PPTy PPTy
@@ -31,6 +32,12 @@ mutual
            | PTree (List (String, TreeNodeKind))
            | PForall PPTy
 
+public export
+TreeNodeKindPTy : TreeNodeKind -> PTy -> PTy
+TreeNodeKindPTy NamedSubTrees = \x => PList (PTuple PString x)
+TreeNodeKindPTy (Leaf t) = const t
+TreeNodeKindPTy OneChild = \x => x
+TreeNodeKindPTy (ValueAndOneChild t) = \x => PTuple t x
 
 infixr 0 .> 
 
@@ -50,6 +57,7 @@ data Pexp : List (String, PTy) -> PTy -> Type where
     App : {a: PTy} -> Pexp ctxt (PFun a b) -> Pexp ctxt a -> Pexp ctxt b
     StringLit : String -> Pexp ctxt PString
     BoolLit : Bool -> Pexp ctxt PBool
+    TreeLit : {k : String} -> (p : KElem k ts) -> Pexp ctxt (TreeNodeKindPTy (klookup ts p) (PTree ts)) -> Pexp ctxt (PTree ts)
     Prim : PrimFn a -> Pexp ctxt a
 
 mutual
@@ -923,7 +931,10 @@ toJson_ (StringLit str) =
   JArray [JString "StringLit", JString str]
 toJson_ (BoolLit x) = 
   JArray [JString "BoolLit", JBoolean x]
-toJson_ (Prim x) = JArray [JString "Prim", toJson x]
+toJson_ (TreeLit x y) = 
+  JArray [JString "TreeLit", toJson $ kElemToNat x, toJson_ y]
+toJson_ (Prim x) = 
+  JArray [JString "Prim", toJson x]
 
 fromJson_ : (ctxt : List (String, PTy)) -> (a : PTy) -> JSON -> Maybe (Pexp ctxt a)
 fromJson_ ctxt a (JArray [JString "Var", JString name]) = 
@@ -944,6 +955,12 @@ fromJson_ ctxt PString (JArray [JString "StringLit", JString s]) =
   Just $ StringLit s
 fromJson_ ctxt PBool (JArray [JString "BoolLit", JBoolean b]) =
   Just $ BoolLit b
+fromJson_ ctxt (PTree ts) (JArray [JString "TreeLit", x, y]) =
+  do
+    n <- fromJson {a = Nat} x 
+    (k ** p) <- indexKElem n ts
+    v <- fromJson_ ctxt (TreeNodeKindPTy (klookup ts p) (PTree ts)) y
+    pure $ TreeLit p v
 fromJson_ ctxt a (JArray [JString "Prim", x]) =
   Prim <$> fromJson x
 fromJson_ _ _ _ = 
