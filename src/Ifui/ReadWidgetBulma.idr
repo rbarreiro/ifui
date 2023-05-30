@@ -457,7 +457,7 @@ mutual
         , ("Double", \() => pure PDouble)
         , ("Tensor", \() => PTensor <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
         , ("Tuple", \() => PTuple <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
-        , ?rstdyurl
+        , ("Forall", \() => ?arsyustd)
         ] 
         x
       where
