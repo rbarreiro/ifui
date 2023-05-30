@@ -599,6 +599,8 @@ mutual
                      pure $ MkReader (pexpW options $ Just (opt, y)) (getValue y)
 
   getReaderBulma_Pexp : (ctxt : List (String, PTy)) -> (t : PTy) -> Maybe (Pexp ctxt t) -> Reader (Pexp ctxt t)
+  getReaderBulma_Pexp ctxt PUnit _ =
+    MkReader (const $ text "()") (Just PUnitLit)
   getReaderBulma_Pexp ctxt t Nothing = 
     let (n ** zs) = expReaders ctxt t
     in MkReader (pexpW zs Nothing) Nothing
