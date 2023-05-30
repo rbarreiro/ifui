@@ -53,13 +53,8 @@ namespace List
 
   public export
   kElemVect : (xs : List (k, a)) -> Vect (length xs) (i : k ** KElem i xs)
-
-
---   withKeyProofs [] = 
---     []
---   withKeyProofs ((x, y) :: xs) = 
---     let aux = withKeyProofs xs
---     in ((x ** KHere), y)  :: ((\((x**y), w) => ((x ** KThere y), w)) <$> aux)
+  kElemVect [] = []
+  kElemVect ((i,j) :: xs) = (i ** KHere) :: ( (\(i ** j) => (i ** KThere j)) <$> kElemVect xs)
 
 
 namespace Vect

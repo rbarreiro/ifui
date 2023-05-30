@@ -522,14 +522,15 @@ mutual
                      do
                        let argReader = getReaderBulma_Pexp ctxt x Nothing
                        fnReader <- readerFromExp_ ctxt (x .> t) te n z
-                       pure $ ?hrst -- \() => App <$> fnReader () <*> argReader
+                       pure $ const $ App <$> fnReader () <*> argReader
                  _ => 
                      Nothing
          Yes prf => 
             Just $ \() => transformReader (\x => text n) (pure $ rewrite prf in z)
 
 
-  readerFromExp : (ctxt : List (String, PTy)) -> (t : PTy) -> (te : PTy) -> String -> (Pexp ctxt te) -> Maybe (() -> Reader (Pexp ctxt t))
+  readerFromExp : (ctxt : List (String, PTy)) -> (t : PTy) -> (te : PTy) -> 
+                      String -> (Pexp ctxt te) -> Maybe (() -> Reader (Pexp ctxt t))
   readerFromExp ctxt t te n x = 
     if isSomeReturnType t te then readerFromExp_ ctxt t te n x
                              else Nothing
@@ -543,7 +544,8 @@ mutual
   TreeConsArgs : (ctxt : List (String, PTy)) -> (ts : List (String, TreeNodeKind)) -> Type
   TreeConsArgs ctxt ts = (k : String ** p : KElem k ts ** Pexp ctxt (TreeNodeKindPTy (klookup ts p) (PTree ts)))
 
-  treeLitReader : (ctxt : List (String, PTy)) -> (ts : List (String, TreeNodeKind)) -> Maybe (TreeConsArgs ctxt ts) -> Reader (TreeConsArgs ctxt ts)
+  treeLitReader : (ctxt : List (String, PTy)) -> (ts : List (String, TreeNodeKind)) -> 
+                      Maybe (TreeConsArgs ctxt ts) -> Reader (TreeConsArgs ctxt ts)
   treeLitReader ctxt ts =
     optionsReader
       aux
