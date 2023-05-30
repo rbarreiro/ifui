@@ -59,6 +59,7 @@ data Pexp : List (String, PTy) -> PTy -> Type where
     BoolLit : Bool -> Pexp ctxt PBool
     TreeLit : {k : String} -> (p : KElem k ts) -> Pexp ctxt (TreeNodeKindPTy (klookup ts p) (PTree ts)) -> Pexp ctxt (PTree ts)
     PUnitLit : Pexp ctxt PUnit
+    NatLit : String -> Pexp ctxt PNat
     Prim : PrimFn a -> Pexp ctxt a
 
 mutual
@@ -936,6 +937,8 @@ toJson_ (TreeLit x y) =
   JArray [JString "TreeLit", toJson $ kElemToNat x, toJson_ y]
 toJson_ PUnitLit = 
   JString "PUnitLit"
+toJson_ (NatLit x) = 
+  JArray [JString "NatLit", toJson x]
 toJson_ (Prim x) = 
   JArray [JString "Prim", toJson x]
 
@@ -966,6 +969,8 @@ fromJson_ ctxt (PTree ts) (JArray [JString "TreeLit", x, y]) =
     pure $ TreeLit p v
 fromJson_ ctxt PUnit (JString "PUnitLit") =
   Just $ PUnitLit
+fromJson_ ctxt PNat (JArray [JString "NatLit", n]) =
+  NatLit <$> fromJson n
 fromJson_ ctxt a (JArray [JString "Prim", x]) =
   Prim <$> fromJson x
 fromJson_ _ _ _ = 

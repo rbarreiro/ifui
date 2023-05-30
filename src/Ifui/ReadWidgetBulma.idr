@@ -557,16 +557,19 @@ mutual
   litReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> List (String, () -> Reader (Pexp ctxt t))
   litReaders ctxt PString = ?litReaders_rhs_0
   litReaders ctxt PBool = ?litReaders_rhs_1
-  litReaders ctxt PUnit = ?litReaders_rhs_2
+  litReaders ctxt PUnit =
+    [("Literal", \() => MkReader (const $ text "()") (Just PUnitLit))]
   litReaders ctxt PInt = ?litReaders_rhs_3
   litReaders ctxt (PList x) = ?litReaders_rhs_4
-  litReaders ctxt PNat = ?litReaders_rhs_5
+  litReaders ctxt PNat = 
+    [("Literal", \() => NatLit <$> getReaderBulma Nothing)]
   litReaders ctxt PDouble = ?litReaders_rhs_6
   litReaders ctxt (PTensor ks x) = ?litReaders_rhs_7
   litReaders ctxt (PTuple x y) = ?litReaders_rhs_8
   litReaders ctxt (PFun x y) = ?litReaders_rhs_9
   litReaders ctxt (PRecord xs) = ?litReaders_rhs_10
-  litReaders ctxt (PTree xs) = [("Literal", \() => (\(k ** p ** v) => TreeLit p v)  <$> treeLitReader ctxt xs Nothing)]
+  litReaders ctxt (PTree xs) = 
+    [("Literal", \() => (\(k ** p ** v) => TreeLit p v)  <$> treeLitReader ctxt xs Nothing)]
   litReaders ctxt (PForall x) = ?litReaders_rhs_12
 
   expReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, () ->  Reader (Pexp ctxt t)))
@@ -618,7 +621,12 @@ mutual
   getReaderBulma_Pexp ctxt (PTree ts) (Just (TreeLit {k} x y)) = 
     let (n ** zs) = expReaders ctxt (PTree ts)
     in case getReaderByName "Literal" zs of
-            Just (i, r) =>  MkReader (pexpW zs (Just (i, (\(_ ** p ** v) => TreeLit p v) <$> treeLitReader ctxt ts (Just  (k ** x ** y))))) (Just (TreeLit x y))
+            Just (i, _) =>  MkReader (pexpW zs (Just (i, (\(_ ** p ** v) => TreeLit p v) <$> treeLitReader ctxt ts (Just  (k ** x ** y))))) (Just (TreeLit x y))
+            Nothing => MkReader (pexpW zs Nothing) Nothing
+  getReaderBulma_Pexp ctxt PNat (Just (NatLit x)) = 
+    let (n ** zs) = expReaders ctxt PNat
+    in case getReaderByName "Literal" zs of
+            Just (i, _) => MkReader (pexpW zs (Just (i, NatLit <$> getReaderBulma (Just x)))) (Just $ NatLit x)
             Nothing => MkReader (pexpW zs Nothing) Nothing
   getReaderBulma_Pexp ctxt t (Just (Prim x)) = ?getReaderBulma__rhs_7
 
