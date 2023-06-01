@@ -189,6 +189,8 @@ export
 KeyType String where
 export
 (KeyType a, KeyType b) => KeyType (a, b) where
+export
+KeyType a => KeyType (List a) where
 
 public export
 data TableSchema : Type where
