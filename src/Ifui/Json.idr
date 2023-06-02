@@ -225,6 +225,13 @@ JsonSerializable a => JsonSerializable1 (\t => List (a, t)) where
   fromJson1 (JArray x) g = sequence $ map (\j => do (z, w) <- fromJson {a = (a, JSON)} j; (z,) <$> g w) x
   fromJson1 _ _ = Nothing
 
+export
+JsonSerializable a => JsonSerializable1 (\t => (a, t)) where
+  toJson1 (z, w) g = JArray [toJson z, g w]
+
+  fromJson1 (JArray [x, y]) g =  (,) <$> fromJson x <*> g y
+  fromJson1 _ _ = Nothing
+
 genUniqueName : String -> List String -> String
 genUniqueName x xs = if elem x xs then genUniqueName (x ++ "_") xs
                                   else x
@@ -488,7 +495,12 @@ ChangeTest : Type -> Type
 ChangeTest a = Record [("old_val", Maybe a), ("new_val", Maybe a)]
 
 TestTy : Type 
-TestTy = ChangeTest (Record [("spec", Tree [("stuff2", const ()), ("stuff", const ()), ("Record", \w => List (String, w)), ("String", const ())])])
+TestTy = ChangeTest (Record [ ("spec", Tree [("stuff2", const ())
+                            , ("stuff", const ())
+                            , ("Record", \w => List (String, w))
+                            , ("String", const ())])
+                            ]
+                    )
 
 testInstanceRec : TestTy -> JSON
 testInstanceRec = toJson 
