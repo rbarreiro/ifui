@@ -61,11 +61,11 @@ interface JsonSerializable1 (0 f : Type -> Type) where
   toJson1 : (f a) -> (a -> JSON) -> JSON
   fromJson1 : JSON -> (JSON -> Maybe a) -> Maybe (f a)
 
-export
-(JsonSerializable a, JsonSerializable1 f) => JsonSerializable (f a) where
-  toJson x = toJson1 x (toJson {a = a})
-  fromJson x = fromJson1 x (fromJson {a=a})
-  stringify x = show $ toJson x
+-- export
+-- (JsonSerializable a, JsonSerializable1 f) => JsonSerializable (f a) where
+--   toJson x = toJson1 x (toJson {a = a})
+--   fromJson x = fromJson1 x (fromJson {a=a})
+--   stringify x = show $ toJson x
 
 export
 JsonSerializable JSON where
@@ -217,6 +217,11 @@ JsonSerializable1 List where
 
   fromJson1 (JArray x) g = sequence $ map g x
   fromJson1 _ _ = Nothing
+
+export
+JsonSerializable a => JsonSerializable (List a) where
+  toJson x = toJson1 x toJson
+  fromJson x = fromJson1 x fromJson
 
 export
 JsonSerializable a => JsonSerializable1 (\t => List (a, t)) where
@@ -505,4 +510,5 @@ TestTy = ChangeTest (Record [ ("spec", Tree [("stuff2", const ())
 testInstanceRec : TestTy -> JSON
 testInstanceRec = toJson 
 
-
+test : List (String, JSON) -> JSON
+test = toJson
