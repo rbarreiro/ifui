@@ -270,7 +270,7 @@ ReadWidgetBulma b => ReadWidgetBulma1 (const b) where
 export
 ReadWidgetBulma b => ReadWidgetBulma1 (\x => (b, x)) where
   getReaderBulma1 cont Nothing = (,) <$> getReaderBulma Nothing  <*> cont Nothing
-  getReaderBulma1 cont (Just x) = ?h_1
+  getReaderBulma1 cont (Just (x, y)) = (,) <$> getReaderBulma (Just x) <*> cont (Just y)
 
 
 fromAllJust : List (Maybe a) -> Maybe (List a)
@@ -346,11 +346,6 @@ ReadWidgetBulma1 (\w => List (String, w)) where
                   Nothing => []
                   Just x => map (\(k,v) => (k, cont (Just v))) x
     in MkReader (w startReaders) x
-
-export
-ReadWidgetBulma a => ReadWidgetBulma1 (\w => (a, w)) where
-  getReaderBulma1 cont Nothing = (,) <$> getReaderBulma Nothing <*> cont Nothing
-  getReaderBulma1 cont (Just (x, y)) = (,) <$> getReaderBulma (Just x) <*> cont (Just y)
 
 export
 {s : String } -> ReadWidgetBulma (Record ts) => ReadWidgetBulma (Entry s (Record ts)) where
@@ -701,8 +696,10 @@ getFormBulma : ReadWidgetBulma a => {default Nothing startVal : Maybe a} -> Widg
 getFormBulma = 
   readerForm getReaderBulma 
 
-test : Widget (Maybe (Tree [("Record", \w => List (String, w)), ("String", const ())]))
+test : Widget (Maybe (Tree [("Record", \w => List (String, w)), ("String", const ()), ("HowMany", \w => (String, w))]))
 test = getFormBulma
 
 test2 : Widget (Maybe (Record [("id", String),("spec", PTy)]))
 test2 = getFormBulma
+
+
