@@ -90,10 +90,6 @@ interface ReadWidgetBulma1 (0 f : Type -> Type) where
   getReaderBulma1 : (Maybe a -> Reader a) -> Maybe (f a) -> Reader (f a)
 
 export
-ReadWidgetBulma a => ReadWidgetBulma1 f => ReadWidgetBulma (f a) where
-  getReaderBulma x = getReaderBulma1 {f = f} getReaderBulma x
-
-export
 ReadWidgetBulma () where
   getReaderBulma x = 
     MkReader (const neutral) (Just ())
@@ -271,6 +267,10 @@ export
 ReadWidgetBulma b => ReadWidgetBulma1 (const b) where
   getReaderBulma1 cont x = getReaderBulma x
 
+export
+ReadWidgetBulma b => ReadWidgetBulma1 (\x => (b, x)) where
+  getReaderBulma1 cont Nothing = (,) <$> getReaderBulma Nothing  <*> cont Nothing
+  getReaderBulma1 cont (Just x) = ?h_1
 
 
 fromAllJust : List (Maybe a) -> Maybe (List a)
@@ -312,6 +312,10 @@ ReadWidgetBulma1 List where
                   Just x => map (\v => cont (Just v)) x
     in MkReader (w startReaders) x
 
+export
+ReadWidgetBulma a => ReadWidgetBulma (List a) where
+  getReaderBulma x = getReaderBulma1 getReaderBulma x
+
 data KeyListReaderEvent a = ChangeKey String String
                           | AddEmptyKey
                           | ChangeValueKeyList String (Reader a)
@@ -342,6 +346,11 @@ ReadWidgetBulma1 (\w => List (String, w)) where
                   Nothing => []
                   Just x => map (\(k,v) => (k, cont (Just v))) x
     in MkReader (w startReaders) x
+
+export
+ReadWidgetBulma a => ReadWidgetBulma1 (\w => (a, w)) where
+  getReaderBulma1 cont Nothing = (,) <$> getReaderBulma Nothing <*> cont Nothing
+  getReaderBulma1 cont (Just (x, y)) = (,) <$> getReaderBulma (Just x) <*> cont (Just y)
 
 export
 {s : String } -> ReadWidgetBulma (Record ts) => ReadWidgetBulma (Entry s (Record ts)) where

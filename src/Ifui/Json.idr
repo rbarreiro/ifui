@@ -61,12 +61,6 @@ interface JsonSerializable1 (0 f : Type -> Type) where
   toJson1 : (f a) -> (a -> JSON) -> JSON
   fromJson1 : JSON -> (JSON -> Maybe a) -> Maybe (f a)
 
--- export
--- (JsonSerializable a, JsonSerializable1 f) => JsonSerializable (f a) where
---   toJson x = toJson1 x (toJson {a = a})
---   fromJson x = fromJson1 x (fromJson {a=a})
---   stringify x = show $ toJson x
-
 export
 JsonSerializable JSON where
   toJson x = x
@@ -167,6 +161,13 @@ interface JTuple (0 a : Type) where
 
 export
 JTuple String where
+  tupleToJson x = [toJson x]
+  
+  tupleFromJson [x] = fromJson x
+  tupleFromJson _ = Nothing
+
+export
+JTuple Int where
   tupleToJson x = [toJson x]
   
   tupleFromJson [x] = fromJson x
@@ -512,3 +513,4 @@ testInstanceRec = toJson
 
 test : List (String, JSON) -> JSON
 test = toJson
+
