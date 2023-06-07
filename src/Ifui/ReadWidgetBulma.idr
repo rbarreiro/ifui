@@ -397,6 +397,17 @@ optionsReader init options s0 =
       
   in MkReader (\check => w start check) s0
 
+selectReader : Vect n String -> Maybe (Fin n ) -> Reader (Fin n)
+selectReader xs x =
+    MkReader (w x) x
+    where
+      w : Maybe (Fin n) -> Bool -> Widget (Reader (Fin n))
+      w s check = do
+        let warn = if isNothing s && check 
+                         then warning "Missing"
+                         else neutral
+        s_ <- div [selectBulma xs s, warn]
+        pure $ MkReader (w $ Just s_)  (Just s_)
 
 stringValuePairsReaderCompact : (Maybe a -> Reader a)  -> Maybe (List (String, a)) -> Reader (List (String, a))
 stringValuePairsReaderCompact cont x =
