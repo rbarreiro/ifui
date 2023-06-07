@@ -397,6 +397,7 @@ optionsReader init options s0 =
       
   in MkReader (\check => w start check) s0
 
+export
 selectReader : Vect n String -> Maybe (Fin n ) -> Reader (Fin n)
 selectReader xs x =
     MkReader (w x) x
