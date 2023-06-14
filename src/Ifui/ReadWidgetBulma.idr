@@ -131,6 +131,16 @@ ReadWidgetBulma Nat where
         pure $ MkReader (w s_) s_
 
 export
+ReadWidgetBulma (Maybe Nat) where
+  getReaderBulma x = 
+    MkReader (w $ join x) x
+    where
+      w : Maybe Nat -> Bool -> Widget (Reader (Maybe Nat))
+      w s check = do
+        s_ <- (\w => cast <$> w) <$> numberInputBulma (cast <$> s)
+        pure $ MkReader (w s_) (Just s_)
+
+export
 ReadWidgetBulma Bool where
   getReaderBulma x = 
     MkReader (w x) x

@@ -141,6 +141,15 @@ JsonSerializable (Maybe Int) where
   fromJson _ = Nothing
 
 export
+JsonSerializable (Maybe Nat) where
+  toJson (Just x) = JNumber $ cast x
+  toJson Nothing = JNull
+
+  fromJson (JNumber x) = Just (Just $ cast x)
+  fromJson JNull = Just Nothing
+  fromJson _ = Nothing
+
+export
 JsonSerializable Integer where
   toJson x = JNumber $ cast x
 
