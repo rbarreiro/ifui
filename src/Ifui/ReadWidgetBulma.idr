@@ -183,6 +183,26 @@ export
         pure $ MkReader (w z_) (MkEntry s <$> z_)
 
 export
+{s : String} -> ReadWidgetBulma (Entry s Nat) where
+  getReaderBulma x = 
+    MkReader (w $ value <$>x) x
+    where
+      w : Maybe Nat -> Bool -> Widget (Reader (Entry s Nat))
+      w z check = do
+        z_ <- (\w => cast <$> w) <$> numberInputBulma {label = Just s} (cast <$> z)
+        pure $ MkReader (w z_) (MkEntry s <$> z_)
+
+export
+{s : String} -> ReadWidgetBulma (Entry s (Maybe Nat)) where
+  getReaderBulma x = 
+    MkReader (w $ join $ value <$> x) x
+    where
+      w : Maybe Nat -> Bool -> Widget (Reader (Entry s (Maybe Nat)))
+      w z check = do
+        z_ <- (\w => cast <$> w) <$> numberInputBulma {label = Just s} (cast <$> z)
+        pure $ MkReader (w z_) (Just $ MkEntry s z_)
+
+export
 {s : String } -> ReadWidgetBulma (Entry s Bool) where
   getReaderBulma x = 
     MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
