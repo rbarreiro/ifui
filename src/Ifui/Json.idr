@@ -190,6 +190,13 @@ JTuple JSON where
   tupleFromJson _ = Nothing
 
 export
+JsonSerializable (List a) => JTuple (List a) where
+  tupleToJson x = [toJson x]
+  
+  tupleFromJson [x] = fromJson x
+  tupleFromJson _ = Nothing
+
+export
 JsonSerializable (Maybe a) => JTuple (Maybe a) where
   tupleToJson x = [toJson x]
   
