@@ -365,30 +365,36 @@ callRPC : (JsonSerializable a, JsonSerializable b) => SrvRef (RPC a b) ->
 callRPC sc y = 
   rpcSetup (serviceConnectionPathStr sc) (getConnectionInfo sc) (addServicePathToInput sc $ toJson y) fromJson
 
+namespace StreamWidget
+  public export
+  data StreamWidget : Type -> Type where
+    MkStreamWidget : ({0 z : Type} -> (a -> Widget z) -> Widget z) -> StreamWidget a
+
+  export
+  toWidget : (a -> Widget b) -> StreamWidget a -> Widget b
+  toWidget f (MkStreamWidget g) = g f
+
+  export
+  Functor StreamWidget where
+    map f (MkStreamWidget g) = MkStreamWidget (\w => g (w . f))
 
 export
 callStream : (JsonSerializable a, JsonSerializable b) => 
-               SrvRef (StreamService a b) -> a -> (b -> Widget c) -> Widget c
-callStream sc y w = 
+               SrvRef (StreamService a b) -> a -> StreamWidget b -- (b -> Widget c) -> Widget c
+callStream sc y = MkStreamWidget $ \w =>
   let stream : Widget b
       stream = streamSetup (serviceConnectionPathStr sc) (getConnectionInfo sc) (addServicePathToInput sc $ toJson y) fromJson
 
-      w_ : Maybe b -> Widget c
-      w_ Nothing = neutral
-      w_ (Just x) = w x
-  in loopState Nothing (\x => ((Left . Just) <$> stream) <+> (Right <$> w_ x) )
+  in loopState Nothing (\x => ((Left . Just) <$> stream) <+> (Right <$> (fromMaybe neutral $ w <$> x)))
  
 export
 callStreamAccum : (JsonSerializable a, JsonSerializable b) => 
-               SrvRef (StreamService a b) -> a -> c -> (b -> c -> c) -> (c -> Widget d) -> Widget d
-callStreamAccum sc y r0 acc w = 
-  let w_ : Maybe c -> Widget d
-      w_ Nothing = neutral
-      w_ (Just x) = w x
-  in do
+               SrvRef (StreamService a b) -> a -> c -> (b -> c -> c) -> StreamWidget c   -- (c -> Widget d) -> Widget d
+callStreamAccum sc y r0 acc =  MkStreamWidget $ \w =>
+  do
     millis <- liftIO millisSinceEpoch
     let stream = streamAccumSetup (show millis) (serviceConnectionPathStr sc) (getConnectionInfo sc) (addServicePathToInput sc $ toJson y) fromJson r0 acc
-    loopState Nothing (\x => ((Left . Just) <$> stream)  <+> (Right <$> w_ x))
+    loopState Nothing (\x => ((Left . Just) <$> stream)  <+> (Right <$> (fromMaybe neutral $ w <$> x)))
 
 accList : (JsonSerializable t) => Change t -> List t -> List t
 accList x xs = 
@@ -402,7 +408,7 @@ accList x xs =
   
 export
 callStreamChangesAccumList : (JsonSerializable a, JsonSerializable (Change b), JsonSerializable b) => 
-               SrvRef (StreamService a (Change b)) -> a -> (List b -> Widget c) -> Widget c
+               SrvRef (StreamService a (Change b)) -> a -> StreamWidget (List b)
 callStreamChangesAccumList conn x = 
   callStreamAccum conn x [] accList
 
