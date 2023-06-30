@@ -406,11 +406,19 @@ accList x xs =
           ((Just y), Nothing) => let j = toJson y in filter (\e => toJson e /= j)  xs
           ((Just y), (Just z)) =>  let j = toJson y in replaceWhen (\e => toJson e == j) z xs
   
+wbind : Widget a -> (a -> Widget b) -> Widget b
+wbind x f =
+  loopState
+    Nothing
+    (\w => ((\z => Left $ Just $ f z) <$> x) <+> fromMaybe neutral (mapNested Right w))
+
 export
 callStreamChangesAccumList : (JsonSerializable a, JsonSerializable (Change b), JsonSerializable b) => 
                SrvRef (StreamService a (Change b)) -> a -> StreamWidget (List b)
 callStreamChangesAccumList conn x = 
   callStreamAccum conn x [] accList
+
+
 
 export
 runWidget : Widget () -> IO ()

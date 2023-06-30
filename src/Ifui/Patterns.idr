@@ -1,5 +1,8 @@
 module Ifui.Patterns
 
+export
+mapNested : Functor f => Functor g => (a -> b) -> f (g a) -> f (g b)
+mapNested h x = (\w => h <$> w) <$> x
 
 export
 loopState : Monad m => s -> (s -> m (Either s a)) -> m a
