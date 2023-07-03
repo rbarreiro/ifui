@@ -220,6 +220,15 @@ JTuple (a, b) => JsonSerializable (a, b) where
   fromJson (JArray x) = tupleFromJson x
   fromJson _ = Nothing 
 
+export
+JsonSerializable (a, b) => JsonSerializable (Maybe (a, b)) where
+  toJson Nothing = JNull
+  toJson (Just x) = toJson x
+
+  fromJson JNull = Just Nothing
+  fromJson x = Just <$> fromJson x
+  
+
 testJTuple : JSON
 testJTuple = toJson ("a", "b", Just "c")
 
