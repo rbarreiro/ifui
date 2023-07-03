@@ -405,7 +405,8 @@ accList x xs =
           (Nothing, (Just y)) => xs ++ [y]
           ((Just y), Nothing) => let j = toJson y in filter (\e => toJson e /= j)  xs
           ((Just y), (Just z)) =>  let j = toJson y in replaceWhen (\e => toJson e == j) z xs
-  
+ 
+export 
 wbind : Widget a -> (a -> Widget b) -> Widget b
 wbind x f =
   loopState
