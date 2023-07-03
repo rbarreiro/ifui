@@ -97,6 +97,7 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     EmptyList : Query db ctxt (List a)
     Nth : QueryMaybe a => QueryFiniteSequence f => Query db ctxt (Int -> f a -> Maybe a)
     CatMaybes : (QueryMaybe a, QuerySequence f) => Query db ctxt (f (Maybe a) -> f a)
+    OrderBy : QuerySequence f => Query db ctxt ((a -> b) -> f a -> f a)
 
 
 
@@ -451,6 +452,9 @@ prim__rid : AnyPtr -> AnyPtr
 %foreign "node:lambda: f => f "
 prim__fnToPtr : (AnyPtr -> AnyPtr) -> AnyPtr
 
+%foreign "node:lambda: f => (x => x.orderBy(f))"
+prim__rorderBy : () -> AnyPtr
+
 export
 HasParts String (Maybe String) where
   replacePartsNulls replacement x = prim__rdefault x replacement
@@ -587,6 +591,8 @@ compileQuery r vars (Nth {a}) =
   prim__rnth r (nothing {a}) (wrap {a})
 compileQuery r vars (CatMaybes {a}) =
   prim__rcatMaybes (isNothing {a}) (unwrapJust {a})
+compileQuery r vars OrderBy =
+  prim__rorderBy ()
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
