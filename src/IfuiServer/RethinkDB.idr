@@ -31,6 +31,7 @@ public export
 ServerSpec : Type
 ServerSpec = List ((String, String), List (String, Type))
 
+
 public export
 interface HasParts (0 a : Type) (0 b : Type) where
   replacePartsNulls : AnyPtr -> AnyPtr -> AnyPtr
@@ -98,6 +99,15 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Nth : QueryMaybe a => QueryFiniteSequence f => Query db ctxt (Int -> f a -> Maybe a)
     CatMaybes : (QueryMaybe a, QuerySequence f) => Query db ctxt (f (Maybe a) -> f a)
     OrderBy : QuerySequence f => Query db ctxt ((a -> b) -> f a -> f a)
+
+
+public export
+getTableFields : (ts : ServerSpec) -> (d : String) -> (t : String) -> {auto p : KElem (d, t) ts} -> List (String, Type)
+getTableFields ts d t = klookup' ts (d, t)
+
+public export
+getTableTy : (ts : ServerSpec) -> (d : String) -> (t : String) -> {auto p : KElem (d, t) ts} -> Type
+getTableTy ts d t = Record' $ getTableFields ts d t
 
 
 
