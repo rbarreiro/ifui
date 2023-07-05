@@ -39,6 +39,8 @@ interface HasParts (0 a : Type) (0 b : Type) where
 public export
 interface QueryTuple (0 a : Type) (0 b : Type) where
   tcons : AnyPtr 
+  tfst : AnyPtr
+  tsnd : AnyPtr
 
 public export
 interface QueryMaybe (0 a : Type) where
@@ -88,6 +90,8 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     ListPrepend : Query db ctxt (a -> List a -> List a)
     RecordPrependKey : (k : String) -> Query db ctxt a -> Query db ctxt (Record fields -> Record ((k, a) :: fields))
     TCons : QueryTuple a b =>  Query db ctxt (a -> b -> (a, b))
+    TFst : QueryTuple a b =>  Query db ctxt ((a, b) -> a)
+    TSnd : QueryTuple a b =>  Query db ctxt ((a, b) -> b)
     Slice : Query db ctxt (Int-> Maybe Int -> List a -> List a)
     Add : QueryNum a => Query db ctxt (a -> a -> a)
     Mul : QueryNum a => Query db ctxt (a -> a -> a)
@@ -482,11 +486,19 @@ export
       x
 
 %foreign "node:lambda: (r) => (x => (y => r.expr([x,y]))) "
-prim__querytupleString : AnyPtr -> AnyPtr
+prim__makeListPair : AnyPtr -> AnyPtr
+
+%foreign "node:lambda: () => (x => x(0)) "
+prim__rlist0 : () -> AnyPtr
+
+%foreign "node:lambda: () => (x => x(1)) "
+prim__rlist1 : () -> AnyPtr
 
 export
 QueryTuple a String where
-  tcons = prim__querytupleString (prim__r ())
+  tcons = prim__makeListPair (prim__r ())
+  tfst = prim__rlist0 ()
+  tsnd = prim__rlist1 ()
 
 export
 QueryNum Int where
@@ -588,6 +600,10 @@ compileQuery r vars (RecordPrependKey k v) =
   prim__rmerge k (compileQuery r vars v)
 compileQuery r vars (TCons {a} {b}) =
   tcons {a} {b}
+compileQuery r vars (TFst {a} {b}) =
+  tfst {a} {b}
+compileQuery r vars (TSnd {a} {b}) =
+  tsnd {a} {b}
 compileQuery r vars Slice =
   prim__rslice r
 compileQuery r vars (Add {a}) =
