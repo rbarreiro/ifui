@@ -35,6 +35,10 @@ namespace List
   klookup (x :: xs) (KThere y) = klookup xs y
 
   public export
+  klookup' : (ts : List (a, b)) -> (k : a) -> {auto p : KElem k ts} -> b
+  klookup' ts _ = klookup ts p 
+
+  public export
   HasKey : Eq a => a -> List (a, b) -> Bool
   HasKey x [] = False
   HasKey x ((y, z) :: xs) = 
