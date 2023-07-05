@@ -486,7 +486,7 @@ export
       x
 
 %foreign "node:lambda: (r) => (x => (y => r.expr([x,y]))) "
-prim__makeListPair : AnyPtr -> AnyPtr
+prim__rmakeListPair : AnyPtr -> AnyPtr
 
 %foreign "node:lambda: () => (x => x(0)) "
 prim__rlist0 : () -> AnyPtr
@@ -494,11 +494,20 @@ prim__rlist0 : () -> AnyPtr
 %foreign "node:lambda: () => (x => x(1)) "
 prim__rlist1 : () -> AnyPtr
 
+%foreign "node:lambda: () => (x => x.slice(1)) "
+prim__rrest : () -> AnyPtr
+
 export
 QueryTuple a String where
-  tcons = prim__makeListPair (prim__r ())
+  tcons = prim__rmakeListPair (prim__r ())
   tfst = prim__rlist0 ()
   tsnd = prim__rlist1 ()
+
+export
+QueryTuple a (b, c) where
+  tcons = prim__rprepend ()
+  tfst = prim__rlist0 ()
+  tsnd = prim__rrest ()
 
 export
 QueryNum Int where
