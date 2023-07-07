@@ -116,6 +116,11 @@ namespace Vect
     if x == y then Just FZ
               else FS <$> findKey x xs
 
+public export
+listToVect : (x : List a) -> Vect (length x) a
+listToVect [] = []
+listToVect (x :: xs) = x :: listToVect xs
+
 namespace Record
   public export
   data Entry : String -> Type -> Type where
@@ -142,7 +147,7 @@ namespace Record
   
   public export
   Record' : List (String, Type) -> Type
-  Record' x = Record $ Vect.fromList x
+  Record' x = Record $ listToVect x
 
   public export
   valueIndex : (k : Fin n) -> {0 ts : Vect n (String, Type)} -> Record ts -> Vect.index2 k ts
@@ -173,6 +178,10 @@ namespace Tree
   public export
   data Tree : Vect n (String, (Type -> Type)) -> Type where
     MkTree : (k : Fin n) -> (index2 k ts) (Tree ts) -> Tree ts
+
+  public export
+  Tree' : List (String, (Type -> Type)) -> Type
+  Tree' x = Tree $ listToVect x
 
   public export
   N : {ts : Vect n (String, Type -> Type)} -> {auto 0 prf : So (UniqueKeys ts)} -> (s : String) -> 

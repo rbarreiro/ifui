@@ -621,7 +621,7 @@ mutual
   expReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, () ->  Reader (Pexp ctxt t)))
   expReaders ctxt t =
     let readers = varAndPrimReaders ctxt t ++ litReaders ctxt t
-    in (length readers ** fromList readers)
+    in (length readers ** listToVect readers)
 
   pexpW : Vect n (String, () -> Reader (Pexp ctxt t)) ->
                   Maybe (Fin n, Reader (Pexp ctxt t)) -> 
@@ -707,7 +707,7 @@ mutual
   pTyTypeReader PUnit = getReaderBulma
   pTyTypeReader PInt = ?pTyTypeReader_rhs_3
   pTyTypeReader (PFun x y) = getReaderBulma
-  pTyTypeReader (PRecord xs) = recordGetReaderBulma (recReaders $ Vect.fromList xs)
+  pTyTypeReader (PRecord xs) = recordGetReaderBulma (recReaders $ listToVect xs)
   pTyTypeReader (PTree xs) = ?pTyTypeReader_rhs_6
   pTyTypeReader (PList _) = ?sytdul
   pTyTypeReader PNat = ?stydustnd

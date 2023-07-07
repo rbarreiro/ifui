@@ -75,8 +75,8 @@ mutual
   PTyType PString = String
   PTyType PBool = Bool
   PTyType (PFun x y) = Pexp [] (PFun x y)
-  PTyType (PRecord xs) = Record (mapValues PTyType (Vect.fromList xs))
-  PTyType (PTree xs) = Tree (mapValues TreeNodeKindType (Vect.fromList xs))
+  PTyType (PRecord xs) = Record (mapValues PTyType (listToVect xs))
+  PTyType (PTree xs) = Tree (mapValues TreeNodeKindType (listToVect xs))
   PTyType PUnit = ()
   PTyType PInt = Int
   PTyType (PList t) = List (PTyType t)
@@ -1000,7 +1000,7 @@ mutual
   pTyTypeToJson PUnit = toJson
   pTyTypeToJson PInt = toJson
   pTyTypeToJson (PFun x y) = toJson
-  pTyTypeToJson (PRecord xs) = \y => JObject $ recordToJson (recPTypeTypeToJson $ Vect.fromList xs) y
+  pTyTypeToJson (PRecord xs) = \y => JObject $ recordToJson (recPTypeTypeToJson $ listToVect xs) y
   pTyTypeToJson (PTree xs) = ?tTyTypeToJson_rhs_6
   pTyTypeToJson (PList x) = \w => JArray $ map (pTyTypeToJson x) w
   pTyTypeToJson PNat = ?harst
@@ -1022,7 +1022,7 @@ mutual
   pTyTypeFromJson PInt = fromJson
   pTyTypeFromJson (PFun x y) = fromJson
   pTyTypeFromJson (PRecord xs) = \y => case y of
-                                            JObject ys => recordFromJson (recPTypeTypeFromJson $ Vect.fromList xs) ys
+                                            JObject ys => recordFromJson (recPTypeTypeFromJson $ listToVect xs) ys
                                             _ => Nothing
   pTyTypeFromJson (PTree (xs)) = ?tTyTypeFromJson_rhs_6
   pTyTypeFromJson (PList _) = ?arst
