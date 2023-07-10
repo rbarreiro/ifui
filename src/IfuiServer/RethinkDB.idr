@@ -103,6 +103,7 @@ data Query : ServerSpec -> List (String, Type) -> Type -> Type where
     Nth : QueryMaybe a => QueryFiniteSequence f => Query db ctxt (Int -> f a -> Maybe a)
     CatMaybes : (QueryMaybe a, QuerySequence f) => Query db ctxt (f (Maybe a) -> f a)
     OrderBy : QuerySequence f => Query db ctxt ((a -> b) -> f a -> f a)
+    Get : Query db ctxt (Table (("id", a) :: ts)) -> Query db ctxt (a -> Maybe (Record' (("id", a) :: ts)))
 
 
 public export
@@ -469,6 +470,9 @@ prim__fnToPtr : (AnyPtr -> AnyPtr) -> AnyPtr
 %foreign "node:lambda: f => (x => x.orderBy(f))"
 prim__rorderBy : () -> AnyPtr
 
+%foreign "node:lambda: tbl => (x => tbl.get(x))"
+prim__rGet : AnyPtr -> AnyPtr
+
 export
 HasParts String (Maybe String) where
   replacePartsNulls replacement x = prim__rdefault x replacement
@@ -635,6 +639,8 @@ compileQuery r vars (CatMaybes {a}) =
   prim__rcatMaybes (isNothing {a}) (unwrapJust {a})
 compileQuery r vars OrderBy =
   prim__rorderBy ()
+compileQuery r vars (Get x) = 
+  prim__rGet $ compileQuery r vars x
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
@@ -726,3 +732,11 @@ insert1' r t x =
     case res of
          (Left y) => pure $ Just y
          (Right y) => pure $ get "first_error" y
+
+export
+get' : JsonSerializable (Maybe (Record' (("id", a) :: ts))) => 
+        JsonSerializable a =>
+         RethinkServer db -> 
+           Query db [] (Table (("id", a) :: ts)) -> a -> Promise (Maybe (Record' (("id", a) :: ts)))
+get' r tbl x = run' r (Get tbl <| Lit x)
+
