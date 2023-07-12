@@ -437,6 +437,7 @@ prim__hasItem : AnyPtr -> String -> Int
 %foreign "javascript:lambda: (x) => Object.keys(x)"
 prim__objectKeys : AnyPtr -> AnyPtr 
 
+export
 mkJsObj : List (String, AnyPtr) -> AnyPtr
 mkJsObj xs = foldl (\ptr, (key, val) => prim__setItem ptr key val) (prim__newObj ()) xs
 

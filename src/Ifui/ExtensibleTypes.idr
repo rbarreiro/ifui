@@ -2,6 +2,7 @@ module Ifui.ExtensibleTypes
 
 import public Data.Vect
 import public Data.So
+import public Data.Vect.Elem
 
 public export
 soAnd2 : {a : Bool} -> So (a && b) -> So b
@@ -96,6 +97,11 @@ namespace Vect
   UniqueKeys : Eq a => Vect n (a, b) -> Bool
   UniqueKeys [] = True
   UniqueKeys ((x, y) :: xs) = not (HasKey x xs) && UniqueKeys xs
+
+  public export
+  data SubSet : Vect n a -> Vect m a -> Type where
+    SubSetNil : SubSet [] ys
+    SubSetCons : Elem x ys -> SubSet xs ys -> SubSet (x :: xs) ys
 
 
   public export

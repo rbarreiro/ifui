@@ -61,49 +61,69 @@ interface QueryNum (0 a : Type) where
 public export
 interface QuerySequence (0 f : Type -> Type) where
 
+
 public export
 interface QueryFiniteSequence (0 f : Type -> Type) where
 
-public export
-data Query : ServerSpec -> List (String, Type) -> Type -> Type where
-    Var : (name : String) -> {auto p : KElem  name ctxt}  -> Query db ctxt (klookup ctxt p)
-    Lambda : (arg : String) -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
-    App : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
-    GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (klookup db p))
-    ReadTable : Query db ctxt (Table ts) -> Query db ctxt (Cursor (Record' ts))
-    Between : HasParts a b => 
-                 {default True leftBoundClosed : Bool} -> {default False rightBoundClosed : Bool} ->
-                   Query db ctxt (Table (("id", a) :: ts)) ->  
-                     Query db ctxt b -> Query db ctxt b  -> Query db ctxt (Cursor (Record' (("id", a) :: ts)))
-    GetChanges : QueryMaybe a  => Bool -> Query db ctxt (Cursor a) -> Query db ctxt (Changes a)
-    Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record' ts)) -> 
-                 Query db ctxt (Record [("first_error", Maybe String)])
-    Insert : Query db ctxt (Table (("id", String) :: ts)) -> 
-                Query db ctxt (List (Record' ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
-    Lit : JsonSerializable a => a -> Query db ctxt a
-    Eq : QueryEq a => Query db ctxt (a -> a -> Bool)
-    GetField : (key : String) -> {auto p : Vect.KElem key fields} -> Query db ctxt (Record fields -> Vect.klookup fields p)
-    Map : QuerySequence f => Query db ctxt ((a -> b) -> f a -> f b)
-    ConcatMapList : QueryFiniteSequence g => Query db ctxt ((a -> g b) -> List a -> List b)
-    GenerateUUID : Query db ctxt String
-    Now : Query db ctxt Date
-    ListPrepend : Query db ctxt (a -> List a -> List a)
-    RecordPrependKey : (k : String) -> Query db ctxt a -> Query db ctxt (Record fields -> Record ((k, a) :: fields))
-    TCons : QueryTuple a b =>  Query db ctxt (a -> b -> (a, b))
-    TFst : QueryTuple a b =>  Query db ctxt ((a, b) -> a)
-    TSnd : QueryTuple a b =>  Query db ctxt ((a, b) -> b)
-    Slice : Query db ctxt (Int-> Maybe Int -> List a -> List a)
-    Add : QueryNum a => Query db ctxt (a -> a -> a)
-    Mul : QueryNum a => Query db ctxt (a -> a -> a)
-    MatchMaybe : QueryMaybe a => Query db ctxt (b -> (a -> b) -> Maybe a -> b)
-    Nothing : QueryMaybe a => Query db ctxt (Maybe a)
-    Just : QueryMaybe a => Query db ctxt (a -> Maybe a)
-    Relax : Query db ctxt a -> Query db ((k,b) :: ctxt) a
-    EmptyList : Query db ctxt (List a)
-    Nth : QueryMaybe a => QueryFiniteSequence f => Query db ctxt (Int -> f a -> Maybe a)
-    CatMaybes : (QueryMaybe a, QuerySequence f) => Query db ctxt (f (Maybe a) -> f a)
-    OrderBy : QuerySequence f => Query db ctxt ((a -> b) -> f a -> f a)
-    Get : Query db ctxt (Table (("id", a) :: ts)) -> Query db ctxt (a -> Maybe (Record' (("id", a) :: ts)))
+mutual
+  public export
+  data Query : ServerSpec -> List (String, Type) -> Type -> Type where
+      Var : (name : String) -> {auto p : KElem  name ctxt}  -> Query db ctxt (klookup ctxt p)
+      Lambda : (arg : String) -> Query db ((arg, a) :: ctxt) b ->  Query db ctxt (a -> b)
+      App : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
+      GetTable : (d : String) -> (t : String) -> {auto p : KElem (d, t) db} -> Query db ctxt (Table (klookup db p))
+      ReadTable : Query db ctxt (Table ts) -> Query db ctxt (Cursor (Record' ts))
+      Between : HasParts a b => 
+                   {default True leftBoundClosed : Bool} -> {default False rightBoundClosed : Bool} ->
+                     Query db ctxt (Table (("id", a) :: ts)) ->  
+                       Query db ctxt b -> Query db ctxt b  -> Query db ctxt (Cursor (Record' (("id", a) :: ts)))
+      GetChanges : QueryMaybe a  => Bool -> Query db ctxt (Cursor a) -> Query db ctxt (Changes a)
+      Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record' ts)) -> 
+                   Query db ctxt (Record [("first_error", Maybe String)])
+      Insert : Query db ctxt (Table (("id", String) :: ts)) -> 
+                  Query db ctxt (List (Record' ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
+      UpdateOne : Query db ctxt (Table (("id", a) :: ts)) -> Query db ctxt a ->
+                    Update (Record' (("id", a) :: ts)) (Record' ts) -> Query db ctxt (Record [("first_error", Maybe String)])
+      Lit : JsonSerializable a => a -> Query db ctxt a
+      Eq : QueryEq a => Query db ctxt (a -> a -> Bool)
+      GetField : (key : String) -> {auto p : Vect.KElem key fields} -> Query db ctxt (Record fields -> Vect.klookup fields p)
+      Map : QuerySequence f => Query db ctxt ((a -> b) -> f a -> f b)
+      ConcatMapList : QueryFiniteSequence g => Query db ctxt ((a -> g b) -> List a -> List b)
+      GenerateUUID : Query db ctxt String
+      Now : Query db ctxt Date
+      ListPrepend : Query db ctxt (a -> List a -> List a)
+      ListAppend : Query db ctxt (a -> List a -> List a)
+      RecordPrependKey : (k : String) -> Query db ctxt a -> Query db ctxt (Record fields -> Record ((k, a) :: fields))
+      TCons : QueryTuple a b =>  Query db ctxt (a -> b -> (a, b))
+      TFst : QueryTuple a b =>  Query db ctxt ((a, b) -> a)
+      TSnd : QueryTuple a b =>  Query db ctxt ((a, b) -> b)
+      Slice : Query db ctxt (Int-> Maybe Int -> List a -> List a)
+      Add : QueryNum a => Query db ctxt (a -> a -> a)
+      Mul : QueryNum a => Query db ctxt (a -> a -> a)
+      MatchMaybe : QueryMaybe a => Query db ctxt (b -> (a -> b) -> Maybe a -> b)
+      Nothing : QueryMaybe a => Query db ctxt (Maybe a)
+      Just : QueryMaybe a => Query db ctxt (a -> Maybe a)
+      Relax : Query db ctxt a -> Query db ((k,b) :: ctxt) a
+      EmptyList : Query db ctxt (List a)
+      Nth : QueryMaybe a => QueryFiniteSequence f => Query db ctxt (Int -> f a -> Maybe a)
+      CatMaybes : (QueryMaybe a, QuerySequence f) => Query db ctxt (f (Maybe a) -> f a)
+      OrderBy : QuerySequence f => Query db ctxt ((a -> b) -> f a -> f a)
+      Get : Query db ctxt (Table (("id", a) :: ts)) -> Query db ctxt (a -> Maybe (Record' (("id", a) :: ts)))
+
+  public export
+    data AtomicProof : Query db ctxt t -> Type where
+      APApp : AtomicProof f -> AtomicProof x -> AtomicProof (App f x)
+      APListAppend : AtomicProof ListAppend
+      APListPrepend : AtomicProof ListPrepend
+      APLit : JsonSerializable t => (x : t) -> AtomicProof (Lit x)
+      APPNow : AtomicProof Now
+      APVar : {auto p : List.KElem name ctxt} -> AtomicProof (Var {ctxt=ctxt} {p=p} name)
+      APEmptyList : AtomicProof EmptyList
+
+  public export
+  data Update : Type -> Type -> Type where
+    UpdateValue : (q : Query d [("row", a)] b) -> {auto 0 p : AtomicProof q} -> Update a b
+    UpdateFields : {xs : Vect n (String, Type)}  -> {auto 0 p : SubSet xs ys} -> (upds : Record (mapValues (\w => Update a w) xs)) -> Update a (Record ys)
 
 
 public export
@@ -425,6 +445,9 @@ prim__rnow : AnyPtr -> AnyPtr
 %foreign "node:lambda: () => (x => (y => y.prepend(x)))"
 prim__rprepend : () -> AnyPtr
 
+%foreign "node:lambda: () => (x => (y => y.append(x)))"
+prim__rappend : () -> AnyPtr
+
 %foreign "node:lambda: (k, v) => (x => x.merge({[k]: v}))"
 prim__rmerge : String -> AnyPtr -> AnyPtr
 
@@ -560,87 +583,106 @@ QueryMaybe (Record rs) where
   nothing = prim__rnull (prim__r ())
   wrap = prim__rid
 
+%foreign "node:lambda: (r, f) => (x => r.literal(f(x)))"
+prim__updateValue : AnyPtr -> AnyPtr -> AnyPtr 
 
-compileQuery : AnyPtr -> VarStack ctxt ->  Query db ctxt r -> AnyPtr 
-compileQuery r vars (Var name {p}) = 
-  getVar p vars
-compileQuery r vars (Lambda arg x) = 
-  fnToPtr $ \w => compileQuery r (AddVar arg w vars) x
-compileQuery r vars (App f x) = 
-  prim__app (compileQuery r vars f) (compileQuery r vars x)
-compileQuery r vars (GetTable d t) = 
-  prim__getTable r d t
-compileQuery r vars (ReadTable x) = 
-  compileQuery r vars x
-compileQuery r vars (Between {a} {b} {leftBoundClosed} {rightBoundClosed} tbl x y) = 
-  prim__rbetween
-    r
-    (compileQuery r vars tbl) 
-    (replacePartsNulls {a = a} {b = b} (prim__rminval r) $ compileQuery r vars x) 
-    (replacePartsNulls {a = a} {b = b} (prim__rmaxval r) $ compileQuery r vars y) 
-    (json2ptr $ JObject [("leftBound", JString $ if leftBoundClosed then "closed" else "open")
-                        , ("rightBound", JString $ if rightBoundClosed then "closed" else "open")
-                        ]
-    )
-compileQuery r vars (GetChanges {a} includeInitial x ) = 
-  prim__changes 
-    r 
-    (nothing {a})  
-    (wrap {a})
-    (compileQuery r vars x) 
-    (json2ptr $ JObject [("includeInitial", JBoolean includeInitial), ("includeTypes", JBoolean True)])
-compileQuery r vars (Insert t xs) = 
-  prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
-compileQuery r vars (Insert' t xs) = 
-  prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
-compileQuery r vars (Lit x) = 
-  prim__expr r $ toPtr x
-compileQuery r vars (Eq {a}) = 
-  req {a}
-compileQuery r vars (GetField key) = 
-  prim__rget key
-compileQuery r vars Map =
-  prim__rmap r
-compileQuery r vars ConcatMapList =
-  prim__rconcatMap ()
-compileQuery r vars GenerateUUID =
-  prim__ruuid r
-compileQuery r vars Now =
-  prim__rnow r
-compileQuery r vars ListPrepend =
-  prim__rprepend ()
-compileQuery r vars (RecordPrependKey k v) =
-  prim__rmerge k (compileQuery r vars v)
-compileQuery r vars (TCons {a} {b}) =
-  tcons {a} {b}
-compileQuery r vars (TFst {a} {b}) =
-  tfst {a} {b}
-compileQuery r vars (TSnd {a} {b}) =
-  tsnd {a} {b}
-compileQuery r vars Slice =
-  prim__rslice r
-compileQuery r vars (Add {a}) =
-  radd {a}
-compileQuery r vars (Mul {a}) =
-  rmul {a}  
-compileQuery r vars (MatchMaybe {a}) =
-  prim__rMatchMaybe r (isNothing {a}) (unwrapJust {a})
-compileQuery r vars (Nothing {a}) =
-  (nothing {a})
-compileQuery r vars (Just {a}) =
-  prim__fnToPtr $ (wrap {a})
-compileQuery r (AddVar k y z) (Relax x) = 
-  compileQuery r z x
-compileQuery r vars EmptyList =
-  prim__remptyList r
-compileQuery r vars (Nth {a}) =
-  prim__rnth r (nothing {a}) (wrap {a})
-compileQuery r vars (CatMaybes {a}) =
-  prim__rcatMaybes (isNothing {a}) (unwrapJust {a})
-compileQuery r vars OrderBy =
-  prim__rorderBy ()
-compileQuery r vars (Get x) = 
-  prim__rGet $ compileQuery r vars x
+%foreign "node:lambda: (t, x, u) => t.get(x).update(u) "
+prim__updateOne : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr 
+
+mutual
+
+  compileFieldUpdates : AnyPtr -> (xs : Vect n (String, Type)) -> Record (mapValues (\w => Update a w) xs) -> List (String, AnyPtr)
+  compileFieldUpdates r [] x = []
+  compileFieldUpdates r ((y, z) :: xs) ((MkEntry y x) :: w) = (y, compileUpdate r x) :: compileFieldUpdates r xs w
+
+  compileUpdate : AnyPtr -> Update a b -> AnyPtr
+  compileUpdate r (UpdateValue q) = prim__updateValue r (compileQuery r Empty (Lambda "row" q))
+  compileUpdate r (UpdateFields {xs} upds) = let zs = compileFieldUpdates r xs upds in mkJsObj zs
+
+  compileQuery : AnyPtr -> VarStack ctxt ->  Query db ctxt r -> AnyPtr 
+  compileQuery r vars (Var name {p}) = 
+    getVar p vars
+  compileQuery r vars (Lambda arg x) = 
+    fnToPtr $ \w => compileQuery r (AddVar arg w vars) x
+  compileQuery r vars (App f x) = 
+    prim__app (compileQuery r vars f) (compileQuery r vars x)
+  compileQuery r vars (GetTable d t) = 
+    prim__getTable r d t
+  compileQuery r vars (ReadTable x) = 
+    compileQuery r vars x
+  compileQuery r vars (Between {a} {b} {leftBoundClosed} {rightBoundClosed} tbl x y) = 
+    prim__rbetween
+      r
+      (compileQuery r vars tbl) 
+      (replacePartsNulls {a = a} {b = b} (prim__rminval r) $ compileQuery r vars x) 
+      (replacePartsNulls {a = a} {b = b} (prim__rmaxval r) $ compileQuery r vars y) 
+      (json2ptr $ JObject [("leftBound", JString $ if leftBoundClosed then "closed" else "open")
+                          , ("rightBound", JString $ if rightBoundClosed then "closed" else "open")
+                          ]
+      )
+  compileQuery r vars (GetChanges {a} includeInitial x ) = 
+    prim__changes 
+      r 
+      (nothing {a})  
+      (wrap {a})
+      (compileQuery r vars x) 
+      (json2ptr $ JObject [("includeInitial", JBoolean includeInitial), ("includeTypes", JBoolean True)])
+  compileQuery r vars (Insert t xs) = 
+    prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
+  compileQuery r vars (Insert' t xs) = 
+    prim__insert r (compileQuery r vars t) (compileQuery r vars xs)
+  compileQuery r vars (UpdateOne t x u) =
+    prim__updateOne (compileQuery r vars t) (compileQuery r vars x) (compileUpdate r u)
+  compileQuery r vars (Lit x) = 
+    prim__expr r $ toPtr x
+  compileQuery r vars (Eq {a}) = 
+    req {a}
+  compileQuery r vars (GetField key) = 
+    prim__rget key
+  compileQuery r vars Map =
+    prim__rmap r
+  compileQuery r vars ConcatMapList =
+    prim__rconcatMap ()
+  compileQuery r vars GenerateUUID =
+    prim__ruuid r
+  compileQuery r vars Now =
+    prim__rnow r
+  compileQuery r vars ListPrepend =
+    prim__rprepend ()
+  compileQuery r vars ListAppend =
+    prim__rappend ()
+  compileQuery r vars (RecordPrependKey k v) =
+    prim__rmerge k (compileQuery r vars v)
+  compileQuery r vars (TCons {a} {b}) =
+    tcons {a} {b}
+  compileQuery r vars (TFst {a} {b}) =
+    tfst {a} {b}
+  compileQuery r vars (TSnd {a} {b}) =
+    tsnd {a} {b}
+  compileQuery r vars Slice =
+    prim__rslice r
+  compileQuery r vars (Add {a}) =
+    radd {a}
+  compileQuery r vars (Mul {a}) =
+    rmul {a}  
+  compileQuery r vars (MatchMaybe {a}) =
+    prim__rMatchMaybe r (isNothing {a}) (unwrapJust {a})
+  compileQuery r vars (Nothing {a}) =
+    (nothing {a})
+  compileQuery r vars (Just {a}) =
+    prim__fnToPtr $ (wrap {a})
+  compileQuery r (AddVar k y z) (Relax x) = 
+    compileQuery r z x
+  compileQuery r vars EmptyList =
+    prim__remptyList r
+  compileQuery r vars (Nth {a}) =
+    prim__rnth r (nothing {a}) (wrap {a})
+  compileQuery r vars (CatMaybes {a}) =
+    prim__rcatMaybes (isNothing {a}) (unwrapJust {a})
+  compileQuery r vars OrderBy =
+    prim__rorderBy ()
+  compileQuery r vars (Get x) = 
+    prim__rGet $ compileQuery r vars x
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
