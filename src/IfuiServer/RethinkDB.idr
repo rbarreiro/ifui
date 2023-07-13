@@ -130,7 +130,7 @@ mutual
     public export
     data Update : Type -> Type -> Type where
       UpdateValue : (q : Query d [("row", a)] b) -> {auto 0 p : AtomicProof q} -> Update a b
-      UpdateFields : FieldUpdates a xs -> Update x (Record xs)
+      UpdateFields : FieldUpdates a xs -> Update a (Record xs)
 
 
 public export
