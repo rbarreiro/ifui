@@ -120,7 +120,8 @@ mutual
     APVar : {auto p : List.KElem name ctxt} -> AtomicProof (Var {ctxt=ctxt} {p=p} name)
     APEmptyList : AtomicProof EmptyList
     APGetField : {auto p : Vect.KElem key fields} -> AtomicProof (GetField {p = p} key)
-    APRecordPrependKey : {0 fields : Vect n (String,Type)} -> (k : String) -> AtomicProof x -> AtomicProof (RecordPrependKey {fields = fields} k x)
+    APRecordPrependKey : {0 fields : Vect n (String,Type)} -> (k : String) -> AtomicProof x -> 
+                            AtomicProof (RecordPrependKey {fields = fields} k x)
 
   namespace Update
 
@@ -152,19 +153,19 @@ infixl 2 <|
 infixl 3 |.
 infixl 3 .|
 
-export
+public export
 (<|) : Query db ctxt (a -> b) -> Query db ctxt a -> Query db ctxt b
 (<|) = App
 
-export
+public export
 (|>) : Query db ctxt a -> Query db ctxt (a -> b) -> Query db ctxt b
 (|>) x f = App f x
 
-export
+public export
 (|.) : Query db ctxt (a -> b) -> Query db ctxt (b -> c)  -> Query db ctxt (a -> c)
 (|.) f g = Lambda "x" (Var "x" |> Relax f |> Relax g)
 
-export
+public export
 (.|) : Query db ctxt (b -> c)  -> Query db ctxt (a -> b)  -> Query db ctxt (a -> c)
 (.|) f g = g |. f
 
@@ -172,11 +173,11 @@ public export
 (^^) : QueryTuple a b  => Query db ctxt a -> Query db ctxt b -> Query db ctxt (a, b)
 (^^) x y = TCons <| x <| y
 
-export
+public export
 FromString (Query db ctxt String) where
   fromString = Lit
 
-export
+public export
 (QueryNum a, JsonSerializable a, Num a) => Num (Query db ctxt a) where
   (+) x y = Add <| x <| y
   (*) x y = Mul <|x <| y
@@ -214,16 +215,22 @@ export
 QueryFiniteSequence List where
 
 namespace Query
-  export
+  public export
   drop : Query db ctxt (Int -> List a -> List a)
   drop = Lambda "x" (Slice <| Var "x" <| Lit Nothing)
 
-  export
+  public export
   mapMaybe : QueryMaybe a => QueryMaybe b => Query db ctxt ((a -> b) -> Maybe a -> Maybe b)
   mapMaybe = Lambda "f" (Lambda "x" (MatchMaybe <| Nothing <| (Var "f" |. Just) <| Var "x"))
 
 testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
 testQueryList = [[("a" ^= "1"), ("b" ^= "2")]]
+
+TestAPq : Query [] [] (Record [("x", String)])
+TestAPq = ["x" ^= "ola"]
+
+testAP : AtomicProof TestAPq
+testAP = APApp (APRecordPrependKey "x" (APLit "ola")) (APLit [])
 
 public export
 interface KeyType a where
