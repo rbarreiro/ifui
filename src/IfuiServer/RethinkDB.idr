@@ -120,6 +120,7 @@ mutual
     APVar : {auto p : List.KElem name ctxt} -> AtomicProof (Var {ctxt=ctxt} {p=p} name)
     APEmptyList : AtomicProof EmptyList
     APGetField : {auto p : Vect.KElem key fields} -> AtomicProof (GetField {p = p} key)
+    APRecordPrependKey : {0 fields : Vect n (String,Type)} -> (k : String) -> AtomicProof x -> AtomicProof (RecordPrependKey {fields = fields} k x)
 
   namespace Update
 
