@@ -115,7 +115,7 @@ mutual
     APApp : AtomicProof f -> AtomicProof x -> AtomicProof (App f x)
     APListAppend : AtomicProof ListAppend
     APListPrepend : AtomicProof ListPrepend
-    APLit : JsonSerializable t => (x : t) -> AtomicProof (Lit x)
+    APLit : JsonSerializable a => AtomicProof (Lit {a = a} x)
     APPNow : AtomicProof Now
     APVar : {auto p : List.KElem name ctxt} -> AtomicProof (Var {ctxt=ctxt} {p=p} name)
     APEmptyList : AtomicProof EmptyList
@@ -128,7 +128,7 @@ mutual
     public export
     data FieldUpdates : Type -> Vect n (String, Type) -> Type where
       Nil : FieldUpdates a xs
-      (::) : {k : String} -> {p : Elem (k, b) xs} -> Entry k (Update a b)  -> FieldUpdates a xs -> FieldUpdates a xs
+      (::) : {k : String} -> {auto 0 p : Elem (k, b) xs} -> Entry k (Update a b) -> FieldUpdates a xs -> FieldUpdates a xs
 
     public export
     data Update : Type -> Type -> Type where
@@ -226,11 +226,14 @@ namespace Query
 testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
 testQueryList = [[("a" ^= "1"), ("b" ^= "2")]]
 
-TestAPq : Query [] [] (Record [("x", String)])
+TestAPq : Query [] ctxt (Record [("x", String)])
 TestAPq = ["x" ^= "ola"]
 
 testAP : AtomicProof TestAPq
-testAP = APApp (APRecordPrependKey "x" (APLit "ola")) (APLit [])
+testAP = APApp (APRecordPrependKey "x" APLit) APLit
+
+testUpd : Update a (Record [("x", String)])
+testUpd = UpdateFields ["x" ^= UpdateValue (Lit {db = []} "ola")]
 
 public export
 interface KeyType a where
