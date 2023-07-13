@@ -119,6 +119,7 @@ mutual
     APPNow : AtomicProof Now
     APVar : {auto p : List.KElem name ctxt} -> AtomicProof (Var {ctxt=ctxt} {p=p} name)
     APEmptyList : AtomicProof EmptyList
+    APGetField : {auto p : Vect.KElem key fields} -> AtomicProof (GetField {p = p} key)
 
   namespace Update
 
