@@ -99,12 +99,6 @@ namespace Vect
   UniqueKeys ((x, y) :: xs) = not (HasKey x xs) && UniqueKeys xs
 
   public export
-  data SubSet : Vect n a -> Vect m a -> Type where
-    SubSetNil : SubSet [] ys
-    SubSetCons : Elem x ys -> SubSet xs ys -> SubSet (x :: xs) ys
-
-
-  public export
   mapValues : (a -> b) ->  Vect n (k, a) -> Vect n (k, b)
   mapValues f [] = []
   mapValues f ((x, y) :: xs) = (x, f y) :: mapValues f xs

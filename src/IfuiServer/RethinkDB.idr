@@ -111,19 +111,26 @@ mutual
       Get : Query db ctxt (Table (("id", a) :: ts)) -> Query db ctxt (a -> Maybe (Record' (("id", a) :: ts)))
 
   public export
-    data AtomicProof : Query db ctxt t -> Type where
-      APApp : AtomicProof f -> AtomicProof x -> AtomicProof (App f x)
-      APListAppend : AtomicProof ListAppend
-      APListPrepend : AtomicProof ListPrepend
-      APLit : JsonSerializable t => (x : t) -> AtomicProof (Lit x)
-      APPNow : AtomicProof Now
-      APVar : {auto p : List.KElem name ctxt} -> AtomicProof (Var {ctxt=ctxt} {p=p} name)
-      APEmptyList : AtomicProof EmptyList
+  data AtomicProof : Query db ctxt t -> Type where
+    APApp : AtomicProof f -> AtomicProof x -> AtomicProof (App f x)
+    APListAppend : AtomicProof ListAppend
+    APListPrepend : AtomicProof ListPrepend
+    APLit : JsonSerializable t => (x : t) -> AtomicProof (Lit x)
+    APPNow : AtomicProof Now
+    APVar : {auto p : List.KElem name ctxt} -> AtomicProof (Var {ctxt=ctxt} {p=p} name)
+    APEmptyList : AtomicProof EmptyList
 
-  public export
-  data Update : Type -> Type -> Type where
-    UpdateValue : (q : Query d [("row", a)] b) -> {auto 0 p : AtomicProof q} -> Update a b
-    UpdateFields : {xs : Vect n (String, Type)}  -> {auto 0 p : SubSet xs ys} -> (upds : Record (mapValues (\w => Update a w) xs)) -> Update a (Record ys)
+  namespace Update
+
+    public export
+    data FieldUpdates : Type -> Vect n (String, Type) -> Type where
+      Nil : FieldUpdates a xs
+      (::) : {k : String} -> {p : Elem (k, b) xs} -> Entry k (Update a b)  -> FieldUpdates a xs -> FieldUpdates a xs
+
+    public export
+    data Update : Type -> Type -> Type where
+      UpdateValue : (q : Query d [("row", a)] b) -> {auto 0 p : AtomicProof q} -> Update a b
+      UpdateFields : FieldUpdates a xs -> Update x (Record xs)
 
 
 public export
@@ -591,13 +598,13 @@ prim__updateOne : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr
 
 mutual
 
-  compileFieldUpdates : AnyPtr -> (xs : Vect n (String, Type)) -> Record (mapValues (\w => Update a w) xs) -> List (String, AnyPtr)
-  compileFieldUpdates r [] x = []
-  compileFieldUpdates r ((y, z) :: xs) ((MkEntry y x) :: w) = (y, compileUpdate r x) :: compileFieldUpdates r xs w
+  compileFieldUpdates : AnyPtr -> FieldUpdates a xs  -> List (String, AnyPtr)
+  compileFieldUpdates r [] = []
+  compileFieldUpdates r ((MkEntry k x) :: rs) = (k, compileUpdate r x) :: compileFieldUpdates r rs
 
   compileUpdate : AnyPtr -> Update a b -> AnyPtr
   compileUpdate r (UpdateValue q) = prim__updateValue r (compileQuery r Empty (Lambda "row" q))
-  compileUpdate r (UpdateFields {xs} upds) = let zs = compileFieldUpdates r xs upds in mkJsObj zs
+  compileUpdate r (UpdateFields upds) = let zs = compileFieldUpdates r upds in mkJsObj zs
 
   compileQuery : AnyPtr -> VarStack ctxt ->  Query db ctxt r -> AnyPtr 
   compileQuery r vars (Var name {p}) = 
