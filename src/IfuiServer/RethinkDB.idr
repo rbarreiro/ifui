@@ -519,6 +519,10 @@ export
 HasParts String (Maybe String) where
   replacePartsNulls replacement x = prim__rdefault x replacement
 
+export
+HasParts (List String) (Maybe (List String)) where
+  replacePartsNulls replacement x = prim__rdefault x replacement
+
 %foreign "node:lambda: (r, rfst, rsnd, x) => r.branch(x.count().eq(2), r.expr([rfst(x(0)), rsnd(x(1))]), rsnd(x.slice(1)).prepend(rfst(x(0))))"
 prim__replacePartsNullsTuple : AnyPtr -> (AnyPtr -> AnyPtr) -> (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr 
 
