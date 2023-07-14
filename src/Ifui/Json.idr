@@ -229,9 +229,6 @@ JsonSerializable (a, b) => JsonSerializable (Maybe (a, b)) where
   fromJson x = Just <$> fromJson x
   
 
-testJTuple : JSON
-testJTuple = toJson ("a", "b", Just "c")
-
 export
 JsonSerializable b => JsonSerializable1 (const b) where
   toJson1 x cont = toJson x 
@@ -248,6 +245,17 @@ export
 JsonSerializable a => JsonSerializable (List a) where
   toJson x = toJson1 x toJson
   fromJson x = fromJson1 x fromJson
+
+export
+JsonSerializable (List a) => JsonSerializable (Maybe (List a)) where
+  toJson Nothing = JNull
+  toJson (Just x) = toJson x
+
+  fromJson JNull = Just Nothing
+  fromJson o = Just <$> fromJson o
+
+testJTuple : JSON
+testJTuple = toJson ("a", "b", Just $ the (List String) ["c"])
 
 export
 JsonSerializable a => JsonSerializable1 (\t => List (a, t)) where
