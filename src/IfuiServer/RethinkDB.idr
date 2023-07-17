@@ -554,6 +554,12 @@ QueryTuple a String where
   tsnd = prim__rlist1 ()
 
 export
+QueryTuple a (Maybe b) where
+  tcons = prim__rmakeListPair (prim__r ())
+  tfst = prim__rlist0 ()
+  tsnd = prim__rlist1 ()
+
+export
 QueryTuple a (b, c) where
   tcons = prim__rprepend ()
   tfst = prim__rlist0 ()
