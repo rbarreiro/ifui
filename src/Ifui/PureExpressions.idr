@@ -1,6 +1,7 @@
 module Ifui.PureExpressions
 
 import public Ifui.ExtensibleTypes
+import public Ifui.MediaTypes
 import Data.List.Elem
 import Ifui.Json
 import Decidable.Equality
@@ -31,6 +32,7 @@ mutual
            | PRecord (List (String, PTy))
            | PTree (List (String, TreeNodeKind))
            | PForall PPTy
+           | PPDF
 
 public export
 TreeNodeKindPTy : TreeNodeKind -> PTy -> PTy
@@ -85,6 +87,7 @@ mutual
   PTyType (PTensor dim t) = ?h
   PTyType (PTuple t1 t2) = (PTyType t1, PTyType t2)
   PTyType (PForall pt) = Pexp [] (PForall pt)
+  PTyType PPDF = PDF
 
 export
 Uninhabited (PString = PBool) where
@@ -596,6 +599,84 @@ Uninhabited (PPList = PPFun x y) where
 export
 Uninhabited (PPFun x z = PPList) where
   uninhabited Refl impossible
+export
+Uninhabited (PString = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PBool = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PFun xx yy = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PRecord xx = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTree xx = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PUnit = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PInt = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PList xx = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PNat = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PDouble = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTensor xx yy = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PTuple xx yy = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PForall xx = PPDF) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PString) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PBool) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PUnit) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PInt) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PList x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PNat) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PDouble) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PTensor ks x) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PTuple x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PFun x y) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PRecord xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PTree xs) where
+  uninhabited Refl impossible
+export
+Uninhabited (PPDF = PForall x) where
+  uninhabited Refl impossible
 
 export
 Biinjective PFun where
@@ -836,6 +917,37 @@ mutual
     decEq (PForall _) (PRecord xs)  = No absurd
     decEq (PForall _) (PTree xs)  = No absurd
     decEq (PForall x) (PForall y) = decEqCong (decEq x y)
+    decEq PString PPDF = No absurd
+    decEq PBool PPDF = No absurd
+    decEq (PFun _ _) PPDF = No absurd
+    decEq (PRecord _) PPDF = No absurd
+    decEq (PTree _) PPDF = No absurd
+    decEq PUnit PPDF = No absurd
+    decEq PInt PPDF = No absurd
+    decEq (PList _) PPDF = No absurd
+    decEq PNat PPDF = No absurd
+    decEq PDouble PPDF = No absurd
+    decEq (PTensor _ _) PPDF = No absurd
+    decEq (PTuple _ _) PPDF = No absurd
+    decEq (PForall _) PPDF = No absurd
+    decEq PPDF PString  = No absurd
+    decEq PPDF PBool  = No absurd
+    decEq PPDF PUnit  = No absurd
+    decEq PPDF PInt  = No absurd
+    decEq PPDF (PList x)  = No absurd
+    decEq PPDF PNat  = No absurd
+    decEq PPDF PDouble  = No absurd
+    decEq PPDF (PTensor ks x)  = No absurd
+    decEq PPDF (PTuple x y)  = No absurd
+    decEq PPDF (PFun x y)  = No absurd
+    decEq PPDF (PRecord xs)  = No absurd
+    decEq PPDF (PTree xs)  = No absurd
+    decEq PPDF (PForall x)  = No absurd
+    decEq PPDF PPDF  = Yes Refl
+
+JsonSerializable PPTy where
+  toJson x = ?arstrstd
+  fromJson x = ?synyun
 
 mutual
   export
@@ -866,7 +978,8 @@ mutual
     toJson PDouble = JString "PDouble"
     toJson (PTensor x y) = JArray [JString "PTensor", toJson x, toJson y]
     toJson (PTuple x y) = JArray [JString "PTuple", toJson x, toJson y]
-    toJson (PForall t) = ?hrtd
+    toJson (PForall t) = JArray [JString "PForall", toJson t]
+    toJson PPDF = JString "PPDF"
 
 
     fromJson (JString "PString") = 
@@ -899,6 +1012,10 @@ mutual
       Just $ PTensor !(fromJson x) !(fromJson y)
     fromJson (JArray [JString "PTuple", x, y]) = 
       Just $ PTuple !(fromJson x) !(fromJson y)
+    fromJson (JArray [JString "PForall", x]) = 
+      Just $ PForall !(fromJson x)
+    fromJson (JString "PPDF") = 
+      Just PPDF
     fromJson _ = Nothing 
 
 {a : PTy} -> JsonSerializable (PrimFn a) where
@@ -1008,6 +1125,7 @@ mutual
   pTyTypeToJson (PTensor _ _) = ?yuarlst
   pTyTypeToJson (PTuple _ _) = ?ysrdtulr
   pTyTypeToJson (PForall _) = ?ysrdtulrarst
+  pTyTypeToJson PPDF = toJson
 
 mutual
   recPTypeTypeFromJson : (xs : Vect n (String, PTy)) -> Record ((mapValues (\t => JSON -> Maybe t)) (mapValues PTyType xs))
@@ -1031,4 +1149,5 @@ mutual
   pTyTypeFromJson (PTensor _ _) = ?irtsuack
   pTyTypeFromJson (PTuple _ _) = ?cxnwu
   pTyTypeFromJson (PForall _) = ?cxnwuarst
+  pTyTypeFromJson PPDF = fromJson
 
