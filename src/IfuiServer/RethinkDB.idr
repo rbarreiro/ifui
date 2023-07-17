@@ -216,12 +216,24 @@ QueryFiniteSequence List where
 
 namespace Query
   public export
+  id : Query db ctxt (a -> a)
+  id = Lambda "x" (Var "x")
+
+  public export
+  const : Query db ctxt (b -> a -> b)
+  const = Lambda "x" (Lambda "y" (Var "x"))
+
+  public export
   drop : Query db ctxt (Int -> List a -> List a)
   drop = Lambda "x" (Slice <| Var "x" <| Lit Nothing)
 
   public export
   mapMaybe : QueryMaybe a => QueryMaybe b => Query db ctxt ((a -> b) -> Maybe a -> Maybe b)
   mapMaybe = Lambda "f" (Lambda "x" (MatchMaybe <| Nothing <| (Var "f" |. Just) <| Var "x"))
+
+  public export
+  joinMaybe : QueryMaybe a => QueryMaybe (Maybe a) => Query db ctxt (Maybe (Maybe a) -> Maybe a)
+  joinMaybe = Lambda "x" (MatchMaybe <| Nothing <| id <| Var "x")
 
 testQueryList : Query [] [] (List (Record [("a", String), ("b", String)]))
 testQueryList = [[("a" ^= "1"), ("b" ^= "2")]]
