@@ -504,10 +504,11 @@ mutual
         , ("Tensor", \() => PTensor <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
         , ("Tuple", \() => PTuple <$> getReaderBulma Nothing  <*> getReaderBulma Nothing)
         , ("Forall", \() => ?arsyustd)
+        , ("PDF", \() => pure PPDF)
         ] 
         x
       where
-        aux : PTy -> (Fin 13, Reader PTy)
+        aux : PTy -> (Fin 14, Reader PTy)
         aux PString = (0, pure PString)
         aux PBool = (1, pure PBool)
         aux PUnit = (2, pure PUnit)
@@ -521,6 +522,7 @@ mutual
         aux (PTensor y z) = (10, PTensor <$> getReaderBulma (Just y)  <*> getReaderBulma (Just z))
         aux (PTuple y z) = (11, PTuple <$> getReaderBulma (Just y)  <*> getReaderBulma (Just z))
         aux (PForall x) = ?arstuyl
+        aux PPDF = (13, pure PPDF)
 
 
 varExprs_ : (ctxt : List (String, PTy)) -> List (t : PTy ** (k : String ** p : KElem k ctxt ** t = klookup ctxt p))
@@ -617,6 +619,7 @@ mutual
   litReaders ctxt (PTree xs) = 
     [("Literal", \() => (\(k ** p ** v) => TreeLit p v)  <$> treeLitReader ctxt xs Nothing)]
   litReaders ctxt (PForall x) = ?litReaders_rhs_12
+  litReaders ctxt PPDF = ?litReaders_rhs_13
 
   expReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, () ->  Reader (Pexp ctxt t)))
   expReaders ctxt t =
@@ -715,6 +718,7 @@ mutual
   pTyTypeReader (PTensor _ _) = ?uyaw
   pTyTypeReader (PTuple _ _) = ?yrsutyruj
   pTyTypeReader (PForall _) = ?yrsutyrujarst
+  pTyTypeReader PPDF = ?yrsutyrujarstarst
 
 
 export
