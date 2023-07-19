@@ -183,6 +183,13 @@ JTuple Int where
   tupleFromJson _ = Nothing
 
 export
+JTuple Nat where
+  tupleToJson x = [toJson x]
+  
+  tupleFromJson [x] = fromJson x
+  tupleFromJson _ = Nothing
+
+export
 JTuple JSON where
   tupleToJson x = [toJson x]
   

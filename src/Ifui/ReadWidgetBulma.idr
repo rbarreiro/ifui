@@ -664,6 +664,7 @@ mutual
   getReaderBulma_Pexp ctxt (PFun a b) (Just (Lambda arg x)) = 
     let (n ** zs) = expReaders ctxt (PFun a b)
     in ?getReaderBulma__rhs_3
+  getReaderBulma_Pexp ctxt t (Just (Let n v x)) = ?getReaderBulma__rhsrstrst
   getReaderBulma_Pexp ctxt t (Just (App x y)) = ?getReaderBulma__rhs_4
   getReaderBulma_Pexp ctxt PString (Just (StringLit str)) = ?getReaderBulma__rhs_5
   getReaderBulma_Pexp ctxt PBool (Just (BoolLit x)) = ?getReaderBulma__rhs_6
