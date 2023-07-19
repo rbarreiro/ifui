@@ -85,6 +85,7 @@ inlineVars ((z, w) :: xs) ((MkEntry z x) :: v) y =
   let y_ = Let z (toExp w x) y
   in inlineVars xs v y_
 
+export
 eval : {vars : List (String, PTy)} -> Record' (mapValues PTyType  vars) -> Pexp vars a -> PTyType a 
 eval varValues (Var {p} _) = 
   getVar vars p varValues
