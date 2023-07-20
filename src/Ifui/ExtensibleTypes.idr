@@ -99,6 +99,18 @@ namespace Vect
   UniqueKeys ((x, y) :: xs) = not (HasKey x xs) && UniqueKeys xs
 
   public export
+  HasValue : Eq a => a -> Vect n a -> Bool
+  HasValue x [] = False
+  HasValue x (y :: xs) = 
+    if x == y then True
+              else HasValue x xs
+
+  public export
+  UniqueValues : Eq a => Vect n a -> Bool
+  UniqueValues [] = True
+  UniqueValues (x :: xs) = not (HasValue x xs) && UniqueValues xs
+
+  public export
   mapValues : (a -> b) ->  Vect n (k, a) -> Vect n (k, b)
   mapValues f [] = []
   mapValues f ((x, y) :: xs) = (x, f y) :: mapValues f xs
@@ -188,4 +200,10 @@ namespace Tree
          {auto p : KElem s ts} -> (klookup ts p) (Tree ts) -> Tree ts
   N {ts} s {p} x with (kElemToFin p)
     N {ts} s {p} x | i = MkTree i x
+
+
+namespace Enum
+  public export
+  Enum : Vect n String -> Type
+  Enum xs = Tree ((\s => (s, const ())) <$> xs)
 
