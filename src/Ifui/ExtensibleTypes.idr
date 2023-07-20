@@ -201,6 +201,10 @@ namespace Tree
   N {ts} s {p} x with (kElemToFin p)
     N {ts} s {p} x | i = MkTree i x
 
+namespace Variant
+  public export
+  Variant : Vect n (String, Type) -> Type
+  Variant xs = Tree ((\(s, t) => (s, const t)) <$> xs)
 
 namespace Enum
   public export
