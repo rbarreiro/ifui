@@ -191,6 +191,13 @@ mutual
   fromJson _ = 
     Nothing
 
+export
+JTuple PTy where
+  tupleToJson x = [toJson x]
+  
+  tupleFromJson [x] = fromJson x
+  tupleFromJson _ = Nothing
+
 elemToVar : (ctxt : List (String, PTy)) ->  Elem (n,a) ctxt -> (p : KElem n ctxt ** a = klookup ctxt p)
 elemToVar ((n, a) :: xs) Here = (KHere ** Refl)
 elemToVar ((y, z) :: xs) (There x) = let (g ** h) = elemToVar xs x in (KThere g ** h)
