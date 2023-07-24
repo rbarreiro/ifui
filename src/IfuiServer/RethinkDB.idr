@@ -4,8 +4,8 @@ import public Ifui.ExtensibleTypes
 import Data.List
 import Data.Maybe
 import public Data.List.Elem
-import public IfuiServer.Promise
-import public IfuiServer.IOStream
+import public Ifui.Promise
+import public Ifui.IOStream
 import public Ifui.Services
 import public Ifui.Json
 import public Ifui.Date

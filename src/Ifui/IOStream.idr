@@ -1,4 +1,4 @@
-module IfuiServer.IOStream
+module Ifui.IOStream
 
 import Data.IORef
 

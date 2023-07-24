@@ -1,4 +1,4 @@
-module IfuiServer.Promise
+module Ifui.Promise
 
 import Data.IORef
 import Ifui.JSUtils

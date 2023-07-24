@@ -1,7 +1,7 @@
 module IfuiServer.Server
 
-import public IfuiServer.Promise
-import public IfuiServer.IOStream 
+import public Ifui.Promise
+import public Ifui.IOStream 
 import public Ifui.Services
 import Ifui.ExtensibleTypes
 import Language.JSON
