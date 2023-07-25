@@ -4,6 +4,7 @@ import public Ifui.VirtualDom
 import public Ifui.Dom
 import public Ifui.Services
 import public Ifui.ExtensibleTypes
+import Ifui.Promise
 import Ifui.WebSocketsClient
 import Data.IORef
 import Ifui.Json
@@ -299,6 +300,18 @@ streamSetup path (MkConnectionInfo url socket counter handles) input outputReade
           writeIORef counter (i+1)
           let cancel = removeHandle i_ handles >> writeIORef isFinished True >> send socket (show $ JArray [JString "cancel", JString i_])
           pure $ MkPromiseNodeRef procResult cancel isFinished
+
+export
+promiseToWidget : String -> Promise a -> Widget a
+promiseToWidget  id promise = 
+   MarkupWidget $ \n, onEvt =>
+      setNodePromise n id (\w => onEvt (believe_me w)) $ do
+        procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
+        isFinished <- newIORef False
+        h <- promise.run $ \res => do
+          writeIORef isFinished True
+          !(readIORef procResult) (believe_me res)
+        pure $ MkPromiseNodeRef procResult h.cancel isFinished
 
 rpcSetup : String -> ConnectionInfo -> JSON -> (JSON -> Maybe a)  -> Widget a
 rpcSetup path (MkConnectionInfo url socket counter handles) input outputReader = 
