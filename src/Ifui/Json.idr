@@ -53,7 +53,9 @@ interface JsonSerializable a where
   toJson : a -> JSON
   fromJson : JSON -> Maybe a
   stringify : a -> String
+  parseJson : String -> Maybe a
 
+  parseJson x =  parse x >>= fromJson 
   stringify x = show $ toJson x
 
 public export 
