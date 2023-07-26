@@ -1,7 +1,6 @@
 module Ifui.Pdfjs
 
-import Ifui.Promise
-import Ifui.Widget
+import public Ifui.Promise
 
 export
 data Pdfjs = MkPdfjs AnyPtr
