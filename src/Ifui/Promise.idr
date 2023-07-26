@@ -13,6 +13,14 @@ record Promise a where
  constructor  MkPromise 
  run : (a -> IO ()) -> IO PromiseHandler
 
+public export
+MkPromise' : ((a -> IO ()) -> IO ()) -> Promise a
+MkPromise' f = 
+  MkPromise $ \g => do
+    h <- newIORef g
+    f (\w => do g_ <- readIORef h; g w)
+    pure $ MkPromiseHandler (writeIORef h (\w => pure ()))
+
 export
 Functor Promise where
   map f (MkPromise run) = MkPromise (\w => run (w . f))
@@ -35,7 +43,7 @@ onErrThrow x =
 
 export
 Applicative Promise where
-  pure x = MkPromise (\w => do w x; pure (MkPromiseHandler (pure ())))
+  pure x = MkPromise' (\w => w x)
   (<*>) f x = MkPromise $ \w =>
                 do
                   fres <- newIORef $ the (Maybe (a -> b)) Nothing
@@ -62,7 +70,6 @@ Monad Promise where
 export
 HasIO Promise where
   liftIO x = 
-    MkPromise $ \w => do
+    MkPromise' $ \w => do
       r <- x
       w r
-      pure $ MkPromiseHandler $ pure ()

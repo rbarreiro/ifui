@@ -302,10 +302,9 @@ prim__toArray : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 
 toArrayPtr : AnyPtr -> Promise (Either String AnyPtr)
 toArrayPtr cursor = 
-  MkPromise $ \w => do
-    primIO$ prim__toArray cursor $  \err, result => toPrim $ if err == "" then w $ Right result
+  MkPromise' $ \w => 
+    primIO $ prim__toArray cursor $  \err, result => toPrim $ if err == "" then w $ Right result
                                                                           else w $ Left err
-    pure $ MkPromiseHandler $ pure ()
 
 
 %foreign "node:lambda: err  => err ? err + '' : ''"
@@ -319,10 +318,9 @@ prim__run : AnyPtr -> AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 
 runPtr : AnyPtr -> AnyPtr -> Promise (Either String AnyPtr)
 runPtr query conn = 
-  MkPromise $ \w => do
+  MkPromise' $ \w =>
      primIO $ prim__run query conn $ \err, result => toPrim $ if err == "" then w $ Right result
                                                                            else w $ Left err
-     pure $ MkPromiseHandler $ pure ()
  
 readResultPtr : JsonSerializable a => Lazy String -> AnyPtr -> Either String a
 readResultPtr contextForError ptr = 
@@ -392,8 +390,7 @@ doMigration s conn =
 export
 connect : {default False debug : Bool} -> String -> Int -> (s : ServerSchema) -> Promise (Either String (RethinkServer (ServerSchemaSpec s)))
 connect host port x = 
-  MkPromise $ \w =>
-    do
+  MkPromise' $ \w =>
       primIO $ prim__connect host port (\e, conn => toPrim $
                                                   do
                                                     let err = prim__errToStr e 
@@ -404,7 +401,6 @@ connect host port x =
                                                                         pure ()
                                                                  else w $ Left err
                                        )
-      pure $ MkPromiseHandler (pure ())
 
 export
 connect' : {default False debug : Bool} -> String -> Int -> (s : ServerSchema) -> Promise (RethinkServer (ServerSchemaSpec s))
