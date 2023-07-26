@@ -561,7 +561,8 @@ isSomeReturnType x y =
                     _ => False
 
 mutual
-  readerFromExp_ : (ctxt : List (String, PTy)) -> (t : PTy) -> (te : PTy) -> String -> (Pexp ctxt te) -> Maybe (() -> Reader (Pexp ctxt t))
+  readerFromExp_ : (ctxt : List (String, PTy)) -> (t : PTy) -> (te : PTy) -> String -> 
+                      (Pexp ctxt te) -> Maybe (() -> Reader (Pexp ctxt t))
   readerFromExp_ ctxt t te n z = 
     case decEq t te of
          No _ => 
@@ -690,6 +691,14 @@ export
     MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
     where
       f : Widget a -> Widget a
+      f x = fieldsSection s [x]
+
+export
+{ctxt : List (String, PTy)} -> {a : PTy} -> {s : String } -> ReadWidgetBulma (Entry s (Pexp ctxt a)) where
+  getReaderBulma x = 
+    MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
+    where
+      f : Widget b -> Widget b
       f x = fieldsSection s [x]
 
 
