@@ -62,6 +62,10 @@ bindW f xx (Just ff) filled =
             assert_total $ pure $ MkReader (bindW f xx (Just z)) (getValue z)
 
 export
+widgetToReader : Widget a -> Reader a
+widgetToReader w = MkReader (const $ (MkReader neutral . Just) <$>  w ) Nothing
+
+export
 Monad Reader where
   x >>= f = 
     MkReader (bindW f x (f <$> getValue x)) (join $ (getValue . f) <$> getValue x)
