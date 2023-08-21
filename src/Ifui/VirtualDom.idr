@@ -10,6 +10,8 @@ public export
 data AttributeSpec = StringAttr String String 
                    | ValueAttr String
                    | CSSClassAttr String
+                   | BoolAttr String Bool
+                   | SelectedAttr Bool
 
 public export
 data Attribute = SimpleAttribute AttributeSpec
@@ -200,6 +202,13 @@ addAttribute n (SimpleAttribute spec) =
      (CSSClassAttr x) => do
        addClass n x
        pure $ VSimpleAttribute spec
+     (BoolAttr x y) => do
+       if y then setAttribute n x ""
+            else pure ()
+       pure $ VSimpleAttribute spec
+     (SelectedAttr x) => do
+       setSelected n x
+       pure $ VSimpleAttribute spec
 addAttribute n (EventListener x f) = 
   do
     remove <- addEventListener x f n
@@ -208,9 +217,11 @@ addAttribute n (EventListener x f) =
 removeAttribute : DomNode -> VAttribute -> IO ()
 removeAttribute n (VSimpleAttribute spec) =
   case spec of
-       (StringAttr x y) => setAttribute n x ""
+       (StringAttr x y) => Dom.removeAttribute n x
        (ValueAttr x) => setValue n ""
        (CSSClassAttr x) => removeClass n x
+       (BoolAttr x y) => Dom.removeAttribute n x
+       (SelectedAttr x) => setSelected n False
 removeAttribute n (VEventListener _ y) = y
 
 updateAttribute : DomNode ->  Attribute -> VAttribute  -> IO VAttribute 
@@ -238,6 +249,23 @@ updateAttribute n new@(SimpleAttribute newSpec) old@(VSimpleAttribute oldSpec) =
              else do
                 removeAttribute n old
                 addAttribute n new
+       ((BoolAttr x z), (BoolAttr y w)) => 
+          case (x==y, z==w) of
+               (False, s) => do
+                               removeAttribute n old
+                               addAttribute n new
+               (True, False) => do
+                                  if w then setAttribute n x ""
+                                       else Dom.removeAttribute n x
+                                  pure $ VSimpleAttribute newSpec
+               (True, True) => 
+                              pure old
+       ((SelectedAttr x), (SelectedAttr y)) => 
+          if x == y 
+             then pure old 
+             else do
+               setSelected n x
+               pure $ VSimpleAttribute newSpec
        (_, _) =>
           do
             removeAttribute n old

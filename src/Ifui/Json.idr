@@ -4,6 +4,7 @@ import public Language.JSON
 import public Ifui.ExtensibleTypes
 import Ifui.Date
 import Data.List
+import Decidable.Equality
 
 public export
 ty : String
@@ -252,6 +253,23 @@ JsonSerializable1 List where
 
 export
 JsonSerializable a => JsonSerializable (List a) where
+  toJson x = toJson1 x toJson
+  fromJson x = fromJson1 x fromJson
+
+export
+{n : Nat} -> JsonSerializable1 (Vect n) where
+  toJson1 x g = JArray (toList $ map g x)
+
+  fromJson1 (JArray x) g = 
+    do
+      z <- sequence $ map g x
+      case decEq n (length z) of
+        Yes prf => pure $ rewrite prf in fromList z
+        No _ => Nothing
+  fromJson1 _ _ = Nothing
+
+export
+{n : Nat} -> JsonSerializable a => JsonSerializable (Vect n a) where
   toJson x = toJson1 x toJson
   fromJson x = fromJson1 x fromJson
 

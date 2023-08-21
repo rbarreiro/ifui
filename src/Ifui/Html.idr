@@ -23,7 +23,7 @@ public export
 interface OnChange a where
   onChange : HtmlAttribute a String
 onChange_ : WidgetAttribute String
-onChange_ = WidgetEventListener "change" (\e => targetValue e)
+onChange_ = WidgetEventListener "change" (\e => target e >>= getValue)
 
 public export
 interface Value a where

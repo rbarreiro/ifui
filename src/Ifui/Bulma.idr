@@ -5,6 +5,7 @@ import Ifui.Widget
 import Ifui.Patterns
 import Data.List
 import Ifui.JSUtils
+import Decidable.Equality
 
 class__ : String -> WidgetAttribute b
 class__ x = WidgetSimpleAttribute $ CSSClassAttr x
@@ -13,13 +14,19 @@ type__ : String -> WidgetAttribute b
 type__ x = WidgetSimpleAttribute $ StringAttr "type" x
 
 onChange_ : WidgetAttribute String
-onChange_ = WidgetEventListener "change" (\e => targetValue e)
+onChange_ = WidgetEventListener "change" (\e => target e >>= getValue)
 
 onClick_ : a -> WidgetAttribute a
 onClick_ x = WidgetEventListener "click" (\e => pure x)
 
 value_ : String -> WidgetAttribute b
 value_ x = WidgetSimpleAttribute $ ValueAttr x
+
+multiple_ : Bool -> WidgetAttribute a
+multiple_ x = WidgetSimpleAttribute $ BoolAttr "multiple" x
+
+selected_ : Bool -> WidgetAttribute a
+selected_ x = WidgetSimpleAttribute $ SelectedAttr x
 
 export
 data Column a = MkColumn (Widget a)  
@@ -141,10 +148,37 @@ selectBulma xs z =
     change : DomEvent -> IO (Fin n)
     change e =
       do 
-        v <- targetValue e
+        v <- target e >>= getValue 
         case elemIndex v xs of
              Nothing => throw "selectBulma internal error"
              Just x => pure x
+
+multiSelectOnChange : WidgetAttribute (List Bool)
+multiSelectOnChange = 
+  WidgetEventListener "change" $ \e =>
+    do
+      t <- target e
+      opts <- getOptions t
+      traverse getSelected opts
+                    
+listToNVect : (n : Nat) -> List a -> Maybe (Vect n a)
+listToNVect n xs = 
+  case decEq n (length xs) of
+       Yes prf => Just $ rewrite prf in fromList xs
+       No _ => Nothing
+
+export
+multiSelectBulma : {n : Nat} -> Vect n String -> Maybe (Vect n Bool) -> Widget (Vect n Bool)
+multiSelectBulma xs Nothing = 
+  node "div" [class__ "select", class__ "is-multiple"]
+    [ node "select" [multiple_ True, (fromMaybe (replicate n False) . listToNVect n) <$> multiSelectOnChange]
+        (toList $ (\x => node "option" [WidgetSimpleAttribute (ValueAttr x )] [text x] ) <$> xs)
+    ]
+multiSelectBulma xs (Just vs) = 
+  node "div" [class__ "select", class__ "is-multiple"]
+    [ node "select" [multiple_ True, (fromMaybe (replicate n False) . listToNVect n) <$> multiSelectOnChange]
+        (toList $ zipWith (\x, v => node "option" [WidgetSimpleAttribute (ValueAttr x ), selected_ v] [text x] ) xs vs)
+    ]
 
 export
 fieldsSection : String -> List (Widget a) -> Widget a

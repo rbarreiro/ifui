@@ -441,6 +441,19 @@ selectReader xs x =
         pure $ MkReader (w $ Just s_)  (Just s_)
 
 export
+multiSelectReader : {n : Nat} -> Vect n String -> Maybe (Vect n Bool) -> Reader (Vect n Bool)
+multiSelectReader xs x =
+    MkReader (w x) x
+    where
+      w : Maybe (Vect n Bool) -> Bool -> Widget (Reader (Vect n Bool))
+      w s check = do
+        let warn = if isNothing s && check 
+                         then warning "Missing"
+                         else neutral
+        s_ <- div [multiSelectBulma xs s, warn]
+        pure $ MkReader (w $ Just s_)  (Just s_)
+
+export
 stringValuePairsReaderCompact : (Maybe a -> Reader a)  -> Maybe (List (String, a)) -> Reader (List (String, a))
 stringValuePairsReaderCompact cont x =
   let add : Widget (KeyListReaderEvent a)

@@ -56,6 +56,12 @@ export
 setAttribute : HasIO io => DomNode -> String -> String -> io ()
 setAttribute (MkNode n) k v = primIO $ prim__setAttribute n k v
 
+%foreign "browser:lambda: (n, k) => n.removeAttribute(k)"
+prim__removeAttribute : AnyPtr -> String -> PrimIO ()
+export
+removeAttribute : HasIO io => DomNode -> String -> io ()
+removeAttribute (MkNode n) k = primIO $ prim__removeAttribute n k
+
 %foreign "browser:lambda: (n, k) => n.getAttribute(k)"
 prim__getAttribute : AnyPtr -> String -> PrimIO String
 export
@@ -74,6 +80,21 @@ export
 setValue : HasIO io => DomNode -> String -> io ()
 setValue (MkNode n) v = primIO $ prim__setValue n v
 
+%foreign "browser:lambda: n => n.selected ? 1 : 0"
+prim__getSelected : AnyPtr -> PrimIO Int
+export
+getSelected : HasIO io => DomNode -> io Bool
+getSelected (MkNode n) = 
+  do
+    s <- primIO $ prim__getSelected n
+    pure $ s>0
+
+%foreign "browser:lambda: (n, v) => n.selected = v > 0"
+prim__setSelected : AnyPtr -> Int -> PrimIO ()
+export
+setSelected : HasIO io => DomNode -> Bool -> io ()
+setSelected (MkNode n) v = primIO $ prim__setSelected n (if v then 1 else 0)
+
 %foreign "browser:lambda: (event, callback, node) =>{const f = x=>callback(x)(); node.addEventListener(event, f); return () => node.removeEventListener(event, f);}"
 prim__addEventListener : String -> (AnyPtr -> PrimIO ()) -> AnyPtr -> PrimIO (PrimIO ())
 export
@@ -83,11 +104,14 @@ addEventListener event callback (MkNode n) =
     remove <- primIO $ prim__addEventListener event (\ptr => toPrim  $ callback $ MkEvent ptr) n
     pure $ primIO remove
 
-%foreign "browser:lambda: e => e.target.value"
-prim__targetValue : AnyPtr -> PrimIO String
+%foreign "browser:lambda: e => e.target"
+prim__target : AnyPtr -> PrimIO AnyPtr
 export
-targetValue : HasIO io => DomEvent -> io String
-targetValue (MkEvent x) = primIO $ prim__targetValue x
+target : HasIO io => DomEvent -> io DomNode 
+target (MkEvent x) = 
+  do
+    t <- primIO $ prim__target x
+    pure $ MkNode t
 
 %foreign "browser:lambda: e => e.preventDefault()"
 prim__preventDefault : AnyPtr -> PrimIO ()
@@ -100,16 +124,30 @@ prim__length : AnyPtr -> PrimIO Int
 %foreign "browser:lambda: (i,xs) => xs[i]"
 prim__get : Int -> AnyPtr -> PrimIO AnyPtr
 
+readNodeList : HasIO io => AnyPtr -> io (List DomNode)
+readNodeList ptr = 
+  do
+    len <- primIO $ prim__length ptr
+    nodesPtr <- traverse (\i => primIO $ prim__get i ptr) [0..(len-1)]
+    pure $ map MkNode nodesPtr
+
+%foreign "browser:lambda: n => n.options ? n.options []"
+prim__getOptions : AnyPtr -> PrimIO AnyPtr
+export
+getOptions : HasIO io => DomNode -> io (List DomNode)
+getOptions (MkNode x) =
+  do
+    z <- primIO $ prim__getOptions x
+    readNodeList z
+
 %foreign "browser:lambda: n => n.children"
 prim__getChildren : AnyPtr -> PrimIO AnyPtr
 export
 getChildren : HasIO io => DomNode -> io (List DomNode)
 getChildren (MkNode x) =
   do
-    childrenPtr <- primIO $ prim__getChildren x
-    len <- primIO $ prim__length childrenPtr
-    nodesPtr <- traverse (\i => primIO $ prim__get i childrenPtr) [0..(len-1)]
-    pure $ map MkNode nodesPtr
+    z <- primIO $ prim__getChildren x
+    readNodeList z
 
 %foreign "browser:lambda: n => n.childNodes"
 prim__getChildNodes : AnyPtr -> PrimIO AnyPtr
@@ -117,10 +155,8 @@ export
 getChildNodes : HasIO io => DomNode -> io (List DomNode)
 getChildNodes (MkNode x) =
   do
-    childsPtr <- primIO $ prim__getChildNodes x
-    len <- primIO $ prim__length childsPtr
-    nodesPtr <- traverse (\i => primIO $ prim__get i childsPtr) [0..(len-1)]
-    pure $ map MkNode nodesPtr
+    z <- primIO $ prim__getChildNodes x
+    readNodeList z
 
 %foreign "browser:lambda: n => n.firstElementChild"
 prim__firstElementChild : AnyPtr -> PrimIO AnyPtr
