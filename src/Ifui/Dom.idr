@@ -131,7 +131,7 @@ readNodeList ptr =
     nodesPtr <- traverse (\i => primIO $ prim__get i ptr) [0..(len-1)]
     pure $ map MkNode nodesPtr
 
-%foreign "browser:lambda: n => n.options ? n.options []"
+%foreign "browser:lambda: n => n.options ? n.options : []"
 prim__getOptions : AnyPtr -> PrimIO AnyPtr
 export
 getOptions : HasIO io => DomNode -> io (List DomNode)
