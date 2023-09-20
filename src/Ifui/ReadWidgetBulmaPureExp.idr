@@ -263,7 +263,9 @@ mutual
   pTyTypeReader PNat = ?stydustnd
   pTyTypeReader PDouble = ?yulrst
   pTyTypeReader (PTensor _ _) = ?uyaw
-  pTyTypeReader (PTuple _ _) = ?yrsutyruj
+  pTyTypeReader (PTuple x y) = \w => case w of
+                                          Nothing => (,) <$> pTyTypeReader x Nothing <*> pTyTypeReader y Nothing
+                                          Just (a, b) => (,) <$> pTyTypeReader x (Just a) <*> pTyTypeReader y (Just b)
   pTyTypeReader (PForall _) = ?yrsutyrujarst
   pTyTypeReader PPDF = ?yrsutyrujarstarst
 
