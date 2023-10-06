@@ -302,6 +302,10 @@ ReadWidgetBulma b => ReadWidgetBulma1 (\x => (b, x)) where
   getReaderBulma1 cont Nothing = (,) <$> getReaderBulma Nothing  <*> cont Nothing
   getReaderBulma1 cont (Just (x, y)) = (,) <$> getReaderBulma (Just x) <*> cont (Just y)
 
+export
+(ReadWidgetBulma a, ReadWidgetBulma b) => ReadWidgetBulma1 (\x => (a, b, x)) where
+  getReaderBulma1 cont Nothing = (,,) <$> getReaderBulma Nothing <*> getReaderBulma Nothing  <*> cont Nothing
+  getReaderBulma1 cont (Just (x, y, z)) = (,,) <$> getReaderBulma (Just x) <*> getReaderBulma (Just y) <*> cont (Just z)
 
 fromAllJust : List (Maybe a) -> Maybe (List a)
 fromAllJust [] = Just []
