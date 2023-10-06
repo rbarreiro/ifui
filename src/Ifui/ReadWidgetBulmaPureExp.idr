@@ -124,7 +124,7 @@ mutual
   varAndPrimReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> List (String, () ->  Reader (Pexp ctxt t))
   varAndPrimReaders ctxt t =
     let base = baseExprs ctxt
-    in ?catMaybes (map (\(n,(te ** e)) => (n,) <$> readerFromExp ctxt t te n e)  base)
+    in catMaybes (map (\(n,(te ** e)) => (n,) <$> readerFromExp ctxt t te n e)  base)
 
 
   TreeConsArgs : (ctxt : List (String, PTy)) -> (ts : List (String, TreeNodeKind)) -> Type
