@@ -292,6 +292,13 @@ JsonSerializable a => JsonSerializable1 (\t => List (a, t)) where
   fromJson1 _ _ = Nothing
 
 export
+(JsonSerializable a, JsonSerializable b) => JsonSerializable1 (\t => List (a, b, t)) where
+  toJson1 x g = JArray (map (\(y, z, w) => toJson (toJson y, toJson z, g w)) x)
+
+  fromJson1 (JArray x) g = sequence $ map (\j => do (y, z, w) <- fromJson {a = (a, b, JSON)} j; (y, z, ) <$> g w) x
+  fromJson1 _ _ = Nothing
+
+export
 JsonSerializable a => JsonSerializable1 (\t => (a, t)) where
   toJson1 (z, w) g = JArray [toJson z, g w]
 
