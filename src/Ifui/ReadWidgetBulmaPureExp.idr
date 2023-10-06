@@ -157,7 +157,7 @@ mutual
   litReaders ctxt (PTree xs) = 
     [("Literal", \() => (\(k ** p ** v) => TreeLit p v)  <$> treeLitReader ctxt xs Nothing)]
   litReaders ctxt (PForall x) = ?litReaders_rhs_12
-  litReaders ctxt PPDF = ?litReaders_rhs_13
+  litReaders ctxt PPDF = []
 
   expReaders : (ctxt : List (String, PTy)) -> (t : PTy) -> (n : Nat ** Vect n (String, () ->  Reader (Pexp ctxt t)))
   expReaders ctxt t =
