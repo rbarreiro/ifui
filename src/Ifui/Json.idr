@@ -305,6 +305,13 @@ JsonSerializable a => JsonSerializable1 (\t => (a, t)) where
   fromJson1 (JArray [x, y]) g =  (,) <$> fromJson x <*> g y
   fromJson1 _ _ = Nothing
 
+export
+(JsonSerializable a, JsonSerializable b) => JsonSerializable1 (\t => (a, b, t)) where
+  toJson1 (y, z, w) g = JArray [toJson y, toJson z, g w]
+
+  fromJson1 (JArray [x, y, z]) g =  (,,) <$> fromJson x <*> fromJson y <*> g y
+  fromJson1 _ _ = Nothing
+
 genUniqueName : String -> List String -> String
 genUniqueName x xs = if elem x xs then genUniqueName (x ++ "_") xs
                                   else x
