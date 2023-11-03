@@ -19,7 +19,7 @@ todosInsert srv =
 
 todosView : SrvRef (StreamService () (Change String)) -> Widget a
 todosView srv =
-  callStreamChangesAccumList srv () (\todos => text $ show todos)
+  toWidget (\todos => text $ show todos) (callStreamChangesAccumList srv ()) 
 
 mainWidget : Widget ()
 mainWidget =
