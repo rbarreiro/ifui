@@ -81,7 +81,9 @@ mutual
       Insert' : Query db ctxt (Table ts) -> Query db ctxt (List (Record' ts)) -> 
                    Query db ctxt (Record [("first_error", Maybe String)])
       Insert : Query db ctxt (Table (("id", String) :: ts)) -> 
-                  Query db ctxt (List (Record' ts)) -> Query db ctxt (Record [("first_error", Maybe String)])
+                  Query db ctxt (List (Record' ts)) -> Query db ctxt (Record [ ("first_error", Maybe String)
+                                                                             , ("generated_keys", List String)
+                                                                             ])
       UpdateOne : Query db ctxt (Table (("id", a) :: ts)) -> Query db ctxt a ->
                     Update (Record' (("id", a) :: ts)) (Record' ts) -> Query db ctxt (Record [("first_error", Maybe String)])
       Lit : JsonSerializable a => a -> Query db ctxt a
