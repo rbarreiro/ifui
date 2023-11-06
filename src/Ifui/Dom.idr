@@ -1,5 +1,7 @@
 module Ifui.Dom
 
+import Ifui.Json
+
 export
 data DomNode = MkNode AnyPtr
 
@@ -199,4 +201,16 @@ prim__removeClass : AnyPtr -> String -> PrimIO ()
 export
 removeClass : HasIO io => DomNode -> String -> io ()
 removeClass (MkNode n) v = primIO $ prim__removeClass n v
+
+%foreign "browser:lambda: (k, v) => localStorage.setItem(k, v)"
+prim__localStorageSetItem : AnyPtr -> AnyPtr -> PrimIO ()
+export
+setStorageItem : (HasIO io, JsonSerializable a, JsonSerializable b) => a -> b -> io ()
+setStorageItem k v = primIO $ prim__localStorageSetItem (toPtr k) (toPtr v)
+
+%foreign "browser:lambda: k => localStorage.getItem(k)"
+prim__localStorageGetItem : AnyPtr -> PrimIO AnyPtr
+export
+getStorageItem : (HasIO io, JsonSerializable a, JsonSerializable b) => a -> io (Maybe b)
+getStorageItem k = fromPtr <$> (primIO $ prim__localStorageGetItem (toPtr k))
 

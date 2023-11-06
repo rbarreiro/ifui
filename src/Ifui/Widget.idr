@@ -303,7 +303,7 @@ streamSetup path (MkConnectionInfo url socket counter handles) input outputReade
 
 export
 promiseToWidget : String -> Promise a -> Widget a
-promiseToWidget  id promise = 
+promiseToWidget id promise = 
    MarkupWidget $ \n, onEvt =>
       setNodePromise n id (\w => onEvt (believe_me w)) $ do
         procResult <- newIORef (the (AnyPtr -> IO ()) $ \w => pure ()) 
@@ -312,6 +312,10 @@ promiseToWidget  id promise =
           writeIORef isFinished True
           !(readIORef procResult) (believe_me res)
         pure $ MkPromiseNodeRef procResult h.cancel isFinished
+
+export
+ioToWidget : IO a -> Widget a
+ioToWidget x = promiseToWidget "" (liftIO x)
 
 rpcSetup : String -> ConnectionInfo -> JSON -> (JSON -> Maybe a)  -> Widget a
 rpcSetup path (MkConnectionInfo url socket counter handles) input outputReader = 
@@ -377,6 +381,14 @@ callRPC : (JsonSerializable a, JsonSerializable b) => SrvRef (RPC a b) ->
             a -> Widget b
 callRPC sc y = 
   rpcSetup (serviceConnectionPathStr sc) (getConnectionInfo sc) (addServicePathToInput sc $ toJson y) fromJson
+
+export
+setStorageItem : (JsonSerializable a, JsonSerializable b) => a -> b -> Widget ()
+setStorageItem k v = ioToWidget $ Dom.setStorageItem k v
+
+export
+getStorageItem : (JsonSerializable a, JsonSerializable b) => a -> Widget (Maybe b)
+getStorageItem k = ioToWidget $ Dom.getStorageItem k
 
 namespace StreamWidget
   public export

@@ -72,4 +72,4 @@ HasIO Promise where
   liftIO x = 
     MkPromise' $ \w => do
       r <- x
-      w r
+      setTimeout (w r) 0
