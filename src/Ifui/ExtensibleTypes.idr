@@ -211,3 +211,14 @@ namespace Enum
   Enum : Vect n String -> Type
   Enum xs = Tree ((\s => (s, const ())) <$> xs)
 
+  public export
+  E : {ts : Vect n (String, Type -> Type)} -> {auto 0 prf : So (UniqueKeys ts)} -> (s : String) -> 
+         {auto p : KElem s ts} -> 
+            {auto pU : snd (index (kElemToFin p) ts) (Tree ts) = Unit} ->
+              Tree ts
+  E {ts} s {p} = MkTree (kElemToFin p) (rewrite pU in ())
+
+
+testEnum_E : Enum ["a", "b"]
+testEnum_E = E "a"
+
