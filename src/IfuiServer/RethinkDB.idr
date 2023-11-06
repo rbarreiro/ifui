@@ -85,7 +85,7 @@ mutual
                                                                              , ("generated_keys", List String)
                                                                              ])
       UpdateOne : Query db ctxt (Table (("id", a) :: ts)) -> Query db ctxt a ->
-                    Update (Record' (("id", a) :: ts)) (Record' ts) -> Query db ctxt (Record [("first_error", Maybe String)])
+                    Update db (Record' (("id", a) :: ts)) (Record' ts) -> Query db ctxt (Record [("first_error", Maybe String)])
       Lit : JsonSerializable a => a -> Query db ctxt a
       Eq : QueryEq a => Query db ctxt (a -> a -> Bool)
       GetField : (key : String) -> {auto p : Vect.KElem key fields} -> Query db ctxt (Record fields -> Vect.klookup fields p)
@@ -128,14 +128,14 @@ mutual
   namespace Update
 
     public export
-    data FieldUpdates : Type -> Vect n (String, Type) -> Type where
-      Nil : FieldUpdates a xs
-      (::) : {xs : Vect n (String, Type)} -> {k : String} -> {auto 0 p : KElem k xs} -> Entry k (Update a (klookup xs p)) -> FieldUpdates a xs -> FieldUpdates a xs
+    data FieldUpdates : ServerSpec -> Type -> Vect n (String, Type) -> Type where
+      Nil : FieldUpdates db a xs
+      (::) : {xs : Vect n (String, Type)} -> {k : String} -> {auto 0 p : KElem k xs} -> Entry k (Update db a (klookup xs p)) -> FieldUpdates db a xs -> FieldUpdates db a xs
 
     public export
-    data Update : Type -> Type -> Type where
-      UpdateValue : (q : Query d [("row", a)] b) -> {auto 0 p : AtomicProof q} -> Update a b
-      UpdateFields : FieldUpdates a xs -> Update a (Record xs)
+    data Update : ServerSpec -> Type -> Type -> Type where
+      UpdateValue : (q : Query db [("row", a)] b) -> {auto 0 p : AtomicProof q} -> Update db a b
+      UpdateFields : FieldUpdates db a xs -> Update db a (Record xs)
 
 
 public export
@@ -246,8 +246,8 @@ TestAPq = ["x" ^= "ola"]
 testAP : AtomicProof TestAPq
 testAP = APApp (APRecordPrependKey "x" APLit) APLit
 
-testUpd : Update a (Record [("x", String)])
-testUpd = UpdateFields ["x" ^= UpdateValue (Lit {db = []} "ola")]
+testUpd : Update db a (Record [("x", String)])
+testUpd = UpdateFields ["x" ^= UpdateValue (Lit "ola")]
 
 public export
 interface KeyType a where
@@ -636,11 +636,11 @@ prim__updateOne : AnyPtr -> AnyPtr -> AnyPtr -> AnyPtr
 
 mutual
 
-  compileFieldUpdates : AnyPtr -> FieldUpdates a xs  -> List (String, AnyPtr)
+  compileFieldUpdates : AnyPtr -> FieldUpdates db a xs  -> List (String, AnyPtr)
   compileFieldUpdates r [] = []
   compileFieldUpdates r ((MkEntry k x) :: rs) = (k, compileUpdate r x) :: compileFieldUpdates r rs
 
-  compileUpdate : AnyPtr -> Update a b -> AnyPtr
+  compileUpdate : AnyPtr -> Update db a b -> AnyPtr
   compileUpdate r (UpdateValue q) = prim__updateValue r (compileQuery r Empty (Lambda "row" q))
   compileUpdate r (UpdateFields upds) = let zs = compileFieldUpdates r upds in mkJsObj zs
 
