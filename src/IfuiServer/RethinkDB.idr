@@ -130,7 +130,7 @@ mutual
     public export
     data FieldUpdates : Type -> Vect n (String, Type) -> Type where
       Nil : FieldUpdates a xs
-      (::) : {k : String} -> {auto 0 p : Elem (k, b) xs} -> Entry k (Update a b) -> FieldUpdates a xs -> FieldUpdates a xs
+      (::) : {xs : Vect n (String, Type)} -> {k : String} -> {auto 0 p : KElem k xs} -> Entry k (Update a (klookup xs p)) -> FieldUpdates a xs -> FieldUpdates a xs
 
     public export
     data Update : Type -> Type -> Type where
