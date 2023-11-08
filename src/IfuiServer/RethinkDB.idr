@@ -778,10 +778,6 @@ prim__each : AnyPtr -> (String -> AnyPtr -> PrimIO ()) -> PrimIO ()
 %foreign "node:lambda: (cursor, callback)  => cursor.close((err) => callback(err ? err + '' : '')())"
 prim__close : AnyPtr -> (String -> PrimIO ()) -> PrimIO ()
 
--- %foreign "javascript:lambda: (wrap, nothing, x) => "
-prim__adaptChanges : (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr -> AnyPtr
-
-
 export
 getChanges : JsonSerializable (Change a) => RethinkServer ts -> Query ts [] (Changes a) -> IOStream (Either String (Change a))
 getChanges (MkRethinkServer debug conn) e =
