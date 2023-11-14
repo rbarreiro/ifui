@@ -270,23 +270,3 @@ mutual
   pTyTypeReader PPDF = ?yrsutyrujarstarst
 
 
-export
-readerForm : {default Nothing startVal : Maybe a} -> (Maybe a -> Reader a)  -> Widget (Maybe a)
-readerForm reader = 
-  loopState 
-    (False, reader startVal)
-    (\(check, x) => do
-             res <- formBulma (\z => getWidget z check) x
-             case res of
-                  Nothing => 
-                     pure $ Right Nothing
-                  Just r =>
-                     case getValue r of
-                          Nothing => pure $ Left (True ,r)
-                          Just v =>  pure $ Right $ Just v
-    )
-
-export
-getFormBulma : ReadWidgetBulma a => {default Nothing startVal : Maybe a} -> Widget (Maybe a)
-getFormBulma = 
-  readerForm getReaderBulma 
