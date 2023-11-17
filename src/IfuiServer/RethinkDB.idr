@@ -178,6 +178,10 @@ public export
 (^^) x y = TCons <| x <| y
 
 public export
+(==) : QueryEq a => Query db ctxt a -> Query db ctxt a -> Query db ctxt Bool
+(==) x y = Eq <| x <| y
+
+public export
 FromString (Query db ctxt String) where
   fromString = Lit
 
@@ -632,6 +636,10 @@ QueryMaybe (Record rs) where
   unwrapJust = prim__rid
   nothing = prim__rnull (prim__r ())
   wrap = prim__rid
+
+export
+QueryEq String where
+  req = prim__req (prim__r ())
 
 %foreign "node:lambda: (r, f) => (x => r.literal(f(x)))"
 prim__updateValue : AnyPtr -> AnyPtr -> AnyPtr 
