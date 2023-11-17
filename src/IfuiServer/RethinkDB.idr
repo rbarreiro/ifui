@@ -111,6 +111,7 @@ mutual
       CatMaybes : (QueryMaybe a, QuerySequence f) => Query db ctxt (f (Maybe a) -> f a)
       OrderBy : QuerySequence f => Query db ctxt ((a -> b) -> f a -> f a)
       Get : Query db ctxt (Table (("id", a) :: ts)) -> Query db ctxt (a -> Maybe (Record' (("id", a) :: ts)))
+      Filter : QuerySequence f => Query db ctxt ((a -> Bool) -> f a -> f a)
 
   public export
   data AtomicProof : Query db ctxt t -> Type where
@@ -130,7 +131,8 @@ mutual
     public export
     data FieldUpdates : ServerSpec -> Type -> Vect n (String, Type) -> Type where
       Nil : FieldUpdates db a xs
-      (::) : {xs : Vect n (String, Type)} -> {k : String} -> {auto 0 p : KElem k xs} -> Entry k (Update db a (klookup xs p)) -> FieldUpdates db a xs -> FieldUpdates db a xs
+      (::) : {xs : Vect n (String, Type)} -> {k : String} -> {auto 0 p : KElem k xs} -> 
+               Entry k (Update db a (klookup xs p)) -> FieldUpdates db a xs -> FieldUpdates db a xs
 
     public export
     data Update : ServerSpec -> Type -> Type -> Type where
@@ -444,6 +446,9 @@ prim__changes : AnyPtr -> AnyPtr -> (AnyPtr -> AnyPtr) -> AnyPtr -> AnyPtr -> An
 %foreign "node:lambda: r => (f => (x => r.map(x, f)))"
 prim__rmap : AnyPtr -> AnyPtr
 
+%foreign "node:lambda: () => (f => (x => x.filter(f)))"
+prim__rfilter : () -> AnyPtr
+
 %foreign "node:lambda: () => (f => (x => x.concatMap(f)))"
 prim__rconcatMap : () -> AnyPtr
 
@@ -728,6 +733,8 @@ mutual
     prim__rorderBy ()
   compileQuery r vars (Get x) = 
     prim__rGet $ compileQuery r vars x
+  compileQuery r vars Filter =
+    prim__rfilter ()
 
 %foreign "javascript:lambda: x=> x+''"
 prim__toString : AnyPtr -> String
