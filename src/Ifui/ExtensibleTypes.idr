@@ -3,6 +3,7 @@ module Ifui.ExtensibleTypes
 import public Data.Vect
 import public Data.So
 import public Data.Vect.Elem
+import Decidable.Equality
 
 public export
 soAnd2 : {a : Bool} -> So (a && b) -> So b
@@ -186,6 +187,14 @@ namespace Record
     show {ts = ((s, w) :: (z :: l))} ((MkEntry s x) :: r) =
       "[\{s}^=\{show x}, " ++ (let z = show r in substr 1 (length z) z)
 
+public export
+interface Eq1 (0 f : Type -> Type) where
+  eq1 : (a -> a -> Bool) -> f a -> f a -> Bool
+
+export
+Eq b => Eq1 (const b) where
+  eq1 cont x y = x == y
+
 namespace Tree
   public export
   data Tree : Vect n (String, (Type -> Type)) -> Type where
@@ -207,6 +216,33 @@ namespace Tree
             {auto pU : snd (index (kElemToFin p) ts) (Tree ts) = Unit} ->
               Tree ts
   E {ts} s {p} = MkTree (kElemToFin p) (rewrite pU in ())
+
+TreeHeadsEq : Vect n (String, Type -> Type) -> Type -> Vect n (String, Type)
+TreeHeadsEq zs a = (mapValues (\f => (a -> a -> Bool) -> f a -> f a -> Bool) zs)
+
+total
+branchEq : (ts : Vect n (String, Type -> Type)) -> (k : Fin n) -> index2 k (TreeHeadsEq ts a) -> 
+                        (index2 k ts a) -> (index2 k ts a) -> (a -> a -> Bool) -> Bool
+branchEq [] FZ _ _ _ impossible
+branchEq [] (FS w) _ _ _ impossible
+branchEq ((w, v) :: xs) FZ f y z cont = f cont y z
+branchEq ((w, v) :: xs) (FS s) f y z cont = branchEq xs s f y z cont
+
+keq1 : {ts : Vect n (String, Type -> Type)} -> (i : AllI Eq1 ts) => (k : Fin n) -> index2 k (TreeHeadsEq ts a)
+keq1 {ts = ((x, y) :: xs)} FZ = eq1 {f = y} 
+keq1 {ts = ((y, z) :: xs)} (FS x) = keq1 {ts = xs} x
+
+treeEq : {ts : Vect n (String, Type -> Type)} -> (i : AllI Eq1 ts) => Tree ts -> Tree ts -> Bool
+treeEq {ts} {i} (MkTree k x) (MkTree y z) =
+  case decEq k y of 
+       Yes prf => 
+              assert_total $ branchEq ts k (keq1 k) x (rewrite prf in z) treeEq
+       No _ => 
+              False
+
+export
+{ts : Vect n (String, Type -> Type)} -> (i : AllI Eq1 ts) => Eq (Tree ts) where
+  (==) x y = treeEq {ts = ts} {i = i} x y 
 
 namespace Variant
   public export

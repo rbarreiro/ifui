@@ -54,6 +54,10 @@ interface QueryEq (0 a : Type) where
   req : AnyPtr
 
 public export
+interface QueryEq1 (0 f : Type -> Type) where
+  req1 : AnyPtr
+
+public export
 interface QueryNum (0 a : Type) where
   radd : AnyPtr
   rmul : AnyPtr
@@ -639,6 +643,23 @@ QueryMaybe (Record rs) where
 
 export
 QueryEq String where
+  req = prim__req (prim__r ())
+
+export
+QueryEq Unit where
+  req = prim__req (prim__r ())
+
+export
+AllI QueryEq ts  => QueryEq (Record ts) where
+  req = prim__req (prim__r ())
+
+
+export
+QueryEq b => QueryEq1 (const b) where
+  req1 = prim__req (prim__r ())
+
+export
+AllI QueryEq1 ts  => QueryEq (Tree ts) where
   req = prim__req (prim__r ())
 
 %foreign "node:lambda: (r, f) => (x => r.literal(f(x)))"
