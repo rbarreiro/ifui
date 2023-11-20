@@ -316,3 +316,29 @@ mutual
   pTyTypeFromJson (PForall _) = ?cxnwuarst
   pTyTypeFromJson PPDF = fromJson
 
+export
+{g : PTy -> List (String, PTy)} -> {f : PTy -> PTy} -> JsonSerializable (a : PTy ** Pexp (g a) (f a)) where
+  toJson ((fst ** snd)) =
+    JArray [toJson fst, toJson snd]
+
+  fromJson (JArray [fst, snd]) =
+    do
+      fst_ <- fromJson {a = PTy} fst
+      snd_ <- fromJson snd
+      pure (fst_ ** snd_)
+  fromJson _ =
+    Nothing
+
+export
+{g : PTy -> PTy -> List (String, PTy)} -> {f : PTy -> PTy -> PTy} -> JsonSerializable (a : PTy ** ( b : PTy ** Pexp (g a b) (f a b)    )) where
+  toJson ((fst ** snd)) =
+    JArray [toJson fst, toJson snd]
+
+  fromJson (JArray [fst, snd]) =
+    do
+      fst_ <- fromJson {a = PTy} fst
+      snd_ <- fromJson snd
+      pure (fst_ ** snd_)
+  fromJson _ =
+    Nothing
+
