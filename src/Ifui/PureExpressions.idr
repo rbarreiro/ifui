@@ -28,7 +28,7 @@ data Pexp : List (String, PTy) -> PTy -> Type where
     BoolLit : Bool -> Pexp ctxt PBool
     TreeLit : {k : String} -> (p : KElem k ts) -> Pexp ctxt (TreeNodeKindPTy (klookup ts p) (PTree ts)) -> Pexp ctxt (PTree ts)
     PUnitLit : Pexp ctxt PUnit
-    NatLit : String -> Pexp ctxt PNat
+    NatLit : Nat -> Pexp ctxt PNat
     Prim : PrimFn a -> Pexp ctxt a
 
 mutual
@@ -342,3 +342,46 @@ export
   fromJson _ =
     Nothing
 
+export
+Show PPTy where
+  show PPList = "PPList"
+  show (PPFun x y) = "(PPFun \{show x} \{show y})"
+
+mutual
+  export
+  Show TreeNodeKind where
+    show NamedSubTrees = "NamedSubTrees"
+    show (Leaf x) =  assert_total "(Leaf \{show x})"
+    show OneChild = "OneChild"
+    show (ValueAndOneChild x) = assert_total "(ValueAndOneChild \{show x})"
+
+
+  export
+  Show PTy where
+    show PString = "PString"
+    show PBool = "PBool"
+    show PUnit = "PUnit"
+    show PInt = "PInt"
+    show (PList x) = "(PList \{show x})"
+    show PNat = "PNat"
+    show PDouble = "PDouble"
+    show (PTensor ks x) = "(PTensor \{show ks} \{show x})"
+    show (PTuple x y) = "(PTuple \{show x} \{show y})"
+    show (PFun x y) = "(PFun \{show x} \{show y})"
+    show (PRecord xs) = assert_total "(PRecord \{show xs})"
+    show (PTree xs) = assert_total "(PTree \{show xs})"
+    show (PForall x) = assert_total "(PForall \{show x})"
+    show PPDF = "PPDF"
+
+export
+Show (Pexp ctxt a) where
+ show (Var name) = name
+ show (Lambda arg x) = "(\\\{arg} => \{show x})"
+ show (Let arg x y) = "(let \{arg} = \{show x} in \{show y})"
+ show (App x y) = "(\{show x} \{show y})"
+ show (StringLit str) = show $ JString str 
+ show (BoolLit x) = show x
+ show (TreeLit p x) = ?sdtd
+ show PUnitLit = ?rst_7 
+ show (NatLit str) = ?rst_8 
+ show (Prim x) = ?rst_9
