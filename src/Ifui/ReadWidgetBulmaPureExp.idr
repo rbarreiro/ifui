@@ -209,7 +209,12 @@ mutual
   getReaderBulma_Pexp ctxt (PTree ts) (Just (TreeLit {k} x y)) = 
     let (n ** zs) = expReaders ctxt (PTree ts)
     in case getReaderByName "Literal" zs of
-            Just (i, _) =>  MkReader (pexpW zs (Just (i, (\(_ ** p ** v) => TreeLit p v) <$> treeLitReader ctxt ts (Just  (k ** x ** y))))) (Just (TreeLit x y))
+            Just (i, _) =>  MkReader 
+                              (pexpW 
+                                zs 
+                                (Just (i, (\(_ ** p ** v) => TreeLit p v) <$> treeLitReader ctxt ts (Just  (k ** x ** y))))
+                              ) 
+                              (Just (TreeLit x y))
             Nothing => MkReader (pexpW zs Nothing) Nothing
   getReaderBulma_Pexp ctxt PNat (Just (NatLit x)) = 
     let (n ** zs) = expReaders ctxt PNat
