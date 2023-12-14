@@ -30,3 +30,5 @@ test2 : Widget (Maybe (Record [("id", String),("spec", PTy)]))
 test2 = getFormBulma
 
 
+test3 :Widget (Maybe (Record [("output", (a : PTy ** (b : PTy ** Pexp[("x", a)] b)))]))
+test3 = getFormBulma

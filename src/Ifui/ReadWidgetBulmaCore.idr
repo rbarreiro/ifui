@@ -419,6 +419,14 @@ export
       
 
 export
+{s : String} -> (DecEq a, ReadWidgetBulma a, {y : a} -> ReadWidgetBulma (p y)) => ReadWidgetBulma (Entry s (DPair a p)) where
+  getReaderBulma x = 
+    MkEntry s <$> (transformReader f $ getReaderBulma (value <$> x))
+    where
+      f : Widget w -> Widget w
+      f x = fieldsSection s [x]
+
+export
 optionsReader : {default False compact : Bool} -> 
                    (a -> (Fin n, Reader a)) -> Vect n (String, () -> Reader a) -> Maybe a -> Reader a
 optionsReader init options s0 =
