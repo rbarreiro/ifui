@@ -438,6 +438,22 @@ JsonSerializable (Tree ts) => JsonSerializable (Maybe (Tree ts)) where
   fromJson JNull = Just Nothing
   fromJson o = Just <$> fromJson o
 
+
+export
+(JsonSerializable a, {y : a} -> JsonSerializable (p y)) => JsonSerializable (DPair a p) where
+ toJson (fst ** snd) = 
+   JArray [toJson fst, toJson snd]
+
+ fromJson (JArray [fst, snd]) = 
+   do
+      fst_ <- fromJson fst
+      snd_ <- fromJson snd
+      pure (fst_ ** snd_)
+
+ fromJson _ =
+   Nothing
+
+
 testTree : Tree [("Record", \w => List (String, w)), ("String", const ())]
 testTree = N "String" ()
 

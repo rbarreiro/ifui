@@ -317,19 +317,6 @@ mutual
   pTyTypeFromJson PPDF = fromJson
 
 
-(JsonSerializable a, {y : a} -> JsonSerializable (p y)) => JsonSerializable (DPair a p) where
- toJson (fst ** snd) = 
-   JArray [toJson fst, toJson snd]
-
- fromJson (JArray [fst, snd]) = 
-   do
-      fst_ <- fromJson fst
-      snd_ <- fromJson snd
-      pure (fst_ ** snd_)
-
- fromJson _ =
-   Nothing
-
 
 export
 Show PPTy where
