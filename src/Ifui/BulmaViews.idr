@@ -84,6 +84,7 @@ export
 View (Pexp c a) where
   bulmaView = text . show
 
+export
 (View a, {y : a} -> View (p y)) => View (DPair a p) where
   bulmaView (i ** j) = div [bulmaView i, bulmaView j]
 
