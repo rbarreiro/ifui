@@ -3,6 +3,8 @@ module Ifui.ReadWidgetBulmaCore
 import public Ifui
 import public Ifui.Bulma
 import Data.List
+import public Decidable.Equality
+
 
 public export
 data Reader a = MkReader (Bool -> Widget (Reader a)) (Maybe a)
@@ -242,7 +244,8 @@ TreeHeadsGetReader : Vect n (String, Type -> Type) -> Type -> Vect n (String, Ty
 TreeHeadsGetReader zs a = (mapValues (\f => ((Maybe a -> Reader a) -> Maybe (f a) -> Reader (f a))) zs)
 
 getReaderTreeHead : (zs : Vect n (String, Type -> Type)) -> (k : Fin n) -> 
-                   index2 k (TreeHeadsGetReader zs a) -> Maybe ((index2 k zs) a) -> (Maybe a -> Reader a)  -> Reader ((index2 k zs) a)
+                   index2 k (TreeHeadsGetReader zs a) -> Maybe ((index2 k zs) a) -> 
+                     (Maybe a -> Reader a)  -> Reader ((index2 k zs) a)
 getReaderTreeHead [] FZ _ _ _ impossible
 getReaderTreeHead [] (FS z) _ _ _ impossible
 getReaderTreeHead ((z, w) :: xs) FZ x y f = x f y
@@ -397,6 +400,24 @@ export
       f : Widget a -> Widget a
       f x = fieldsSection s [x]
 
+castIfSame : DecEq a => {0 p : a -> Type} -> (y : a) -> (x : a)  -> (p x) -> Maybe (p y)
+castIfSame y x z = 
+  case decEq y x of
+       Yes prf => Just (rewrite prf in z)
+       No _ => Nothing
+
+export
+(DecEq a, ReadWidgetBulma a, {y : a} -> ReadWidgetBulma (p y)) => ReadWidgetBulma (DPair a p) where
+  getReaderBulma Nothing = 
+    do
+      h <- getReaderBulma Nothing
+      (\z => (h ** z)) <$> getReaderBulma Nothing
+  getReaderBulma (Just ((fst ** snd))) =
+    do
+      h <- getReaderBulma (Just fst)
+      (\z => (h ** z)) <$> getReaderBulma (castIfSame h fst snd)
+      
+
 export
 optionsReader : {default False compact : Bool} -> 
                    (a -> (Fin n, Reader a)) -> Vect n (String, () -> Reader a) -> Maybe a -> Reader a
@@ -484,3 +505,5 @@ stringValuePairsReaderCompact cont x =
                 Nothing => []
                 Just x => map (\(k,v) => (k, cont (Just v))) x
   in MkReader (w startReaders) x
+
+
