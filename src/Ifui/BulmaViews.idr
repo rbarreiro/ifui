@@ -15,6 +15,10 @@ View String where
   bulmaView = text
 
 export
+View Bool where
+  bulmaView = text . show
+
+export
 Num a => Show a => View (List a) where
   bulmaView x = text $ show x
 
